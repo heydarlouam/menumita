@@ -25,7 +25,7 @@ class MultiSelectDropDown<T> extends StatelessWidget {
           child: DropdownButton2<T>(
             isExpanded: true,
             hint: Text(
-              'Select Items',
+              'انتخاب ایتم',
               style: TextStyle(
                 fontSize: 14,
                 color: Theme.of(context).hintColor,

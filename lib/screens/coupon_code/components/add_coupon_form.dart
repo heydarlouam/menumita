@@ -1,27 +1,39 @@
-import 'package:flutter/material.dart';
-import 'package:gap/gap.dart';
-import 'package:provider/provider.dart';
-
-import '../../../models/category.dart';
-import '../../../models/coupon.dart';
-import '../../../models/product.dart';
-import '../../../models/sub_category.dart';
-import '../../../utility/constants.dart';
-import '../../../utility/extensions.dart';
-import '../../../widgets/custom_date_picker.dart';
-import '../../../widgets/custom_dropdown.dart';
-import '../../../widgets/custom_text_field.dart';
-import '../provider/coupon_code_provider.dart';
-
-
-// class CouponSubmitForm extends StatelessWidget {
+// import 'package:flutter/material.dart';
+// import 'package:gap/gap.dart';
+// import 'package:provider/provider.dart';
+//
+// import '../../../models/category.dart';
+// import '../../../models/coupon.dart';
+// import '../../../models/product.dart';
+// import '../../../models/sub_category.dart';
+// import '../../../utility/constants.dart';
+// import '../../../utility/extensions.dart';
+// import '../../../widgets/custom_date_picker.dart';
+// import '../../../widgets/custom_dropdown.dart';
+// import '../../../widgets/custom_text_field.dart';
+// import '../provider/coupon_code_provider.dart';
+//
+// class CouponSubmitForm extends StatefulWidget {
 //   final Coupon? coupon;
 //   const CouponSubmitForm({Key? key, this.coupon}) : super(key: key);
 //
 //   @override
+//   State<CouponSubmitForm> createState() => _CouponSubmitFormState();
+// }
+//
+// class _CouponSubmitFormState extends State<CouponSubmitForm> {
+//   @override
+//   void initState() {
+//     super.initState();
+//     // یک‌بار مقداردهی
+//     WidgetsBinding.instance.addPostFrameCallback((_) {
+//       context.couponCodeProvider.setDataForUpdateCoupon(widget.coupon);
+//     });
+//   }
+//
+//   @override
 //   Widget build(BuildContext context) {
 //     final provider = context.couponCodeProvider;
-//     _initializeForm(provider, coupon);
 //
 //     return SingleChildScrollView(
 //       child: Form(
@@ -138,8 +150,9 @@ import '../provider/coupon_code_provider.dart';
 //                             p.selectedCouponStatus = val ?? 'active';
 //                             p.updateUi();
 //                           },
-//                           validator: (v) =>
-//                           (v == null || v.isEmpty) ? 'Please select status' : null,
+//                           validator: (v) => (v == null || v.isEmpty)
+//                               ? 'Please select status'
+//                               : null,
 //                         );
 //                       },
 //                     ),
@@ -207,9 +220,11 @@ import '../provider/coupon_code_provider.dart';
 //                         },
 //                         child: p.isSubmitting
 //                             ? const SizedBox(
-//                             height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2))
+//                           height: 20, width: 20,
+//                           child: CircularProgressIndicator(strokeWidth: 2),
+//                         )
 //                             : Text(
-//                           coupon != null ? 'Update Coupon' : 'Create Coupon',
+//                           widget.coupon != null ? 'Update Coupon' : 'Create Coupon',
 //                           style: const TextStyle(fontWeight: FontWeight.bold),
 //                         ),
 //                       ),
@@ -222,12 +237,6 @@ import '../provider/coupon_code_provider.dart';
 //         ),
 //       ),
 //     );
-//   }
-//
-//   void _initializeForm(CouponCodeProvider provider, Coupon? coupon) {
-//     WidgetsBinding.instance.addPostFrameCallback((_) {
-//       provider.setDataForUpdateCoupon(coupon);
-//     });
 //   }
 //
 //   Widget _categoryDropdown(BuildContext context, CouponCodeProvider p) {
@@ -285,11 +294,11 @@ import '../provider/coupon_code_provider.dart';
 //   }
 // }
 //
-// // Popup helper (همسان با کتگوری)
+// // Popup helper بدون تغییر
 // void showAddCouponForm(BuildContext context, Coupon? coupon) {
 //   showDialog(
 //     context: context,
-//     barrierDismissible: false, // مثل Category
+//     barrierDismissible: false,
 //     builder: (BuildContext context) {
 //       return AlertDialog(
 //         backgroundColor: bgColor,
@@ -303,13 +312,9 @@ import '../provider/coupon_code_provider.dart';
 //       );
 //     },
 //   ).then((_) {
-//     // اگر دوست داشته باشی می‌تونی اینجا فیلدها رو پاک کنی
 //     context.couponCodeProvider.clearFields();
 //   });
 // }
-
-
-// lib/screens/coupon_code/components/add_coupon_form.dart
 import 'package:flutter/material.dart';
 import 'package:gap/gap.dart';
 import 'package:provider/provider.dart';
@@ -366,11 +371,11 @@ class _CouponSubmitFormState extends State<CouponSubmitForm> {
                   Expanded(
                     child: CustomTextField(
                       controller: provider.couponCodeCtrl,
-                      labelText: 'Coupon Code',
+                      labelText: 'کد کوپن',
                       onSave: (_) {},
                       validator: (v) {
-                        if (v == null || v.isEmpty) return 'Please enter coupon code';
-                        if (v.length < 3) return 'Coupon code must be at least 3 characters';
+                        if (v == null || v.isEmpty) return 'لطفاً کد کوپن را وارد کنید';
+                        if (v.length < 3) return 'کد کوپن باید حداقل ۳ کاراکتر باشد';
                         return null;
                       },
                     ),
@@ -380,7 +385,7 @@ class _CouponSubmitFormState extends State<CouponSubmitForm> {
                       builder: (_, p, __) {
                         return CustomDropdown(
                           key: GlobalKey(),
-                          hintText: 'Discount Type',
+                          hintText: 'نوع تخفیف',
                           items: const ['fixed', 'percentage'],
                           initialValue: p.selectedDiscountType,
                           onChanged: (val) {
@@ -388,9 +393,10 @@ class _CouponSubmitFormState extends State<CouponSubmitForm> {
                             p.updateUi();
                           },
                           validator: (value) => (value == null || value.isEmpty)
-                              ? 'Please select a discount type'
+                              ? 'لطفاً نوع تخفیف را انتخاب کنید'
                               : null,
-                          displayItem: (val) => val.toUpperCase(),
+                          // فقط متن نمایش فارسی می‌شود؛ مقادیر داخلی همان 'fixed' و 'percentage' می‌ماند
+                          displayItem: (val) => val == 'percentage' ? 'درصدی' : 'مبلغ ثابت',
                         );
                       },
                     ),
@@ -401,18 +407,19 @@ class _CouponSubmitFormState extends State<CouponSubmitForm> {
               Row(
                 children: [
                   Expanded(
-                    child: CustomTextField(
+                    child: CustomTextField
+                      (
                       controller: provider.discountAmountCtrl,
-                      labelText: 'Discount Amount',
+                      labelText: 'مقدار تخفیف',
                       inputType: const TextInputType.numberWithOptions(decimal: true),
                       onSave: (_) {},
                       validator: (v) {
-                        if (v == null || v.isEmpty) return 'Please enter discount amount';
+                        if (v == null || v.isEmpty) return 'لطفاً مقدار تخفیف را وارد کنید';
                         final d = double.tryParse(v);
-                        if (d == null) return 'Please enter a valid number';
-                        if (d <= 0) return 'Discount amount must be greater than 0';
+                        if (d == null) return 'لطفاً یک عدد معتبر وارد کنید';
+                        if (d <= 0) return 'مقدار تخفیف باید بزرگ‌تر از صفر باشد';
                         if (provider.selectedDiscountType == 'percentage' && d > 100) {
-                          return 'Percentage discount cannot exceed 100%';
+                          return 'تخفیف درصدی نمی‌تواند بیش از ۱۰۰٪ باشد';
                         }
                         return null;
                       },
@@ -421,14 +428,14 @@ class _CouponSubmitFormState extends State<CouponSubmitForm> {
                   Expanded(
                     child: CustomTextField(
                       controller: provider.minimumPurchaseAmountCtrl,
-                      labelText: 'Minimum Purchase Amount (Optional)',
+                      labelText: 'حداقل مبلغ خرید (اختیاری)',
                       inputType: const TextInputType.numberWithOptions(decimal: true),
                       onSave: (_) {},
                       validator: (v) {
                         if (v != null && v.isNotEmpty) {
                           final d = double.tryParse(v);
-                          if (d == null) return 'Please enter a valid number';
-                          if (d < 0) return 'Amount cannot be negative';
+                          if (d == null) return 'لطفاً یک عدد معتبر وارد کنید';
+                          if (d < 0) return 'مقدار نمی‌تواند منفی باشد';
                         }
                         return null;
                       },
@@ -441,7 +448,7 @@ class _CouponSubmitFormState extends State<CouponSubmitForm> {
                 children: [
                   Expanded(
                     child: CustomDatePicker(
-                      labelText: 'End Date',
+                      labelText: 'تاریخ پایان',
                       controller: provider.endDateCtrl,
                       initialDate: DateTime.now().add(const Duration(days: 30)),
                       firstDate: DateTime.now(),
@@ -454,16 +461,16 @@ class _CouponSubmitFormState extends State<CouponSubmitForm> {
                       builder: (_, p, __) {
                         return CustomDropdown(
                           key: GlobalKey(),
-                          hintText: 'Status',
+                          hintText: 'وضعیت',
                           initialValue: p.selectedCouponStatus,
                           items: const ['active', 'inactive'],
-                          displayItem: (val) => val.toUpperCase(),
+                          displayItem: (val) => val == 'inactive' ? 'غیرفعال' : 'فعال',
                           onChanged: (val) {
                             p.selectedCouponStatus = val ?? 'active';
                             p.updateUi();
                           },
                           validator: (v) => (v == null || v.isEmpty)
-                              ? 'Please select status'
+                              ? 'لطفاً وضعیت را انتخاب کنید'
                               : null,
                         );
                       },
@@ -477,7 +484,7 @@ class _CouponSubmitFormState extends State<CouponSubmitForm> {
                   return Column(
                     children: [
                       Text(
-                        'Restrictions (Optional - Leave all empty for all products)',
+                        'محدودیت‌ها (اختیاری - برای اعمال روی تمام محصولات، همه را خالی بگذارید)',
                         style: TextStyle(
                           fontWeight: FontWeight.bold,
                           color: Colors.grey[700],
@@ -509,7 +516,7 @@ class _CouponSubmitFormState extends State<CouponSubmitForm> {
                           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
                         ),
                         onPressed: () => Navigator.of(context).pop(),
-                        child: const Text('Cancel'),
+                        child: const Text('انصراف'),
                       ),
                       const SizedBox(width: defaultPadding),
                       ElevatedButton(
@@ -536,7 +543,7 @@ class _CouponSubmitFormState extends State<CouponSubmitForm> {
                           child: CircularProgressIndicator(strokeWidth: 2),
                         )
                             : Text(
-                          widget.coupon != null ? 'Update Coupon' : 'Create Coupon',
+                          widget.coupon != null ? 'بروزرسانی کوپن' : 'ایجاد کوپن',
                           style: const TextStyle(fontWeight: FontWeight.bold),
                         ),
                       ),
@@ -557,9 +564,9 @@ class _CouponSubmitFormState extends State<CouponSubmitForm> {
 
     return CustomDropdown<Category>(
       initialValue: p.selectedCategory,
-      hintText: 'Select Category',
+      hintText: 'انتخاب دسته‌بندی',
       items: list,
-      displayItem: (c) => c?.name ?? 'No Category',
+      displayItem: (c) => c?.name ?? 'بدون دسته‌بندی',
       onChanged: (val) {
         p.selectedCategory = val;
         p.selectedSubCategory = null;
@@ -575,9 +582,9 @@ class _CouponSubmitFormState extends State<CouponSubmitForm> {
 
     return CustomDropdown<SubCategory>(
       initialValue: p.selectedSubCategory,
-      hintText: 'Select Sub Category',
+      hintText: 'انتخاب زیر‌دسته',
       items: list,
-      displayItem: (s) => s?.name ?? 'No Sub Category',
+      displayItem: (s) => s?.name ?? 'بدون زیر‌دسته',
       onChanged: (val) {
         p.selectedSubCategory = val;
         p.selectedCategory = null;
@@ -593,9 +600,9 @@ class _CouponSubmitFormState extends State<CouponSubmitForm> {
 
     return CustomDropdown<Product>(
       initialValue: p.selectedProduct,
-      hintText: 'Select Product',
+      hintText: 'انتخاب محصول',
       items: list,
-      displayItem: (pr) => pr?.name ?? 'No Product',
+      displayItem: (pr) => pr?.name ?? 'بدون محصول',
       onChanged: (val) {
         p.selectedProduct = val;
         p.selectedCategory = null;
@@ -606,7 +613,7 @@ class _CouponSubmitFormState extends State<CouponSubmitForm> {
   }
 }
 
-// Popup helper بدون تغییر
+// Popup helper بدون تغییر ظاهر
 void showAddCouponForm(BuildContext context, Coupon? coupon) {
   showDialog(
     context: context,
@@ -616,7 +623,7 @@ void showAddCouponForm(BuildContext context, Coupon? coupon) {
         backgroundColor: bgColor,
         title: Center(
           child: Text(
-            coupon != null ? 'Update Coupon' : 'Create New Coupon',
+            coupon != null ? 'بروزرسانی کوپن' : 'ایجاد کوپن جدید',
             style: const TextStyle(color: primaryColor, fontWeight: FontWeight.bold),
           ),
         ),

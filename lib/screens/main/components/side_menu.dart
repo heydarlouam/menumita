@@ -1,3 +1,130 @@
+// import 'package:flutter/material.dart';
+// import 'package:flutter_svg/flutter_svg.dart';
+//
+// import '../../../utility/extensions.dart';
+//
+// class SideMenu extends StatelessWidget {
+//   const SideMenu({
+//     Key? key,
+//   }) : super(key: key);
+//
+//   @override
+//   Widget build(BuildContext context) {
+//     return Drawer(
+//       child: ListView(
+//         children: [
+//           DrawerHeader(
+//             child: Center(child: SizedBox(width: 100,height: 100,child: Image.asset("assets/images/logo.png", color: Colors.white54,),))
+//           ),
+//           DrawerListTile(
+//             title: "Dashboard",
+//             svgSrc: "assets/icons/menu_dashboard.svg",
+//             press: () {
+//               context.mainScreenProvider.navigateToScreen('Dashboard');
+//             },
+//           ),
+//           DrawerListTile(
+//             title: "Category",
+//             svgSrc: "assets/icons/menu_tran.svg",
+//             press: () {
+//               context.mainScreenProvider.navigateToScreen('Category');
+//             },
+//           ),
+//           DrawerListTile(
+//             title: "Sub Category",
+//             svgSrc: "assets/icons/menu_task.svg",
+//             press: () {
+//               context.mainScreenProvider.navigateToScreen('SubCategory');
+//             },
+//           ),
+//           DrawerListTile(
+//             title: "Brands",
+//             svgSrc: "assets/icons/menu_doc.svg",
+//             press: () {
+//               context.mainScreenProvider.navigateToScreen('Brands');
+//             },
+//           ),
+//           DrawerListTile(
+//             title: "Variant Type",
+//             svgSrc: "assets/icons/menu_store.svg",
+//             press: () {
+//               context.mainScreenProvider.navigateToScreen('VariantType');
+//             },
+//           ),
+//           DrawerListTile(
+//             title: "Variants",
+//             svgSrc: "assets/icons/menu_notification.svg",
+//             press: () {
+//               context.mainScreenProvider.navigateToScreen('Variants');
+//             },
+//           ),
+//           DrawerListTile(
+//             title: "Orders",
+//             svgSrc: "assets/icons/menu_profile.svg",
+//             press: () {
+//               context.mainScreenProvider.navigateToScreen('Order');
+//             },
+//           ),
+//           DrawerListTile(
+//             title: "Coupons",
+//             svgSrc: "assets/icons/menu_setting.svg",
+//             press: () {
+//               context.mainScreenProvider.navigateToScreen('Coupon');
+//             },
+//           ),
+//           DrawerListTile(
+//             title: "Posters",
+//             svgSrc: "assets/icons/menu_doc.svg",
+//             press: () {
+//               context.mainScreenProvider.navigateToScreen('Poster');
+//             },
+//           ),
+//           // DrawerListTile(
+//           //   title: "Notifications",
+//           //   svgSrc: "assets/icons/menu_notification.svg",
+//           //   press: () {
+//           //     context.mainScreenProvider.navigateToScreen('Notifications');
+//           //   },
+//           // ),
+//         ],
+//       ),
+//     );
+//   }
+// }
+//
+// class DrawerListTile extends StatelessWidget {
+//   const DrawerListTile({
+//     Key? key,
+//     // For selecting those three line once press "Command+D"
+//     required this.title,
+//     required this.svgSrc,
+//     required this.press,
+//   }) : super(key: key);
+//
+//   final String title, svgSrc;
+//   final VoidCallback press;
+//
+//   @override
+//   Widget build(BuildContext context) {
+//     return ListTile(
+//       onTap: press,
+//       horizontalTitleGap: 8.0,
+//       leading: SvgPicture.asset(
+//         svgSrc,
+//         colorFilter: ColorFilter.mode(Colors.white54, BlendMode.srcIn),
+//         height: 16,
+//       ),
+//       title: Text(
+//         title,
+//         style: TextStyle(
+//           color: Colors.white54,
+//           fontSize: 15.0,
+//         ),
+//       ),
+//     );
+//   }
+// }
+
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
@@ -14,73 +141,82 @@ class SideMenu extends StatelessWidget {
       child: ListView(
         children: [
           DrawerHeader(
-            child: Center(child: SizedBox(width: 100,height: 100,child: Image.asset("assets/images/logo.png", color: Colors.white54,),))
+            child: Center(
+              child: SizedBox(
+                width: 100,
+                height: 100,
+                child: Image.asset(
+                  "assets/images/logo.png",
+                  color: Colors.white54,
+                ),
+              ),
+            ),
           ),
           DrawerListTile(
-            title: "Dashboard",
+            title: "داشبورد",
             svgSrc: "assets/icons/menu_dashboard.svg",
             press: () {
-              context.mainScreenProvider.navigateToScreen('Dashboard');
+              context.mainScreenProvider.navigateToScreen('داشبورد');
             },
           ),
           DrawerListTile(
-            title: "Category",
+            title: "دسته‌بندی",
             svgSrc: "assets/icons/menu_tran.svg",
             press: () {
-              context.mainScreenProvider.navigateToScreen('Category');
+              context.mainScreenProvider.navigateToScreen('دسته‌بندی');
             },
           ),
           DrawerListTile(
-            title: "Sub Category",
+            title: "زیر‌دسته",
             svgSrc: "assets/icons/menu_task.svg",
             press: () {
-              context.mainScreenProvider.navigateToScreen('SubCategory');
+              context.mainScreenProvider.navigateToScreen('زیر‌دسته');
             },
           ),
           DrawerListTile(
-            title: "Brands",
+            title: "برندها",
             svgSrc: "assets/icons/menu_doc.svg",
             press: () {
-              context.mainScreenProvider.navigateToScreen('Brands');
+              context.mainScreenProvider.navigateToScreen('برندها');
             },
           ),
           DrawerListTile(
-            title: "Variant Type",
+            title: "نوع ویژگی",
             svgSrc: "assets/icons/menu_store.svg",
             press: () {
-              context.mainScreenProvider.navigateToScreen('VariantType');
+              context.mainScreenProvider.navigateToScreen('نوع ویژگی');
             },
           ),
           DrawerListTile(
-            title: "Variants",
+            title: "ویژگی‌ها",
             svgSrc: "assets/icons/menu_notification.svg",
             press: () {
-              context.mainScreenProvider.navigateToScreen('Variants');
+              context.mainScreenProvider.navigateToScreen('ویژگی‌ها');
             },
           ),
           DrawerListTile(
-            title: "Orders",
+            title: "سفارشات",
             svgSrc: "assets/icons/menu_profile.svg",
             press: () {
-              context.mainScreenProvider.navigateToScreen('Order');
+              context.mainScreenProvider.navigateToScreen('سفارشات');
             },
           ),
           DrawerListTile(
-            title: "Coupons",
+            title: "کد تخفیف",
             svgSrc: "assets/icons/menu_setting.svg",
             press: () {
-              context.mainScreenProvider.navigateToScreen('Coupon');
+              context.mainScreenProvider.navigateToScreen('کد تخفیف');
             },
           ),
           DrawerListTile(
-            title: "Posters",
+            title: "پوسترها",
             svgSrc: "assets/icons/menu_doc.svg",
             press: () {
-              context.mainScreenProvider.navigateToScreen('Poster');
+              context.mainScreenProvider.navigateToScreen('پوسترها');
             },
           ),
           // DrawerListTile(
-          //   title: "Notifications",
+          //   title: "اعلان‌ها",
           //   svgSrc: "assets/icons/menu_notification.svg",
           //   press: () {
           //     context.mainScreenProvider.navigateToScreen('Notifications');
@@ -95,7 +231,6 @@ class SideMenu extends StatelessWidget {
 class DrawerListTile extends StatelessWidget {
   const DrawerListTile({
     Key? key,
-    // For selecting those three line once press "Command+D"
     required this.title,
     required this.svgSrc,
     required this.press,
@@ -111,12 +246,12 @@ class DrawerListTile extends StatelessWidget {
       horizontalTitleGap: 8.0,
       leading: SvgPicture.asset(
         svgSrc,
-        colorFilter: ColorFilter.mode(Colors.white54, BlendMode.srcIn),
+        colorFilter: const ColorFilter.mode(Colors.white54, BlendMode.srcIn),
         height: 16,
       ),
       title: Text(
         title,
-        style: TextStyle(
+        style: const TextStyle(
           color: Colors.white54,
           fontSize: 15.0,
         ),

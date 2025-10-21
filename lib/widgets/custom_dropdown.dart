@@ -14,7 +14,7 @@ class CustomDropdown<T> extends StatelessWidget {
     required this.items,
     required this.onChanged,
     this.validator,
-    this.hintText = 'Select an option',
+    this.hintText = 'ایتم هارو انتخاب کنید',
     required this.displayItem,
   }) : super(key: key);
 

@@ -1,14 +1,14 @@
-import 'package:admin/utility/extensions.dart';
-import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
-
-import '../../../core/data/data_provider.dart';
-import '../../../models/coupon.dart';
-import '../../../utility/color_list.dart';
-import '../../../utility/constants.dart';
-import 'add_coupon_form.dart';
-
-
+// import 'package:admin/utility/extensions.dart';
+// import 'package:flutter/material.dart';
+// import 'package:provider/provider.dart';
+//
+// import '../../../core/data/data_provider.dart';
+// import '../../../models/coupon.dart';
+// import '../../../utility/color_list.dart';
+// import '../../../utility/constants.dart';
+// import 'add_coupon_form.dart';
+//
+//
 // class CouponListSection extends StatelessWidget {
 //   const CouponListSection({Key? key}) : super(key: key);
 //
@@ -22,8 +22,9 @@ import 'add_coupon_form.dart';
 //       ),
 //       child: SizedBox(
 //         width: double.infinity,
-//         child: Consumer<DataProvider>(
-//           builder: (context, dataProvider, _) {
+//         child: Selector<DataProvider, List<Coupon>>(
+//           selector: (_, dp) => dp.coupons,
+//           builder: (context, coupons, _) {
 //             return DataTable(
 //               columnSpacing: defaultPadding,
 //               columns: const [
@@ -35,10 +36,10 @@ import 'add_coupon_form.dart';
 //                 DataColumn(label: Text("Delete")),
 //               ],
 //               rows: List.generate(
-//                 dataProvider.coupons.length,
+//                 coupons.length,
 //                     (index) => _couponDataRow(
 //                   context,
-//                   dataProvider.coupons[index],
+//                   coupons[index],
 //                   index + 1,
 //                 ),
 //               ),
@@ -90,7 +91,6 @@ import 'add_coupon_form.dart';
 //   }
 // }
 
-// lib/screens/coupon_code/components/coupon_list_section.dart
 import 'package:admin/utility/extensions.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -120,12 +120,12 @@ class CouponListSection extends StatelessWidget {
             return DataTable(
               columnSpacing: defaultPadding,
               columns: const [
-                DataColumn(label: Text("Coupon Name")),
-                DataColumn(label: Text("Status")),
-                DataColumn(label: Text("Type")),
-                DataColumn(label: Text("Amount")),
-                DataColumn(label: Text("Edit")),
-                DataColumn(label: Text("Delete")),
+                DataColumn(label: Text("کد کوپن")),
+                DataColumn(label: Text("وضعیت")),
+                DataColumn(label: Text("نوع تخفیف")),
+                DataColumn(label: Text("مقدار تخفیف")),
+                DataColumn(label: Text("ویرایش")),
+                DataColumn(label: Text("حذف")),
               ],
               rows: List.generate(
                 coupons.length,
@@ -156,7 +156,11 @@ class CouponListSection extends StatelessWidget {
                   color: colors[index % colors.length],
                   shape: BoxShape.circle,
                 ),
-                child: Text('$index', textAlign: TextAlign.center, style: const TextStyle(fontSize: 12)),
+                child: Text(
+                  '$index',
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(fontSize: 12),
+                ),
               ),
               const SizedBox(width: defaultPadding),
               Text(coupon.couponCode ?? ''),
@@ -168,13 +172,16 @@ class CouponListSection extends StatelessWidget {
         DataCell(Text('${coupon.discountAmount ?? ''}')),
         DataCell(
           IconButton(
+            tooltip: 'ویرایش کوپن',
             onPressed: () => showAddCouponForm(context, coupon),
             icon: const Icon(Icons.edit, color: Colors.white),
           ),
         ),
         DataCell(
           IconButton(
-            onPressed: () => context.couponCodeProvider.deleteCoupon(coupon),
+            tooltip: 'حذف کوپن',
+            onPressed: () =>
+                context.couponCodeProvider.deleteCoupon(coupon),
             icon: const Icon(Icons.delete, color: Colors.red),
           ),
         ),
@@ -182,3 +189,4 @@ class CouponListSection extends StatelessWidget {
     );
   }
 }
+
