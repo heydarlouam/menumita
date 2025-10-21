@@ -13,6 +13,170 @@ import '../../../utility/snack_bar_helper.dart';
 import 'package:get/get_connect/http/src/response/response.dart';
 
 
+// class VariantsProvider extends ChangeNotifier {
+//   final HttpService service = HttpService();
+//   final DataProvider _dataProvider;
+//
+//   final addVariantsFormKey = GlobalKey<FormState>();
+//   final TextEditingController variantCtrl = TextEditingController();
+//   VariantType? selectedVariantType;
+//
+//   Variant? variantForUpdate;
+//
+//   VariantsProvider(this._dataProvider);
+//
+//   // --- Build payloads
+//   Map<String, dynamic> _createBody() => {
+//     'name': variantCtrl.text.trim(),
+//     'variant_type': selectedVariantType?.sId,
+//     'phone_number_code': '12345', // قانون ثابت
+//   };
+//
+//   Map<String, dynamic> _updateBody() {
+//     final body = <String, dynamic>{
+//       'name': variantCtrl.text.trim(),
+//       'phone_number_code': '12345',
+//     };
+//     // فقط اگر کاربر نوع را انتخاب/تغییر داده باشد، ارسال کن
+//     if (selectedVariantType?.sId != null) {
+//       body['variant_type'] = selectedVariantType!.sId;
+//     }
+//     return body;
+//   }
+//
+//   // --- CRUD
+//   Future<void> addVariant() async {
+//     try {
+//       final Response res = await service.addItem(
+//         endpointUrl: 'api/variants',
+//         itemData: _createBody(),
+//       );
+//
+//       if (res.isOk && (res.body?['success'] == true)) {
+//         clearFields();
+//         SnackBarHelper.showSuccessSnackBar(res.body['message'] ?? 'Variant added successfully');
+//         await _dataProvider.getAllVariants();
+//       } else {
+//         SnackBarHelper.showErrorSnackBar(
+//           res.body?['message'] ?? res.body?['error'] ?? res.statusText ?? 'Failed to add variant',
+//         );
+//       }
+//     } catch (e) {
+//       SnackBarHelper.showErrorSnackBar('An error occurred: $e');
+//       rethrow;
+//     }
+//   }
+//
+//   Future<void> updateVariant() async {
+//     try {
+//       final String id = variantForUpdate?.sId ?? '';
+//       if (id.isEmpty) {
+//         SnackBarHelper.showErrorSnackBar('ID missing');
+//         return;
+//       }
+//
+//       final Response res = await service.updateItem(
+//         endpointUrl: 'api/variants',
+//         itemId: id,
+//         itemData: _updateBody(),
+//       );
+//
+//       if (res.isOk && (res.body?['success'] == true)) {
+//         clearFields();
+//         SnackBarHelper.showSuccessSnackBar(res.body['message'] ?? 'Variant updated successfully');
+//         await _dataProvider.getAllVariants();
+//       } else {
+//         SnackBarHelper.showErrorSnackBar(
+//           res.body?['message'] ?? res.body?['error'] ?? res.statusText ?? 'Failed to update variant',
+//         );
+//       }
+//     } catch (e) {
+//       SnackBarHelper.showErrorSnackBar('An error occurred: $e');
+//       rethrow;
+//     }
+//   }
+//
+//   Future<void> submitVariant() async {
+//     final form = addVariantsFormKey.currentState;
+//     if (form == null || !form.validate()) return;
+//     form.save();
+//
+//     if (variantForUpdate != null) {
+//       await updateVariant();
+//     } else {
+//       await addVariant();
+//     }
+//   }
+//
+//   Future<void> deleteVariant(Variant item) async {
+//     try {
+//       final Response res = await service.deleteItem(
+//         endpointUrl: 'api/variants',
+//         itemId: item.sId ?? '',
+//       );
+//
+//       if (res.isOk && (res.body?['success'] == true)) {
+//         SnackBarHelper.showSuccessSnackBar(res.body['message'] ?? 'Variant deleted successfully!');
+//         await _dataProvider.getAllVariants();
+//       } else {
+//         SnackBarHelper.showErrorSnackBar(
+//           res.body?['message'] ?? res.body?['error'] ?? res.statusText ?? 'Failed to delete variant',
+//         );
+//       }
+//     } catch (e) {
+//       SnackBarHelper.showErrorSnackBar('An error occurred: $e');
+//       rethrow;
+//     }
+//   }
+//
+//   // --- Edit/Hydration
+//   void setDataForUpdateVariant(Variant? variant) {
+//     if (variant != null) {
+//       variantForUpdate = variant;
+//       variantCtrl.text = variant.name ?? '';
+//
+//       // اگر VariantTypes هنوز لود نشده، انتخاب را بعداً هیدراته می‌کنیم (در Form)
+//       final vtId = variant.variantTypeId?.sId;
+//       if (vtId != null && _dataProvider.variantTypes.isNotEmpty) {
+//         selectedVariantType = _dataProvider.variantTypes.firstWhereOrNull((t) => t.sId == vtId);
+//       } else {
+//         selectedVariantType = null; // بعداً در فرم با Consumer پر می‌شود
+//       }
+//     } else {
+//       clearFields();
+//     }
+//   }
+//
+//   // وقتی لیست VariantTypes بعداً رسید، با این متد می‌تونیم مقدار انتخاب را ست کنیم
+//   void hydrateSelectedType(String? vtId) {
+//     if (vtId == null) return;
+//     if (selectedVariantType == null && _dataProvider.variantTypes.isNotEmpty) {
+//       selectedVariantType = _dataProvider.variantTypes.firstWhereOrNull((t) => t.sId == vtId);
+//       notifyListeners();
+//     }
+//   }
+//
+//   void clearFields() {
+//     variantCtrl.clear();
+//     selectedVariantType = null;
+//     variantForUpdate = null;
+//   }
+//
+//   void updateUI() => notifyListeners();
+// }
+
+
+// lib/screens/variants/provider/variant_provider.dart
+import 'package:flutter/cupertino.dart';
+import 'package:get/get.dart';
+import 'package:get/get_connect/http/src/response/response.dart';
+
+import '../../../core/data/data_provider.dart';
+import '../../../models/variant.dart';
+import '../../../models/variant_type.dart';
+import '../../../services/http_services.dart';
+import '../../../utility/snack_bar_helper.dart';
+
 class VariantsProvider extends ChangeNotifier {
   final HttpService service = HttpService();
   final DataProvider _dataProvider;
@@ -23,9 +187,12 @@ class VariantsProvider extends ChangeNotifier {
 
   Variant? variantForUpdate;
 
+  // ✅ جدید: کنترل ارسال
+  bool _isSubmitting = false;
+  bool get isSubmitting => _isSubmitting;
+
   VariantsProvider(this._dataProvider);
 
-  // --- Build payloads
   Map<String, dynamic> _createBody() => {
     'name': variantCtrl.text.trim(),
     'variant_type': selectedVariantType?.sId,
@@ -37,21 +204,18 @@ class VariantsProvider extends ChangeNotifier {
       'name': variantCtrl.text.trim(),
       'phone_number_code': '12345',
     };
-    // فقط اگر کاربر نوع را انتخاب/تغییر داده باشد، ارسال کن
     if (selectedVariantType?.sId != null) {
       body['variant_type'] = selectedVariantType!.sId;
     }
     return body;
   }
 
-  // --- CRUD
   Future<void> addVariant() async {
     try {
       final Response res = await service.addItem(
         endpointUrl: 'api/variants',
         itemData: _createBody(),
       );
-
       if (res.isOk && (res.body?['success'] == true)) {
         clearFields();
         SnackBarHelper.showSuccessSnackBar(res.body['message'] ?? 'Variant added successfully');
@@ -74,13 +238,11 @@ class VariantsProvider extends ChangeNotifier {
         SnackBarHelper.showErrorSnackBar('ID missing');
         return;
       }
-
       final Response res = await service.updateItem(
         endpointUrl: 'api/variants',
         itemId: id,
         itemData: _updateBody(),
       );
-
       if (res.isOk && (res.body?['success'] == true)) {
         clearFields();
         SnackBarHelper.showSuccessSnackBar(res.body['message'] ?? 'Variant updated successfully');
@@ -96,15 +258,23 @@ class VariantsProvider extends ChangeNotifier {
     }
   }
 
+  // ✅ جدید: قفل ارسال مثل الگوی مرجع
   Future<void> submitVariant() async {
-    final form = addVariantsFormKey.currentState;
-    if (form == null || !form.validate()) return;
-    form.save();
+    if (_isSubmitting) return;
+    _isSubmitting = true; notifyListeners();
 
-    if (variantForUpdate != null) {
-      await updateVariant();
-    } else {
-      await addVariant();
+    try {
+      final form = addVariantsFormKey.currentState;
+      if (form == null || !form.validate()) return;
+      form.save();
+
+      if (variantForUpdate != null) {
+        await updateVariant();
+      } else {
+        await addVariant();
+      }
+    } finally {
+      _isSubmitting = false; notifyListeners();
     }
   }
 
@@ -114,7 +284,6 @@ class VariantsProvider extends ChangeNotifier {
         endpointUrl: 'api/variants',
         itemId: item.sId ?? '',
       );
-
       if (res.isOk && (res.body?['success'] == true)) {
         SnackBarHelper.showSuccessSnackBar(res.body['message'] ?? 'Variant deleted successfully!');
         await _dataProvider.getAllVariants();
@@ -129,25 +298,22 @@ class VariantsProvider extends ChangeNotifier {
     }
   }
 
-  // --- Edit/Hydration
   void setDataForUpdateVariant(Variant? variant) {
     if (variant != null) {
       variantForUpdate = variant;
       variantCtrl.text = variant.name ?? '';
 
-      // اگر VariantTypes هنوز لود نشده، انتخاب را بعداً هیدراته می‌کنیم (در Form)
       final vtId = variant.variantTypeId?.sId;
       if (vtId != null && _dataProvider.variantTypes.isNotEmpty) {
         selectedVariantType = _dataProvider.variantTypes.firstWhereOrNull((t) => t.sId == vtId);
       } else {
-        selectedVariantType = null; // بعداً در فرم با Consumer پر می‌شود
+        selectedVariantType = null; // بعداً در فرم هیدراته می‌شود
       }
     } else {
       clearFields();
     }
   }
 
-  // وقتی لیست VariantTypes بعداً رسید، با این متد می‌تونیم مقدار انتخاب را ست کنیم
   void hydrateSelectedType(String? vtId) {
     if (vtId == null) return;
     if (selectedVariantType == null && _dataProvider.variantTypes.isNotEmpty) {

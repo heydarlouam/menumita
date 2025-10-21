@@ -13,163 +13,390 @@ import '../../../services/http_services.dart';
 import '../../../utility/snack_bar_helper.dart';
 
 
+// class CouponCodeProvider extends ChangeNotifier {
+//   final HttpService service = HttpService();
+//   final DataProvider _dataProvider;
+//
+//   Coupon? couponForUpdate;
+//
+//   final addCouponFormKey = GlobalKey<FormState>();
+//   final TextEditingController couponCodeCtrl = TextEditingController();
+//   final TextEditingController discountAmountCtrl = TextEditingController();
+//   final TextEditingController minimumPurchaseAmountCtrl = TextEditingController();
+//   final TextEditingController endDateCtrl = TextEditingController();
+//
+//   String selectedDiscountType = 'fixed';
+//   String selectedCouponStatus = 'active';
+//
+//   Category? selectedCategory;
+//   SubCategory? selectedSubCategory;
+//   Product? selectedProduct;
+//
+//   bool _isSubmitting = false;
+//   bool get isSubmitting => _isSubmitting;
+//
+//   CouponCodeProvider(this._dataProvider);
+//
+//   // --- Helpers ---
+//   Map<String, dynamic> _buildPayload() {
+//     return {
+//       'couponCode': couponCodeCtrl.text.trim(),
+//       'discountType': selectedDiscountType,
+//       'discountAmount': double.parse(discountAmountCtrl.text),
+//       'minimumPurchaseAmount': minimumPurchaseAmountCtrl.text.isNotEmpty
+//           ? double.parse(minimumPurchaseAmountCtrl.text)
+//           : 0,
+//       'endDate': endDateCtrl.text,
+//       'status': selectedCouponStatus,
+//       // relation IDs (empty string if null)
+//       'applicableCategory': selectedCategory?.sId ?? "",
+//       'applicableSubCategory': selectedSubCategory?.sId ?? "",
+//       'applicableProduct': selectedProduct?.sId ?? "",
+//       // طبق قانون ثابت شما:
+//       'phone_number_code': '12345',
+//     };
+//   }
+//
+//   Future<bool> addCoupon() async {
+//     try {
+//       // Basic validations (با حفظ دیزاین فرم)
+//       if (endDateCtrl.text.isEmpty) {
+//         SnackBarHelper.showErrorSnackBar('Please select end date!');
+//         return false;
+//       }
+//       try {
+//         final endDate = DateTime.parse(endDateCtrl.text);
+//         if (endDate.isBefore(DateTime.now())) {
+//           SnackBarHelper.showErrorSnackBar('Please select valid end date!');
+//           return false;
+//         }
+//       } catch (_) {
+//         SnackBarHelper.showErrorSnackBar('Invalid date format!');
+//         return false;
+//       }
+//
+//       _isSubmitting = true;
+//       notifyListeners();
+//
+//       final payload = _buildPayload();
+//       log('📤 Sending coupon data: $payload');
+//       final response = await service.addItem(endpointUrl: 'api/coupons', itemData: payload);
+//
+//       if (response.isOk && response.body['success'] == true) {
+//         clearFields();
+//         SnackBarHelper.showSuccessSnackBar('Coupon created successfully');
+//         await _dataProvider.getAllCoupons();
+//         return true;
+//       }
+//
+//       final msg = response.body?['error'] ?? response.statusText ?? 'Unknown error';
+//       SnackBarHelper.showErrorSnackBar('Failed to add coupon: $msg');
+//       return false;
+//     } catch (e) {
+//       SnackBarHelper.showErrorSnackBar('An error occurred: $e');
+//       return false;
+//     } finally {
+//       _isSubmitting = false;
+//       notifyListeners();
+//     }
+//   }
+//
+//   Future<bool> updateCoupon() async {
+//     try {
+//       _isSubmitting = true;
+//       notifyListeners();
+//
+//       final payload = _buildPayload();
+//       log('📤 Updating coupon with data: $payload');
+//       final response = await service.updateItem(
+//         endpointUrl: 'api/coupons',
+//         itemId: '${couponForUpdate?.sId}',
+//         itemData: payload,
+//       );
+//
+//       if (response.isOk && response.body['success'] == true) {
+//         clearFields();
+//         SnackBarHelper.showSuccessSnackBar('Coupon updated successfully');
+//         await _dataProvider.getAllCoupons();
+//         return true;
+//       }
+//
+//       final msg = response.body?['error'] ?? response.statusText ?? 'Unknown error';
+//       SnackBarHelper.showErrorSnackBar('Failed to update coupon: $msg');
+//       return false;
+//     } catch (e) {
+//       SnackBarHelper.showErrorSnackBar('An error occurred: $e');
+//       return false;
+//     } finally {
+//       _isSubmitting = false;
+//       notifyListeners();
+//     }
+//   }
+//
+//   Future<bool> submitCoupon() =>
+//       couponForUpdate != null ? updateCoupon() : addCoupon();
+//
+//   Future<bool> deleteCoupon(Coupon coupon) async {
+//     try {
+//       final response = await service.deleteItem(
+//         endpointUrl: 'api/coupons',
+//         itemId: coupon.sId ?? '',
+//       );
+//
+//       if (response.isOk && response.body['success'] == true) {
+//         SnackBarHelper.showSuccessSnackBar('Coupon deleted successfully!');
+//         await _dataProvider.getAllCoupons();
+//         return true;
+//       }
+//
+//       SnackBarHelper.showErrorSnackBar(
+//         'Failed to delete coupon: ${response.body?['error'] ?? response.statusText}',
+//       );
+//       return false;
+//     } catch (e) {
+//       SnackBarHelper.showErrorSnackBar('An error occurred: $e');
+//       return false;
+//     }
+//   }
+//
+//   // Fill form for edit
+//   void setDataForUpdateCoupon(Coupon? coupon) {
+//     if (coupon != null) {
+//       couponForUpdate = coupon;
+//       couponCodeCtrl.text = coupon.couponCode ?? '';
+//       selectedDiscountType = coupon.discountType ?? 'fixed';
+//       discountAmountCtrl.text = '${coupon.discountAmount ?? ''}';
+//       minimumPurchaseAmountCtrl.text = '${coupon.minimumPurchaseAmount ?? ''}';
+//       endDateCtrl.text = coupon.endDate ?? '';
+//       selectedCouponStatus = coupon.status ?? 'active';
+//
+//       // رابطه‌ها (همه String ID)
+//       if ((coupon.applicableCategory ?? '').isNotEmpty) {
+//         selectedCategory = _dataProvider.categories
+//             .firstWhereOrNull((e) => e.sId == coupon.applicableCategory);
+//       } else {
+//         selectedCategory = null;
+//       }
+//
+//       if ((coupon.applicableSubCategory ?? '').isNotEmpty) {
+//         selectedSubCategory = _dataProvider.subCategories
+//             .firstWhereOrNull((e) => e.sId == coupon.applicableSubCategory);
+//       } else {
+//         selectedSubCategory = null;
+//       }
+//
+//       if ((coupon.applicableProduct ?? '').isNotEmpty) {
+//         selectedProduct = _dataProvider.products
+//             .firstWhereOrNull((e) => e.sId == coupon.applicableProduct);
+//       } else {
+//         selectedProduct = null;
+//       }
+//
+//       log('🔍 Prefill for update: '
+//           'cat=${selectedCategory?.name}, sub=${selectedSubCategory?.name}, prod=${selectedProduct?.name}');
+//     } else {
+//       clearFields();
+//     }
+//     notifyListeners();
+//   }
+//
+//   void clearFields() {
+//     couponForUpdate = null;
+//     selectedCategory = null;
+//     selectedSubCategory = null;
+//     selectedProduct = null;
+//
+//     couponCodeCtrl.clear();
+//     discountAmountCtrl.clear();
+//     minimumPurchaseAmountCtrl.clear();
+//     endDateCtrl.clear();
+//
+//     selectedDiscountType = 'fixed';
+//     selectedCouponStatus = 'active';
+//     notifyListeners();
+//   }
+//
+//   void updateUi() => notifyListeners();
+// }
+
+// lib/screens/coupon_code/provider/coupon_code_provider.dart
+import 'dart:developer';
+import 'package:flutter/cupertino.dart';
+import 'package:get/get.dart';
+
+import '../../../core/data/data_provider.dart';
+import '../../../models/category.dart';
+import '../../../models/coupon.dart';
+import '../../../models/product.dart';
+import '../../../models/sub_category.dart';
+import '../../../services/http_services.dart';
+import '../../../utility/snack_bar_helper.dart';
+
 class CouponCodeProvider extends ChangeNotifier {
-  HttpService service = HttpService();
+  final HttpService service = HttpService();
   final DataProvider _dataProvider;
+
   Coupon? couponForUpdate;
 
   final addCouponFormKey = GlobalKey<FormState>();
-  TextEditingController couponCodeCtrl = TextEditingController();
-  TextEditingController discountAmountCtrl = TextEditingController();
-  TextEditingController minimumPurchaseAmountCtrl = TextEditingController();
-  TextEditingController endDateCtrl = TextEditingController();
+  final TextEditingController couponCodeCtrl = TextEditingController();
+  final TextEditingController discountAmountCtrl = TextEditingController();
+  final TextEditingController minimumPurchaseAmountCtrl = TextEditingController();
+  final TextEditingController endDateCtrl = TextEditingController();
+
   String selectedDiscountType = 'fixed';
   String selectedCouponStatus = 'active';
+
   Category? selectedCategory;
   SubCategory? selectedSubCategory;
   Product? selectedProduct;
 
+  bool _isSubmitting = false;
+  bool get isSubmitting => _isSubmitting;
+
   CouponCodeProvider(this._dataProvider);
 
-  addCoupon() async {
+  @override
+  void dispose() {
+    couponCodeCtrl.dispose();
+    discountAmountCtrl.dispose();
+    minimumPurchaseAmountCtrl.dispose();
+    endDateCtrl.dispose();
+    super.dispose();
+  }
+
+  Map<String, dynamic> _buildPayload() {
+    final discount = double.tryParse(discountAmountCtrl.text) ?? 0;
+    final minPurchase = minimumPurchaseAmountCtrl.text.isNotEmpty
+        ? (double.tryParse(minimumPurchaseAmountCtrl.text) ?? 0)
+        : 0;
+
+    return {
+      'couponCode': couponCodeCtrl.text.trim(),
+      'discountType': selectedDiscountType,
+      'discountAmount': discount,
+      'minimumPurchaseAmount': minPurchase,
+      'endDate': endDateCtrl.text,
+      'status': selectedCouponStatus,
+      'applicableCategory': selectedCategory?.sId ?? "",
+      'applicableSubCategory': selectedSubCategory?.sId ?? "",
+      'applicableProduct': selectedProduct?.sId ?? "",
+      // قانون ثابت:
+      'phone_number_code': '12345',
+    };
+  }
+
+  Future<bool> addCoupon() async {
     try {
-      // اعتبارسنجی‌ها
       if (endDateCtrl.text.isEmpty) {
         SnackBarHelper.showErrorSnackBar('Please select end date!');
-        return;
+        return false;
       }
-
       try {
-        DateTime endDate = DateTime.parse(endDateCtrl.text);
+        final endDate = DateTime.parse(endDateCtrl.text);
         if (endDate.isBefore(DateTime.now())) {
           SnackBarHelper.showErrorSnackBar('Please select valid end date!');
-          return;
+          return false;
         }
-      } catch (e) {
+      } catch (_) {
         SnackBarHelper.showErrorSnackBar('Invalid date format!');
-        return;
+        return false;
       }
 
-      // ساخت داده‌های کوپن - توجه: فیلدهای رابطه‌ای باید String باشند
-      Map<String, dynamic> coupon = {
-        'couponCode': couponCodeCtrl.text.trim(),
-        'discountType': selectedDiscountType,
-        'discountAmount': double.parse(discountAmountCtrl.text),
-        'minimumPurchaseAmount': minimumPurchaseAmountCtrl.text.isNotEmpty
-            ? double.parse(minimumPurchaseAmountCtrl.text)
-            : 0,
-        'endDate': endDateCtrl.text,
-        'status': selectedCouponStatus,
-        // فیلدهای رابطه‌ای - در صورت null بودن به صورت "" ارسال می‌شوند
-        'applicableCategory': selectedCategory?.sId ?? "",
-        'applicableSubCategory': selectedSubCategory?.sId ?? "",
-        'applicableProduct': selectedProduct?.sId ?? ""
-      };
+      _isSubmitting = true;
+      notifyListeners();
 
-      print('📤 Sending coupon data: $coupon');
+      final payload = _buildPayload();
+      log('📤 Sending coupon data: $payload');
 
-      final response = await service.addItem(endpointUrl: 'api/coupons', itemData: coupon);
+      final response = await service.addItem(
+        endpointUrl: 'api/coupons',
+        itemData: payload,
+      );
 
-      if (response.isOk) {
-        if (response.body['success'] == true) {
-          clearFields();
-          SnackBarHelper.showSuccessSnackBar('Coupon created successfully');
-          log('✅ Coupon added successfully');
-
-          _dataProvider.getAllCoupons();
-        } else {
-          String errorMessage = response.body['error'] ?? 'Unknown error';
-          print('❌ Server error: $errorMessage');
-          SnackBarHelper.showErrorSnackBar('Failed to add coupon: $errorMessage');
-        }
-      } else {
-        print('❌ HTTP error: ${response.statusCode} - ${response.body}');
-        SnackBarHelper.showErrorSnackBar(
-            'Error: ${response.body?['error'] ?? response.statusText}');
+      if (response.isOk && response.body['success'] == true) {
+        clearFields();
+        SnackBarHelper.showSuccessSnackBar('Coupon created successfully');
+        await _dataProvider.getAllCoupons();
+        return true;
       }
+
+      final msg = response.body?['error'] ?? response.statusText ?? 'Unknown error';
+      SnackBarHelper.showErrorSnackBar('Failed to add coupon: $msg');
+      return false;
     } catch (e) {
-      print('❌ Exception in addCoupon: $e');
       SnackBarHelper.showErrorSnackBar('An error occurred: $e');
-      rethrow;
+      return false;
+    } finally {
+      _isSubmitting = false;
+      notifyListeners();
     }
   }
 
-  updateCoupon() async {
+  Future<bool> updateCoupon() async {
     try {
-      Map<String, dynamic> coupon = {
-        'couponCode': couponCodeCtrl.text.trim(),
-        'discountType': selectedDiscountType,
-        'discountAmount': double.parse(discountAmountCtrl.text),
-        'minimumPurchaseAmount': minimumPurchaseAmountCtrl.text.isNotEmpty
-            ? double.parse(minimumPurchaseAmountCtrl.text)
-            : 0,
-        'endDate': endDateCtrl.text,
-        'status': selectedCouponStatus,
-        // فیلدهای رابطه‌ای - در صورت null بودن به صورت "" ارسال می‌شوند
-        'applicableCategory': selectedCategory?.sId ?? "",
-        'applicableSubCategory': selectedSubCategory?.sId ?? "",
-        'applicableProduct': selectedProduct?.sId ?? ""
-      };
+      _isSubmitting = true;
+      notifyListeners();
 
-      print('📤 Updating coupon with data: $coupon');
+      final payload = _buildPayload();
+      log('📤 Updating coupon with data: $payload');
 
       final response = await service.updateItem(
-          endpointUrl: 'api/coupons',
-          itemId: '${couponForUpdate?.sId}',
-          itemData: coupon);
+        endpointUrl: 'api/coupons',
+        itemId: '${couponForUpdate?.sId}',
+        itemData: payload,
+      );
 
-      if (response.isOk) {
-        if (response.body['success'] == true) {
-          clearFields();
-          SnackBarHelper.showSuccessSnackBar('Coupon updated successfully');
-          log('✅ Coupon updated successfully');
-
-          _dataProvider.getAllCoupons();
-        } else {
-          String errorMessage = response.body['error'] ?? 'Unknown error';
-          print('❌ Server error: $errorMessage');
-          SnackBarHelper.showErrorSnackBar('Failed to update coupon: $errorMessage');
-        }
-      } else {
-        print('❌ HTTP error: ${response.statusCode} - ${response.body}');
-        SnackBarHelper.showErrorSnackBar(
-            'Error: ${response.body?['error'] ?? response.statusText}');
+      if (response.isOk && response.body['success'] == true) {
+        clearFields();
+        SnackBarHelper.showSuccessSnackBar('Coupon updated successfully');
+        await _dataProvider.getAllCoupons();
+        return true;
       }
+
+      final msg = response.body?['error'] ?? response.statusText ?? 'Unknown error';
+      SnackBarHelper.showErrorSnackBar('Failed to update coupon: $msg');
+      return false;
     } catch (e) {
-      print('❌ Exception in updateCoupon: $e');
       SnackBarHelper.showErrorSnackBar('An error occurred: $e');
-      rethrow;
+      return false;
+    } finally {
+      _isSubmitting = false;
+      notifyListeners();
     }
   }
 
-  submitCoupon() => couponForUpdate != null ? updateCoupon() : addCoupon();
+  Future<bool> submitCoupon() =>
+      couponForUpdate != null ? updateCoupon() : addCoupon();
 
-  deleteCoupon(Coupon coupon) async {
+  Future<bool> deleteCoupon(Coupon coupon) async {
     try {
-      Response response = await service.deleteItem(
-          endpointUrl: 'api/coupons', itemId: coupon.sId ?? '');
+      final response = await service.deleteItem(
+        endpointUrl: 'api/coupons',
+        itemId: coupon.sId ?? '',
+      );
 
-      if (response.isOk) {
-        if (response.body['success'] == true) {
-          SnackBarHelper.showSuccessSnackBar('Coupon deleted successfully!');
-          _dataProvider.getAllCoupons();
-        } else {
-          SnackBarHelper.showErrorSnackBar(
-              'Failed to delete coupon: ${response.body['error']}');
-        }
-      } else {
-        SnackBarHelper.showErrorSnackBar(
-            'Error: ${response.body?['error'] ?? response.statusText}');
+      if (response.isOk && response.body['success'] == true) {
+        SnackBarHelper.showSuccessSnackBar('Coupon deleted successfully!');
+        await _dataProvider.getAllCoupons();
+        return true;
       }
+
+      SnackBarHelper.showErrorSnackBar(
+        'Failed to delete coupon: ${response.body?['error'] ?? response.statusText}',
+      );
+      return false;
     } catch (e) {
-      print('❌ Exception in deleteCoupon: $e');
-      rethrow;
+      SnackBarHelper.showErrorSnackBar('An error occurred: $e');
+      return false;
     }
   }
 
-  //? set data for update on editing
-  setDataForUpdateCoupon(Coupon? coupon) {
+  void setDataForUpdateCoupon(Coupon? coupon) {
     if (coupon != null) {
+      // جلوگیری از ست‌کردنِ تکراری در باز-renderها
+      if (couponForUpdate?.sId == coupon.sId) return;
+
       couponForUpdate = coupon;
       couponCodeCtrl.text = coupon.couponCode ?? '';
       selectedDiscountType = coupon.discountType ?? 'fixed';
@@ -178,42 +405,36 @@ class CouponCodeProvider extends ChangeNotifier {
       endDateCtrl.text = coupon.endDate ?? '';
       selectedCouponStatus = coupon.status ?? 'active';
 
-      // Set selected category if exists - توجه: applicableCategory اکنون String است
-      if (coupon.applicableCategory != null && coupon.applicableCategory!.isNotEmpty) {
-        selectedCategory = _dataProvider.categories.firstWhereOrNull(
-                (element) => element.sId == coupon.applicableCategory);
+      if ((coupon.applicableCategory ?? '').isNotEmpty) {
+        selectedCategory = _dataProvider.categories
+            .firstWhereOrNull((e) => e.sId == coupon.applicableCategory);
       } else {
         selectedCategory = null;
       }
 
-      // Set selected subcategory if exists
-      if (coupon.applicableSubCategory != null && coupon.applicableSubCategory!.isNotEmpty) {
-        selectedSubCategory = _dataProvider.subCategories.firstWhereOrNull(
-                (element) => element.sId == coupon.applicableSubCategory);
+      if ((coupon.applicableSubCategory ?? '').isNotEmpty) {
+        selectedSubCategory = _dataProvider.subCategories
+            .firstWhereOrNull((e) => e.sId == coupon.applicableSubCategory);
       } else {
         selectedSubCategory = null;
       }
 
-      // Set selected product if exists
-      if (coupon.applicableProduct != null && coupon.applicableProduct!.isNotEmpty) {
-        selectedProduct = _dataProvider.products.firstWhereOrNull(
-                (element) => element.sId == coupon.applicableProduct);
+      if ((coupon.applicableProduct ?? '').isNotEmpty) {
+        selectedProduct = _dataProvider.products
+            .firstWhereOrNull((e) => e.sId == coupon.applicableProduct);
       } else {
         selectedProduct = null;
       }
 
-      print('🔍 Setting data for update:');
-      print('   - Category: ${selectedCategory?.name} (ID: ${coupon.applicableCategory})');
-      print('   - SubCategory: ${selectedSubCategory?.name} (ID: ${coupon.applicableSubCategory})');
-      print('   - Product: ${selectedProduct?.name} (ID: ${coupon.applicableProduct})');
+      log('🔍 Prefill for update: '
+          'cat=${selectedCategory?.name}, sub=${selectedSubCategory?.name}, prod=${selectedProduct?.name}');
     } else {
       clearFields();
     }
     notifyListeners();
   }
 
-  //? to clear text field and images after adding or update coupon
-  clearFields() {
+  void clearFields() {
     couponForUpdate = null;
     selectedCategory = null;
     selectedSubCategory = null;
@@ -226,11 +447,8 @@ class CouponCodeProvider extends ChangeNotifier {
 
     selectedDiscountType = 'fixed';
     selectedCouponStatus = 'active';
-
     notifyListeners();
   }
 
-  updateUi() {
-    notifyListeners();
-  }
+  void updateUi() => notifyListeners();
 }

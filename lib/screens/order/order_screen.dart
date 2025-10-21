@@ -7,18 +7,60 @@ import '../../widgets/custom_dropdown.dart';
 import 'components/order_header.dart';
 import 'components/order_list_section.dart';
 
+class OrderScreen extends StatefulWidget {
+  const OrderScreen({Key? key}) : super(key: key);
 
-class OrderScreen extends StatelessWidget {
+  @override
+  State<OrderScreen> createState() => _OrderScreenState();
+}
+
+class _OrderScreenState extends State<OrderScreen>
+    with AutomaticKeepAliveClientMixin {
+  bool _bootstrapped = false;
+  late final ScrollController _ordersScrollCtrl;
+
+  @override
+  void initState() {
+    super.initState();
+
+    _ordersScrollCtrl = ScrollController();
+    _ordersScrollCtrl.addListener(() {
+      final provider = context.dataProvider;
+      if (!_ordersScrollCtrl.hasClients) return;
+
+      final position = _ordersScrollCtrl.position;
+      final nearBottom = position.pixels >= position.maxScrollExtent - 80;
+
+      if (nearBottom && provider.hasMoreOrders && !provider.isOrdersLoading) {
+        provider.loadMoreOrders(); // ← پیج بعدی ۵۰تایی و append
+      }
+    });
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted && !_bootstrapped) {
+        context.dataProvider.loadInitialOrders();
+        _bootstrapped = true;
+      }
+    });
+  }
+  @override
+  void dispose() {
+    _ordersScrollCtrl.dispose();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
+    super.build(context);
     return SafeArea(
       child: SingleChildScrollView(
+        controller: _ordersScrollCtrl,   // 👈 اضافه شد
         primary: false,
-        padding: EdgeInsets.all(defaultPadding),
+        padding: const EdgeInsets.all(defaultPadding),
         child: Column(
           children: [
-            OrderHeader(),
-            SizedBox(height: defaultPadding),
+            const OrderHeader(),
+            const SizedBox(height: defaultPadding),
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -35,13 +77,13 @@ class OrderScreen extends StatelessWidget {
                               style: Theme.of(context).textTheme.titleMedium,
                             ),
                           ),
-                          Gap(20),
+                          const Gap(20),
                           SizedBox(
                             width: 280,
                             child: CustomDropdown(
                               hintText: 'Filter Order By status',
                               initialValue: ORDER_STATUS_ALL,
-                              items: [
+                              items: const [
                                 ORDER_STATUS_ALL,
                                 ORDER_STATUS_PENDING,
                                 ORDER_STATUS_PROCESSING,
@@ -49,32 +91,30 @@ class OrderScreen extends StatelessWidget {
                                 ORDER_STATUS_DELIVERED,
                                 ORDER_STATUS_CANCELLED
                               ],
-                              displayItem: (val) => _getStatusDisplayName(val),
-                              onChanged: (newValue) {
-                                if (newValue != null) {
-                                  print('Filtering by: $newValue'); // برای دیباگ
-                                  context.dataProvider.filterOrders(newValue);
+                              displayItem: _statusLabel,
+                              onChanged: (v) {
+                                if (v != null) {
+                                  context.dataProvider.filterOrders(v);
                                 }
                               },
-                              validator: (value) {
-                                return null;
-                              },
+                              validator: (_) => null,
                             ),
                           ),
-                          Gap(40),
+                          const Gap(40),
                           IconButton(
-                            onPressed: () {
-                              context.dataProvider.getAllOrders(showSnack: true);
-                              // ریست کردن فیلتر
-                              context.dataProvider.filterOrders(ORDER_STATUS_ALL);
-                            },
-                            icon: Icon(Icons.refresh),
                             tooltip: 'Refresh and reset filters',
+                            onPressed: () async {
+                              await context.dataProvider
+                                  .loadInitialOrders(showSnack: true);
+                              context.dataProvider
+                                  .filterOrders(ORDER_STATUS_ALL);
+                            },
+                            icon: const Icon(Icons.refresh),
                           ),
                         ],
                       ),
-                      Gap(defaultPadding),
-                      OrderListSection(),
+                      const Gap(defaultPadding),
+                      const OrderListSection(), // لیست بهینه و مجازی‌سازی شده
                     ],
                   ),
                 ),
@@ -86,8 +126,7 @@ class OrderScreen extends StatelessWidget {
     );
   }
 
-  // تابع برای نمایش نام زیباتر status
-  String _getStatusDisplayName(String status) {
+  static String _statusLabel(String status) {
     switch (status) {
       case ORDER_STATUS_ALL:
         return 'All Orders';
@@ -105,4 +144,7 @@ class OrderScreen extends StatelessWidget {
         return status;
     }
   }
+
+  @override
+  bool get wantKeepAlive => true;
 }

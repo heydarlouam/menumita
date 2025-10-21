@@ -22,6 +22,126 @@ class DataProvider extends ChangeNotifier {
 
 
 
+
+  final int _ordersPageSize = 50;
+  int _ordersPage = 1;
+  bool _ordersHasMore = true;
+  bool _ordersLoading = false;
+
+  bool get isOrdersLoading => _ordersLoading;
+  bool get hasMoreOrders => _ordersHasMore;
+
+  final List<Order> _allOrders = [];
+  List<Order> _filteredOrders = [];
+  List<Order> get orders => _filteredOrders;
+
+  Future<List<Order>> loadInitialOrders({bool showSnack = false}) async {
+    if (_ordersLoading) return _filteredOrders;
+    _ordersPage = 1;
+    _ordersHasMore = true;
+    _allOrders.clear();
+    _filteredOrders = const [];
+    notifyListeners();
+
+    return _fetchOrdersPage(_ordersPage, showSnack: showSnack);
+  }
+
+  Future<List<Order>> loadMoreOrders({bool showSnack = false}) async {
+    if (_ordersLoading || !_ordersHasMore) return _filteredOrders;
+    _ordersPage += 1;
+    return _fetchOrdersPage(_ordersPage, showSnack: showSnack);
+  }
+
+  Future<List<Order>> _fetchOrdersPage(int page, {bool showSnack = false}) async {
+    if (_ordersLoading) return _filteredOrders; // گارد مضاعف
+    _ordersLoading = true;
+    notifyListeners();
+
+    try {
+      final String endpoint =
+          'api/orders?phone_number_code=${Uri.encodeQueryComponent('12345')}&page=$page&perPage=$_ordersPageSize';
+
+      final response = await service.getItems(endpointUrl: endpoint);
+
+      if (!response.isOk) {
+        throw Exception('HTTP ${response.statusCode}: ${response.statusText}');
+      }
+
+      final responseBody = response.body;
+      if (responseBody['success'] != true) {
+        throw Exception(responseBody['message'] ?? 'Failed to load orders');
+      }
+
+      final List<dynamic> ordersData = responseBody['data'] ?? [];
+      final List<Order> pageOrders =
+      ordersData.map((item) => Order.fromJson(item)).toList();
+
+      // append
+      _allOrders.addAll(pageOrders);
+      _filteredOrders = List.unmodifiable(_allOrders); // امن‌تر برای UI
+
+      // hasMore از meta یا سایز صفحه
+      final meta = responseBody['meta'];
+      if (meta is Map && meta.containsKey('hasMore')) {
+        _ordersHasMore = meta['hasMore'] == true;
+      } else {
+        _ordersHasMore = pageOrders.length >= _ordersPageSize;
+      }
+
+      if (showSnack) {
+        SnackBarHelper.showSuccessSnackBar(
+            responseBody['message'] ?? 'Orders loaded successfully');
+      }
+
+      return _filteredOrders;
+    } catch (e) {
+      // اگر خطا داد، شماره صفحه را برگردان
+      if (_ordersPage > 1) _ordersPage -= 1;
+      SnackBarHelper.showErrorSnackBar('An error occurred: $e');
+      rethrow;
+    } finally {
+      _ordersLoading = false;
+      notifyListeners();
+    }
+  }
+
+  // فیلترها
+  void filterOrders(String status) {
+    if (status == ORDER_STATUS_ALL || status.isEmpty) {
+      _filteredOrders = List.unmodifiable(_allOrders);
+    } else {
+      final s = status.toLowerCase();
+      _filteredOrders = List.unmodifiable(
+        _allOrders.where((o) => (o.orderStatus ?? '').toLowerCase() == s),
+      );
+    }
+    notifyListeners();
+  }
+
+  void searchOrders(String query) {
+    if (query.isEmpty) {
+      _filteredOrders = List.unmodifiable(_allOrders);
+    } else {
+      final q = query.toLowerCase();
+      _filteredOrders = List.unmodifiable(
+        _allOrders.where((o) =>
+        (o.userName ?? '').toLowerCase().contains(q) ||
+            (o.orderStatus ?? '').toLowerCase().contains(q) ||
+            (o.paymentMethod ?? '').toLowerCase().contains(q) ||
+            (o.sId ?? '').toLowerCase().contains(q)),
+      );
+    }
+    notifyListeners();
+  }
+
+  // اگر جایی هنوز از این استفاده می‌کنی، این فقط یک شورت‌کات به لود اولیه است
+  Future<List<Order>> getAllOrders({bool showSnack = false}) async {
+    return loadInitialOrders(showSnack: showSnack);
+  }
+
+  // ... بقیه‌ی کلاس مثل قبل ...
+
+
   List<Category> _allCategories = [];
   List<Category> _filteredCategories = [];
 
@@ -77,8 +197,12 @@ class DataProvider extends ChangeNotifier {
     getAllVariants();
     getAllPosters();
     getAllCoupons();
-    getAllOrders();
   }
+
+
+
+
+
 
   Future<List<Category>> getAllCategories({bool showSnack = false}) async {
     try {
@@ -692,128 +816,6 @@ class DataProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  final int _ordersPageSize = 50;      // مطابق سرور
-  int _ordersPage = 1;
-  bool _ordersHasMore = true;
-  bool _ordersLoading = false;
 
-  bool get isOrdersLoading => _ordersLoading;
-  bool get hasMoreOrders => _ordersHasMore;
-
-
-  // جایگزین getAllOrders فعلی کن: (یا همینی رو صدا بزن)
-  Future<List<Order>> loadInitialOrders({bool showSnack = false}) async {
-    _ordersPage = 1;
-    _ordersHasMore = true;
-    _allOrders.clear();
-    _filteredOrders.clear();
-    notifyListeners();
-
-    return await _fetchOrdersPage(_ordersPage, showSnack: showSnack);
-  }
-
-  Future<List<Order>> loadMoreOrders({bool showSnack = false}) async {
-    if (_ordersLoading || !_ordersHasMore) return _filteredOrders;
-    _ordersPage += 1; // صفحهٔ بعد
-    return await _fetchOrdersPage(_ordersPage, showSnack: showSnack);
-  }
-
-  Future<List<Order>> _fetchOrdersPage(int page, {bool showSnack = false}) async {
-    try {
-      _ordersLoading = true;
-      notifyListeners();
-
-      final String endpoint =
-          'api/orders?phone_number_code=${Uri.encodeQueryComponent('12345')}&page=$page';
-
-      final response = await service.getItems(endpointUrl: endpoint);
-
-      if (response.isOk) {
-        final responseBody = response.body;
-
-        // ساختار پاسخ شما: { success: true, data: [...], meta?: { page, perPage, hasMore } }
-        if (responseBody['success'] == true) {
-          final List<dynamic> ordersData = responseBody['data'] ?? [];
-          final List<Order> pageOrders =
-          ordersData.map((item) => Order.fromJson(item)).toList();
-
-          // append
-          _allOrders.addAll(pageOrders);
-          _filteredOrders = List.from(_allOrders);
-
-          // تشخیص hasMore
-          // اگر meta.hasMore داری، از همون استفاده کن:
-          final meta = responseBody['meta'];
-          if (meta != null && meta is Map && meta.containsKey('hasMore')) {
-            _ordersHasMore = meta['hasMore'] == true;
-          } else {
-            // وگرنه به شکل امن، با سایز صفحه بسنج
-            _ordersHasMore = pageOrders.length >= _ordersPageSize;
-          }
-
-          if (showSnack) {
-            SnackBarHelper.showSuccessSnackBar(
-                responseBody['message'] ?? 'Orders loaded successfully');
-          }
-
-          return _filteredOrders;
-        } else {
-          throw Exception(responseBody['message'] ?? 'Failed to load orders');
-        }
-      } else {
-        throw Exception('HTTP ${response.statusCode}: ${response.statusText}');
-      }
-    } catch (e) {
-      // اگر خطا داد، صفحه رو برگردون عقب تا دوباره تلاش بشه
-      if (_ordersPage > 1) _ordersPage -= 1;
-      if (showSnack) {
-        SnackBarHelper.showErrorSnackBar('An error occurred: $e');
-      }
-      rethrow;
-    } finally {
-      _ordersLoading = false;
-      notifyListeners();
-    }
-  }
-
-
-  List<Order> _allOrders = [];
-  List<Order> _filteredOrders = [];
-
-  List<Order> get orders => _filteredOrders;
-
-// متد فیلتر کردن بر اساس status
-void filterOrders(String status) {
-  if (status == ORDER_STATUS_ALL || status.isEmpty) {
-    // نمایش همه سفارش‌ها
-    _filteredOrders = List.from(_allOrders);
-  } else {
-    // فیلتر بر اساس status
-    _filteredOrders = _allOrders.where((order) {
-      return order.orderStatus?.toLowerCase() == status.toLowerCase();
-    }).toList();
-  }
-  notifyListeners();
-}
-
-// متد فیلتر کردن بر اساس متن جستجو
-void searchOrders(String query) {
-  if (query.isEmpty) {
-    _filteredOrders = List.from(_allOrders);
-  } else {
-    _filteredOrders = _allOrders.where((order) {
-      final searchLower = query.toLowerCase();
-      return
-        (order.userName?.toLowerCase().contains(searchLower) ?? false) ||
-            (order.orderStatus?.toLowerCase().contains(searchLower) ?? false) ||
-            (order.paymentMethod?.toLowerCase().contains(searchLower) ?? false) ||
-            (order.sId?.toLowerCase().contains(searchLower) ?? false);
-    }).toList();
-  }
-  notifyListeners();
-}
-  Future<List<Order>> getAllOrders({bool showSnack = false}) async {
-    return await loadInitialOrders(showSnack: showSnack);
-  }
 
 }

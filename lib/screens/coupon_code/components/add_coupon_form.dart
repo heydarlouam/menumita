@@ -13,20 +13,22 @@ import '../../../widgets/custom_dropdown.dart';
 import '../../../widgets/custom_text_field.dart';
 import '../provider/coupon_code_provider.dart';
 
+
 // class CouponSubmitForm extends StatelessWidget {
 //   final Coupon? coupon;
-//
 //   const CouponSubmitForm({Key? key, this.coupon}) : super(key: key);
 //
 //   @override
 //   Widget build(BuildContext context) {
-//     context.couponCodeProvider.setDataForUpdateCoupon(coupon);
+//     final provider = context.couponCodeProvider;
+//     _initializeForm(provider, coupon);
+//
 //     return SingleChildScrollView(
 //       child: Form(
-//         key: context.couponCodeProvider.addCouponFormKey,
+//         key: provider.addCouponFormKey,
 //         child: Container(
 //           width: MediaQuery.of(context).size.width * 0.7,
-//           padding: EdgeInsets.all(defaultPadding),
+//           padding: const EdgeInsets.all(defaultPadding),
 //           decoration: BoxDecoration(
 //             color: bgColor,
 //             borderRadius: BorderRadius.circular(12.0),
@@ -34,57 +36,59 @@ import '../provider/coupon_code_provider.dart';
 //           child: Column(
 //             mainAxisSize: MainAxisSize.min,
 //             children: [
-//               Gap(defaultPadding),
+//               const Gap(defaultPadding),
 //               Row(
 //                 children: [
 //                   Expanded(
 //                     child: CustomTextField(
-//                       controller: context.couponCodeProvider.couponCodeCtrl,
+//                       controller: provider.couponCodeCtrl,
 //                       labelText: 'Coupon Code',
-//                       onSave: (val) {},
-//                       validator: (value) {
-//                         if (value == null || value.isEmpty) {
-//                           return 'Please enter coupon code';
-//                         }
+//                       onSave: (_) {},
+//                       validator: (v) {
+//                         if (v == null || v.isEmpty) return 'Please enter coupon code';
+//                         if (v.length < 3) return 'Coupon code must be at least 3 characters';
 //                         return null;
 //                       },
 //                     ),
 //                   ),
 //                   Expanded(
-//                     child: CustomDropdown(
-//                       key: GlobalKey(),
-//                       hintText: 'Discount Type',
-//                       // do not change items, or must change in server side too
-//                       items: ['fixed', 'percentage'],
-//                       initialValue:
-//                           context.couponCodeProvider.selectedDiscountType,
-//                       onChanged: (newValue) {
-//                         context.couponCodeProvider.selectedDiscountType =
-//                             newValue ?? 'fixed';
+//                     child: Consumer<CouponCodeProvider>(
+//                       builder: (_, p, __) {
+//                         return CustomDropdown(
+//                           key: GlobalKey(),
+//                           hintText: 'Discount Type',
+//                           items: const ['fixed', 'percentage'],
+//                           initialValue: p.selectedDiscountType,
+//                           onChanged: (val) {
+//                             p.selectedDiscountType = val ?? 'fixed';
+//                             p.updateUi();
+//                           },
+//                           validator: (value) => (value == null || value.isEmpty)
+//                               ? 'Please select a discount type'
+//                               : null,
+//                           displayItem: (val) => val.toUpperCase(),
+//                         );
 //                       },
-//                       validator: (value) {
-//                         if (value == null || value.isEmpty) {
-//                           return 'Please select a discount type';
-//                         }
-//                         return null;
-//                       },
-//                       displayItem: (val) => val,
 //                     ),
 //                   ),
 //                 ],
 //               ),
-//               Gap(defaultPadding),
+//               const Gap(defaultPadding),
 //               Row(
 //                 children: [
 //                   Expanded(
 //                     child: CustomTextField(
-//                       controller: context.couponCodeProvider.discountAmountCtrl,
+//                       controller: provider.discountAmountCtrl,
 //                       labelText: 'Discount Amount',
-//                       inputType: TextInputType.number,
-//                       onSave: (val) {},
-//                       validator: (value) {
-//                         if (value == null || value.isEmpty) {
-//                           return 'Please enter discount amount';
+//                       inputType: const TextInputType.numberWithOptions(decimal: true),
+//                       onSave: (_) {},
+//                       validator: (v) {
+//                         if (v == null || v.isEmpty) return 'Please enter discount amount';
+//                         final d = double.tryParse(v);
+//                         if (d == null) return 'Please enter a valid number';
+//                         if (d <= 0) return 'Discount amount must be greater than 0';
+//                         if (provider.selectedDiscountType == 'percentage' && d > 100) {
+//                           return 'Percentage discount cannot exceed 100%';
 //                         }
 //                         return null;
 //                       },
@@ -92,14 +96,15 @@ import '../provider/coupon_code_provider.dart';
 //                   ),
 //                   Expanded(
 //                     child: CustomTextField(
-//                       controller:
-//                           context.couponCodeProvider.minimumPurchaseAmountCtrl,
-//                       labelText: 'Minimum Purchase Amount',
-//                       inputType: TextInputType.number,
-//                       onSave: (val) {},
-//                       validator: (value) {
-//                         if (value == null || value.isEmpty) {
-//                           return 'Please select purchase amount';
+//                       controller: provider.minimumPurchaseAmountCtrl,
+//                       labelText: 'Minimum Purchase Amount (Optional)',
+//                       inputType: const TextInputType.numberWithOptions(decimal: true),
+//                       onSave: (_) {},
+//                       validator: (v) {
+//                         if (v != null && v.isNotEmpty) {
+//                           final d = double.tryParse(v);
+//                           if (d == null) return 'Please enter a valid number';
+//                           if (d < 0) return 'Amount cannot be negative';
 //                         }
 //                         return null;
 //                       },
@@ -107,188 +112,110 @@ import '../provider/coupon_code_provider.dart';
 //                   ),
 //                 ],
 //               ),
-//               Gap(defaultPadding),
+//               const Gap(defaultPadding),
 //               Row(
 //                 children: [
 //                   Expanded(
 //                     child: CustomDatePicker(
-//                       labelText: 'Select Date',
-//                       controller: context.couponCodeProvider.endDateCtrl,
-//                       initialDate: DateTime.now(),
-//                       firstDate: DateTime(2000),
+//                       labelText: 'End Date',
+//                       controller: provider.endDateCtrl,
+//                       initialDate: DateTime.now().add(const Duration(days: 30)),
+//                       firstDate: DateTime.now(),
 //                       lastDate: DateTime(2100),
-//                       onDateSelected: (DateTime date) {
-//                         print('Selected Date: $date');
-//                       },
-//                     ),
-//                   ),
-//                   Expanded(
-//                     child: CustomDropdown(
-//                       key: GlobalKey(),
-//                       hintText: 'Status',
-//                       initialValue:
-//                           context.couponCodeProvider.selectedCouponStatus,
-//                       items: ['active', 'inactive'],
-//                       displayItem: (val) => val,
-//                       onChanged: (newValue) {
-//                         context.couponCodeProvider.selectedCouponStatus =
-//                             newValue ?? 'active';
-//                       },
-//                       validator: (value) {
-//                         if (value == null || value.isEmpty) {
-//                           return 'Please select status';
-//                         }
-//                         return null;
-//                       },
-//                     ),
-//                   ),
-//                 ],
-//               ),
-//               Row(
-//                 children: [
-//                   Expanded(
-//                     child: Consumer<CouponCodeProvider>(
-//                       builder: (context, couponProvider, child) {
-//                         List<Category> _sortedCategories =
-//                             List.from(context.dataProvider.categories);
-//                         _sortedCategories.sort((a, b) {
-//                           if (a.name == null && b.name == null) {
-//                             return 0;
-//                           } else if (a.name == null) {
-//                             return 1;
-//                           } else if (b.name == null) {
-//                             return -1;
-//                           } else {
-//                             return a.name!.compareTo(b.name!);
-//                           }
-//                         });
-//
-//                         return CustomDropdown(
-//                           initialValue: couponProvider.selectedCategory,
-//                           hintText: 'Select Category',
-//                           items: _sortedCategories,
-//                           displayItem: (Category? category) =>
-//                               category?.name ?? '',
-//                           onChanged: (newValue) {
-//                             if (newValue != null) {
-//                               couponProvider.selectedSubCategory = null;
-//                               couponProvider.selectedProduct = null;
-//                               couponProvider.selectedCategory = newValue;
-//                               couponProvider.updateUi();
-//                             }
-//                           },
-//                         );
-//                       },
+//                       onDateSelected: (_) {},
 //                     ),
 //                   ),
 //                   Expanded(
 //                     child: Consumer<CouponCodeProvider>(
-//                       builder: (context, couponProvider, child) {
-//                         List<SubCategory> _sortedSubCategories =
-//                             List.from(context.dataProvider.subCategories);
-//                         _sortedSubCategories.sort((a, b) {
-//                           if (a.name == null && b.name == null) {
-//                             return 0;
-//                           } else if (a.name == null) {
-//                             return 1;
-//                           } else if (b.name == null) {
-//                             return -1;
-//                           } else {
-//                             return a.name!.compareTo(b.name!);
-//                           }
-//                         });
-//
+//                       builder: (_, p, __) {
 //                         return CustomDropdown(
-//                           initialValue: couponProvider.selectedSubCategory,
-//                           hintText: 'Select Sub Category',
-//                           items: _sortedSubCategories,
-//                           displayItem: (SubCategory? subCategory) =>
-//                               subCategory?.name ?? '',
-//                           onChanged: (newValue) {
-//                             if (newValue != null) {
-//                               couponProvider.selectedCategory = null;
-//                               couponProvider.selectedProduct = null;
-//                               couponProvider.selectedSubCategory = newValue;
-//                               couponProvider.updateUi();
-//                             }
+//                           key: GlobalKey(),
+//                           hintText: 'Status',
+//                           initialValue: p.selectedCouponStatus,
+//                           items: const ['active', 'inactive'],
+//                           displayItem: (val) => val.toUpperCase(),
+//                           onChanged: (val) {
+//                             p.selectedCouponStatus = val ?? 'active';
+//                             p.updateUi();
 //                           },
-//                         );
-//                       },
-//                     ),
-//                   ),
-//                   Expanded(
-//                     child: Consumer<CouponCodeProvider>(
-//                       builder: (context, couponProvider, child) {
-//                         List<Product> _sortedProducts =
-//                             List.from(context.dataProvider.products);
-//                         _sortedProducts.sort((a, b) {
-//                           if (a.name == null && b.name == null) {
-//                             return 0;
-//                           } else if (a.name == null) {
-//                             return 1;
-//                           } else if (b.name == null) {
-//                             return -1;
-//                           } else {
-//                             return a.name!.compareTo(b.name!);
-//                           }
-//                         });
-//
-//                         return CustomDropdown(
-//                           initialValue: couponProvider.selectedProduct,
-//                           hintText: 'Select Product',
-//                           items: _sortedProducts,
-//                           displayItem: (Product? product) =>
-//                               product?.name ?? '',
-//                           onChanged: (newValue) {
-//                             if (newValue != null) {
-//                               couponProvider.selectedCategory = null;
-//                               couponProvider.selectedSubCategory = null;
-//                               couponProvider.selectedProduct = newValue;
-//                               couponProvider.updateUi();
-//                             }
-//                           },
+//                           validator: (v) =>
+//                           (v == null || v.isEmpty) ? 'Please select status' : null,
 //                         );
 //                       },
 //                     ),
 //                   ),
 //                 ],
 //               ),
-//               Gap(defaultPadding),
-//               Row(
-//                 mainAxisAlignment: MainAxisAlignment.center,
-//                 children: [
-//                   ElevatedButton(
-//                     style: ElevatedButton.styleFrom(
-//                       foregroundColor: Colors.white,
-//                       backgroundColor: secondaryColor,
-//                     ),
-//                     onPressed: () {
-//                       Navigator.of(context).pop(); // Close the popup
-//                     },
-//                     child: Text('Cancel'),
-//                   ),
-//                   SizedBox(width: defaultPadding),
-//                   ElevatedButton(
-//                     style: ElevatedButton.styleFrom(
-//                       foregroundColor: Colors.white,
-//                       backgroundColor: primaryColor,
-//                     ),
-//                     onPressed: () {
-//                       // Validate and save the form
-//                       if (context
-//                           .couponCodeProvider.addCouponFormKey.currentState!
-//                           .validate()) {
-//                         context
-//                             .couponCodeProvider.addCouponFormKey.currentState!
-//                             .save();
-//                         context.couponCodeProvider.submitCoupon();
+//               const Gap(defaultPadding),
+//               Consumer<CouponCodeProvider>(
+//                 builder: (context, p, _) {
+//                   return Column(
+//                     children: [
+//                       Text(
+//                         'Restrictions (Optional - Leave all empty for all products)',
+//                         style: TextStyle(
+//                           fontWeight: FontWeight.bold,
+//                           color: Colors.grey[700],
+//                           fontSize: 14,
+//                         ),
+//                       ),
+//                       const SizedBox(height: 8),
+//                       Row(
+//                         children: [
+//                           Expanded(child: _categoryDropdown(context, p)),
+//                           Expanded(child: _subCategoryDropdown(context, p)),
+//                           Expanded(child: _productDropdown(context, p)),
+//                         ],
+//                       ),
+//                     ],
+//                   );
+//                 },
+//               ),
+//               const Gap(defaultPadding * 2),
+//               Consumer<CouponCodeProvider>(
+//                 builder: (_, p, __) {
+//                   return Row(
+//                     mainAxisAlignment: MainAxisAlignment.center,
+//                     children: [
+//                       ElevatedButton(
+//                         style: ElevatedButton.styleFrom(
+//                           foregroundColor: Colors.white,
+//                           backgroundColor: Colors.grey,
+//                           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+//                         ),
+//                         onPressed: () => Navigator.of(context).pop(),
+//                         child: const Text('Cancel'),
+//                       ),
+//                       const SizedBox(width: defaultPadding),
+//                       ElevatedButton(
+//                         style: ElevatedButton.styleFrom(
+//                           foregroundColor: Colors.white,
+//                           backgroundColor: primaryColor,
+//                           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+//                         ),
+//                         onPressed: p.isSubmitting
+//                             ? null
+//                             : () async {
+//                           final form = p.addCouponFormKey.currentState;
+//                           if (form == null) return;
+//                           if (!form.validate()) return;
+//                           form.save();
 //
-//                         Navigator.of(context).pop();
-//                       }
-//                     },
-//                     child: Text('Submit'),
-//                   ),
-//                 ],
+//                           final ok = await p.submitCoupon();
+//                           if (!context.mounted) return;
+//                           if (ok) Navigator.of(context).pop();
+//                         },
+//                         child: p.isSubmitting
+//                             ? const SizedBox(
+//                             height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2))
+//                             : Text(
+//                           coupon != null ? 'Update Coupon' : 'Create Coupon',
+//                           style: const TextStyle(fontWeight: FontWeight.bold),
+//                         ),
+//                       ),
+//                     ],
+//                   );
+//                 },
 //               ),
 //             ],
 //           ),
@@ -296,25 +223,93 @@ import '../provider/coupon_code_provider.dart';
 //       ),
 //     );
 //   }
+//
+//   void _initializeForm(CouponCodeProvider provider, Coupon? coupon) {
+//     WidgetsBinding.instance.addPostFrameCallback((_) {
+//       provider.setDataForUpdateCoupon(coupon);
+//     });
+//   }
+//
+//   Widget _categoryDropdown(BuildContext context, CouponCodeProvider p) {
+//     final list = List<Category>.from(context.dataProvider.categories)
+//       ..sort((a, b) => (a.name ?? '').compareTo(b.name ?? ''));
+//
+//     return CustomDropdown<Category>(
+//       initialValue: p.selectedCategory,
+//       hintText: 'Select Category',
+//       items: list,
+//       displayItem: (c) => c?.name ?? 'No Category',
+//       onChanged: (val) {
+//         p.selectedCategory = val;
+//         p.selectedSubCategory = null;
+//         p.selectedProduct = null;
+//         p.updateUi();
+//       },
+//     );
+//   }
+//
+//   Widget _subCategoryDropdown(BuildContext context, CouponCodeProvider p) {
+//     final list = List<SubCategory>.from(context.dataProvider.subCategories)
+//       ..sort((a, b) => (a.name ?? '').compareTo(b.name ?? ''));
+//
+//     return CustomDropdown<SubCategory>(
+//       initialValue: p.selectedSubCategory,
+//       hintText: 'Select Sub Category',
+//       items: list,
+//       displayItem: (s) => s?.name ?? 'No Sub Category',
+//       onChanged: (val) {
+//         p.selectedSubCategory = val;
+//         p.selectedCategory = null;
+//         p.selectedProduct = null;
+//         p.updateUi();
+//       },
+//     );
+//   }
+//
+//   Widget _productDropdown(BuildContext context, CouponCodeProvider p) {
+//     final list = List<Product>.from(context.dataProvider.products)
+//       ..sort((a, b) => (a.name ?? '').compareTo(b.name ?? ''));
+//
+//     return CustomDropdown<Product>(
+//       initialValue: p.selectedProduct,
+//       hintText: 'Select Product',
+//       items: list,
+//       displayItem: (pr) => pr?.name ?? 'No Product',
+//       onChanged: (val) {
+//         p.selectedProduct = val;
+//         p.selectedCategory = null;
+//         p.selectedSubCategory = null;
+//         p.updateUi();
+//       },
+//     );
+//   }
 // }
 //
-// // How to show the popup
+// // Popup helper (همسان با کتگوری)
 // void showAddCouponForm(BuildContext context, Coupon? coupon) {
 //   showDialog(
 //     context: context,
+//     barrierDismissible: false, // مثل Category
 //     builder: (BuildContext context) {
 //       return AlertDialog(
 //         backgroundColor: bgColor,
 //         title: Center(
-//             child: Text('Create Coupon'.toUpperCase(),
-//                 style: TextStyle(color: primaryColor))),
+//           child: Text(
+//             coupon != null ? 'Update Coupon' : 'Create New Coupon',
+//             style: const TextStyle(color: primaryColor, fontWeight: FontWeight.bold),
+//           ),
+//         ),
 //         content: CouponSubmitForm(coupon: coupon),
 //       );
 //     },
-//   );
+//   ).then((_) {
+//     // اگر دوست داشته باشی می‌تونی اینجا فیلدها رو پاک کنی
+//     context.couponCodeProvider.clearFields();
+//   });
 // }
 
 
+// lib/screens/coupon_code/components/add_coupon_form.dart
 import 'package:flutter/material.dart';
 import 'package:gap/gap.dart';
 import 'package:provider/provider.dart';
@@ -330,25 +325,34 @@ import '../../../widgets/custom_dropdown.dart';
 import '../../../widgets/custom_text_field.dart';
 import '../provider/coupon_code_provider.dart';
 
-
-class CouponSubmitForm extends StatelessWidget {
+class CouponSubmitForm extends StatefulWidget {
   final Coupon? coupon;
-
   const CouponSubmitForm({Key? key, this.coupon}) : super(key: key);
 
   @override
-  Widget build(BuildContext context) {
-    final couponProvider = context.couponCodeProvider;
+  State<CouponSubmitForm> createState() => _CouponSubmitFormState();
+}
 
-    // استفاده از initState جایگزین برای StatelessWidget
-    _initializeForm(couponProvider, coupon);
+class _CouponSubmitFormState extends State<CouponSubmitForm> {
+  @override
+  void initState() {
+    super.initState();
+    // یک‌بار مقداردهی
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.couponCodeProvider.setDataForUpdateCoupon(widget.coupon);
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final provider = context.couponCodeProvider;
 
     return SingleChildScrollView(
       child: Form(
-        key: couponProvider.addCouponFormKey,
+        key: provider.addCouponFormKey,
         child: Container(
           width: MediaQuery.of(context).size.width * 0.7,
-          padding: EdgeInsets.all(defaultPadding),
+          padding: const EdgeInsets.all(defaultPadding),
           decoration: BoxDecoration(
             color: bgColor,
             borderRadius: BorderRadius.circular(12.0),
@@ -356,43 +360,36 @@ class CouponSubmitForm extends StatelessWidget {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Gap(defaultPadding),
+              const Gap(defaultPadding),
               Row(
                 children: [
                   Expanded(
                     child: CustomTextField(
-                      controller: couponProvider.couponCodeCtrl,
+                      controller: provider.couponCodeCtrl,
                       labelText: 'Coupon Code',
-                      onSave: (val) {},
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'Please enter coupon code';
-                        }
-                        if (value.length < 3) {
-                          return 'Coupon code must be at least 3 characters';
-                        }
+                      onSave: (_) {},
+                      validator: (v) {
+                        if (v == null || v.isEmpty) return 'Please enter coupon code';
+                        if (v.length < 3) return 'Coupon code must be at least 3 characters';
                         return null;
                       },
                     ),
                   ),
                   Expanded(
                     child: Consumer<CouponCodeProvider>(
-                      builder: (context, provider, child) {
+                      builder: (_, p, __) {
                         return CustomDropdown(
                           key: GlobalKey(),
                           hintText: 'Discount Type',
-                          items: ['fixed', 'percentage'],
-                          initialValue: provider.selectedDiscountType,
-                          onChanged: (newValue) {
-                            provider.selectedDiscountType = newValue ?? 'fixed';
-                            provider.updateUi();
+                          items: const ['fixed', 'percentage'],
+                          initialValue: p.selectedDiscountType,
+                          onChanged: (val) {
+                            p.selectedDiscountType = val ?? 'fixed';
+                            p.updateUi();
                           },
-                          validator: (value) {
-                            if (value == null || value.isEmpty) {
-                              return 'Please select a discount type';
-                            }
-                            return null;
-                          },
+                          validator: (value) => (value == null || value.isEmpty)
+                              ? 'Please select a discount type'
+                              : null,
                           displayItem: (val) => val.toUpperCase(),
                         );
                       },
@@ -400,27 +397,21 @@ class CouponSubmitForm extends StatelessWidget {
                   ),
                 ],
               ),
-              Gap(defaultPadding),
+              const Gap(defaultPadding),
               Row(
                 children: [
                   Expanded(
                     child: CustomTextField(
-                      controller: couponProvider.discountAmountCtrl,
+                      controller: provider.discountAmountCtrl,
                       labelText: 'Discount Amount',
-                      inputType: TextInputType.numberWithOptions(decimal: true),
-                      onSave: (val) {},
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'Please enter discount amount';
-                        }
-                        if (double.tryParse(value) == null) {
-                          return 'Please enter a valid number';
-                        }
-                        final amount = double.parse(value);
-                        if (amount <= 0) {
-                          return 'Discount amount must be greater than 0';
-                        }
-                        if (couponProvider.selectedDiscountType == 'percentage' && amount > 100) {
+                      inputType: const TextInputType.numberWithOptions(decimal: true),
+                      onSave: (_) {},
+                      validator: (v) {
+                        if (v == null || v.isEmpty) return 'Please enter discount amount';
+                        final d = double.tryParse(v);
+                        if (d == null) return 'Please enter a valid number';
+                        if (d <= 0) return 'Discount amount must be greater than 0';
+                        if (provider.selectedDiscountType == 'percentage' && d > 100) {
                           return 'Percentage discount cannot exceed 100%';
                         }
                         return null;
@@ -429,18 +420,15 @@ class CouponSubmitForm extends StatelessWidget {
                   ),
                   Expanded(
                     child: CustomTextField(
-                      controller: couponProvider.minimumPurchaseAmountCtrl,
+                      controller: provider.minimumPurchaseAmountCtrl,
                       labelText: 'Minimum Purchase Amount (Optional)',
-                      inputType: TextInputType.numberWithOptions(decimal: true),
-                      onSave: (val) {},
-                      validator: (value) {
-                        if (value != null && value.isNotEmpty) {
-                          if (double.tryParse(value) == null) {
-                            return 'Please enter a valid number';
-                          }
-                          if (double.parse(value) < 0) {
-                            return 'Amount cannot be negative';
-                          }
+                      inputType: const TextInputType.numberWithOptions(decimal: true),
+                      onSave: (_) {},
+                      validator: (v) {
+                        if (v != null && v.isNotEmpty) {
+                          final d = double.tryParse(v);
+                          if (d == null) return 'Please enter a valid number';
+                          if (d < 0) return 'Amount cannot be negative';
                         }
                         return null;
                       },
@@ -448,49 +436,44 @@ class CouponSubmitForm extends StatelessWidget {
                   ),
                 ],
               ),
-              Gap(defaultPadding),
+              const Gap(defaultPadding),
               Row(
                 children: [
                   Expanded(
                     child: CustomDatePicker(
                       labelText: 'End Date',
-                      controller: couponProvider.endDateCtrl,
-                      initialDate: DateTime.now().add(Duration(days: 30)),
+                      controller: provider.endDateCtrl,
+                      initialDate: DateTime.now().add(const Duration(days: 30)),
                       firstDate: DateTime.now(),
                       lastDate: DateTime(2100),
-                      onDateSelected: (DateTime date) {
-                        print('Selected Date: $date');
-                      },
+                      onDateSelected: (_) {},
                     ),
                   ),
                   Expanded(
                     child: Consumer<CouponCodeProvider>(
-                      builder: (context, provider, child) {
+                      builder: (_, p, __) {
                         return CustomDropdown(
                           key: GlobalKey(),
                           hintText: 'Status',
-                          initialValue: provider.selectedCouponStatus,
-                          items: ['active', 'inactive'],
+                          initialValue: p.selectedCouponStatus,
+                          items: const ['active', 'inactive'],
                           displayItem: (val) => val.toUpperCase(),
-                          onChanged: (newValue) {
-                            provider.selectedCouponStatus = newValue ?? 'active';
-                            provider.updateUi();
+                          onChanged: (val) {
+                            p.selectedCouponStatus = val ?? 'active';
+                            p.updateUi();
                           },
-                          validator: (value) {
-                            if (value == null || value.isEmpty) {
-                              return 'Please select status';
-                            }
-                            return null;
-                          },
+                          validator: (v) => (v == null || v.isEmpty)
+                              ? 'Please select status'
+                              : null,
                         );
                       },
                     ),
                   ),
                 ],
               ),
-              Gap(defaultPadding),
+              const Gap(defaultPadding),
               Consumer<CouponCodeProvider>(
-                builder: (context, provider, child) {
+                builder: (context, p, _) {
                   return Column(
                     children: [
                       Text(
@@ -501,55 +484,65 @@ class CouponSubmitForm extends StatelessWidget {
                           fontSize: 14,
                         ),
                       ),
-                      SizedBox(height: 8),
+                      const SizedBox(height: 8),
                       Row(
                         children: [
-                          Expanded(
-                            child: _buildCategoryDropdown(context, provider),
-                          ),
-                          Expanded(
-                            child: _buildSubCategoryDropdown(context, provider),
-                          ),
-                          Expanded(
-                            child: _buildProductDropdown(context, provider),
-                          ),
+                          Expanded(child: _categoryDropdown(context, p)),
+                          Expanded(child: _subCategoryDropdown(context, p)),
+                          Expanded(child: _productDropdown(context, p)),
                         ],
                       ),
                     ],
                   );
                 },
               ),
-              Gap(defaultPadding * 2),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      foregroundColor: Colors.white,
-                      backgroundColor: Colors.grey,
-                      padding: EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                    ),
-                    onPressed: () {
-                      Navigator.of(context).pop();
-                    },
-                    child: Text('Cancel'),
-                  ),
-                  SizedBox(width: defaultPadding),
-                  ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      foregroundColor: Colors.white,
-                      backgroundColor: primaryColor,
-                      padding: EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                    ),
-                    onPressed: () {
-                      _submitForm(context, couponProvider);
-                    },
-                    child: Text(
-                      coupon != null ? 'Update Coupon' : 'Create Coupon',
-                      style: TextStyle(fontWeight: FontWeight.bold),
-                    ),
-                  ),
-                ],
+              const Gap(defaultPadding * 2),
+              Consumer<CouponCodeProvider>(
+                builder: (_, p, __) {
+                  return Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          foregroundColor: Colors.white,
+                          backgroundColor: Colors.grey,
+                          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                        ),
+                        onPressed: () => Navigator.of(context).pop(),
+                        child: const Text('Cancel'),
+                      ),
+                      const SizedBox(width: defaultPadding),
+                      ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          foregroundColor: Colors.white,
+                          backgroundColor: primaryColor,
+                          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                        ),
+                        onPressed: p.isSubmitting
+                            ? null
+                            : () async {
+                          final form = p.addCouponFormKey.currentState;
+                          if (form == null) return;
+                          if (!form.validate()) return;
+                          form.save();
+
+                          final ok = await p.submitCoupon();
+                          if (!context.mounted) return;
+                          if (ok) Navigator.of(context).pop();
+                        },
+                        child: p.isSubmitting
+                            ? const SizedBox(
+                          height: 20, width: 20,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                            : Text(
+                          widget.coupon != null ? 'Update Coupon' : 'Create Coupon',
+                          style: const TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                      ),
+                    ],
+                  );
+                },
               ),
             ],
           ),
@@ -558,115 +551,79 @@ class CouponSubmitForm extends StatelessWidget {
     );
   }
 
-  // متد برای مقداردهی اولیه فرم
-  void _initializeForm(CouponCodeProvider provider, Coupon? coupon) {
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      provider.setDataForUpdateCoupon(coupon);
-    });
-  }
+  Widget _categoryDropdown(BuildContext context, CouponCodeProvider p) {
+    final list = List<Category>.from(context.dataProvider.categories)
+      ..sort((a, b) => (a.name ?? '').compareTo(b.name ?? ''));
 
-  // متدهای کمکی برای ساخت dropdownها
-  Widget _buildCategoryDropdown(BuildContext context, CouponCodeProvider provider) {
-    List<Category> _sortedCategories = List.from(context.dataProvider.categories);
-    _sortedCategories.sort((a, b) => (a.name ?? '').compareTo(b.name ?? ''));
-
-    return CustomDropdown(
-      initialValue: provider.selectedCategory,
+    return CustomDropdown<Category>(
+      initialValue: p.selectedCategory,
       hintText: 'Select Category',
-      items: _sortedCategories,
-      displayItem: (Category? category) => category?.name ?? 'No Category',
-      onChanged: (newValue) {
-        provider.selectedCategory = newValue;
-        provider.selectedSubCategory = null;
-        provider.selectedProduct = null;
-        provider.updateUi();
+      items: list,
+      displayItem: (c) => c?.name ?? 'No Category',
+      onChanged: (val) {
+        p.selectedCategory = val;
+        p.selectedSubCategory = null;
+        p.selectedProduct = null;
+        p.updateUi();
       },
     );
   }
 
-  Widget _buildSubCategoryDropdown(BuildContext context, CouponCodeProvider provider) {
-    List<SubCategory> _sortedSubCategories = List.from(context.dataProvider.subCategories);
-    _sortedSubCategories.sort((a, b) => (a.name ?? '').compareTo(b.name ?? ''));
+  Widget _subCategoryDropdown(BuildContext context, CouponCodeProvider p) {
+    final list = List<SubCategory>.from(context.dataProvider.subCategories)
+      ..sort((a, b) => (a.name ?? '').compareTo(b.name ?? ''));
 
-    return CustomDropdown(
-      initialValue: provider.selectedSubCategory,
+    return CustomDropdown<SubCategory>(
+      initialValue: p.selectedSubCategory,
       hintText: 'Select Sub Category',
-      items: _sortedSubCategories,
-      displayItem: (SubCategory? subCategory) => subCategory?.name ?? 'No Sub Category',
-      onChanged: (newValue) {
-        provider.selectedSubCategory = newValue;
-        provider.selectedCategory = null;
-        provider.selectedProduct = null;
-        provider.updateUi();
+      items: list,
+      displayItem: (s) => s?.name ?? 'No Sub Category',
+      onChanged: (val) {
+        p.selectedSubCategory = val;
+        p.selectedCategory = null;
+        p.selectedProduct = null;
+        p.updateUi();
       },
     );
   }
 
-  Widget _buildProductDropdown(BuildContext context, CouponCodeProvider provider) {
-    List<Product> _sortedProducts = List.from(context.dataProvider.products);
-    _sortedProducts.sort((a, b) => (a.name ?? '').compareTo(b.name ?? ''));
+  Widget _productDropdown(BuildContext context, CouponCodeProvider p) {
+    final list = List<Product>.from(context.dataProvider.products)
+      ..sort((a, b) => (a.name ?? '').compareTo(b.name ?? ''));
 
-    return CustomDropdown(
-      initialValue: provider.selectedProduct,
+    return CustomDropdown<Product>(
+      initialValue: p.selectedProduct,
       hintText: 'Select Product',
-      items: _sortedProducts,
-      displayItem: (Product? product) => product?.name ?? 'No Product',
-      onChanged: (newValue) {
-        provider.selectedProduct = newValue;
-        provider.selectedCategory = null;
-        provider.selectedSubCategory = null;
-        provider.updateUi();
+      items: list,
+      displayItem: (pr) => pr?.name ?? 'No Product',
+      onChanged: (val) {
+        p.selectedProduct = val;
+        p.selectedCategory = null;
+        p.selectedSubCategory = null;
+        p.updateUi();
       },
     );
-  }
-
-  void _submitForm(BuildContext context, CouponCodeProvider couponProvider) {
-    if (couponProvider.addCouponFormKey.currentState!.validate()) {
-      couponProvider.addCouponFormKey.currentState!.save();
-
-      // نمایش دیالوگ تایید
-      showDialog(
-        context: context,
-        builder: (BuildContext context) {
-          return AlertDialog(
-            title: Text('Confirm ${coupon != null ? 'Update' : 'Creation'}'),
-            content: Text('Are you sure you want to ${coupon != null ? 'update' : 'create'} this coupon?'),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.of(context).pop(),
-                child: Text('Cancel'),
-              ),
-              TextButton(
-                onPressed: () {
-                  Navigator.of(context).pop(); // بستن دیالوگ تایید
-                  couponProvider.submitCoupon();
-                  Navigator.of(context).pop(); // بستن دیالوگ اصلی
-                },
-                child: Text('Confirm'),
-              ),
-            ],
-          );
-        },
-      );
-    }
   }
 }
 
-// How to show the popup
+// Popup helper بدون تغییر
 void showAddCouponForm(BuildContext context, Coupon? coupon) {
   showDialog(
     context: context,
+    barrierDismissible: false,
     builder: (BuildContext context) {
       return AlertDialog(
         backgroundColor: bgColor,
         title: Center(
           child: Text(
             coupon != null ? 'Update Coupon' : 'Create New Coupon',
-            style: TextStyle(color: primaryColor, fontWeight: FontWeight.bold),
+            style: const TextStyle(color: primaryColor, fontWeight: FontWeight.bold),
           ),
         ),
         content: CouponSubmitForm(coupon: coupon),
       );
     },
-  );
+  ).then((_) {
+    context.couponCodeProvider.clearFields();
+  });
 }
