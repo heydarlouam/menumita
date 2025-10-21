@@ -29,6 +29,7 @@ const ALL_PRODUCTS = "همه محصولات";
 const STOCK_OUT_PRODUCTS = "اتمام موجودی";
 const LIMITED_STOCK_PRODUCTS = "موجودی محدود";
 const OTHER_PRODUCTS = "سایر محصولات";
+const FONTS_STYLE_FAMILY = "dm";
 
 // تغییر نده
 // const ORDER_STATUS_ALL = 'همه سفارش‌ها';

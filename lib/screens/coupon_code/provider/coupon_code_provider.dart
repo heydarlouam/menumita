@@ -220,17 +220,17 @@ import '../../../utility/snack_bar_helper.dart';
 // }
 
 // lib/screens/coupon_code/provider/coupon_code_provider.dart
-import 'dart:developer';
-import 'package:flutter/cupertino.dart';
-import 'package:get/get.dart';
-
-import '../../../core/data/data_provider.dart';
-import '../../../models/category.dart';
-import '../../../models/coupon.dart';
-import '../../../models/product.dart';
-import '../../../models/sub_category.dart';
-import '../../../services/http_services.dart';
-import '../../../utility/snack_bar_helper.dart';
+// import 'dart:developer';
+// import 'package:flutter/cupertino.dart';
+// import 'package:get/get.dart';
+//
+// import '../../../core/data/data_provider.dart';
+// import '../../../models/category.dart';
+// import '../../../models/coupon.dart';
+// import '../../../models/product.dart';
+// import '../../../models/sub_category.dart';
+// import '../../../services/http_services.dart';
+// import '../../../utility/snack_bar_helper.dart';
 
 class CouponCodeProvider extends ChangeNotifier {
   final HttpService service = HttpService();
@@ -370,8 +370,11 @@ class CouponCodeProvider extends ChangeNotifier {
       couponForUpdate != null ? updateCoupon() : addCoupon();
 
   Future<bool> deleteCoupon(Coupon coupon) async {
+    print('remove coupon ');
+    print('remove coupon ${coupon.sId}');
     try {
       final response = await service.deleteItem(
+
         endpointUrl: 'api/coupons',
         itemId: coupon.sId ?? '',
       );

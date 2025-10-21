@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:google_fonts/google_fonts.dart';
+//import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import 'dart:async';
 
@@ -58,14 +58,30 @@ class MyApp extends StatelessWidget {
     return GetMaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'menumita',
-      theme: ThemeData.dark().copyWith(
+      locale: const Locale('fa'), // 👈 زبان پیش‌فرض
+
+      theme: ThemeData(
+        brightness: Brightness.dark, // چون تم تاریک داری
+        fontFamily: FONTS_STYLE_FAMILY,
         scaffoldBackgroundColor: bgColor,
-        textTheme: GoogleFonts.poppinsTextTheme(Theme.of(context).textTheme).apply(bodyColor: Colors.white),
         canvasColor: secondaryColor,
+        textTheme: Theme.of(context).textTheme.apply(
+          bodyColor: Colors.white,
+          displayColor: Colors.white,
+        ),
       ),
+
+      // theme: ThemeData.dark().copyWith(
+      //
+      //   scaffoldBackgroundColor: bgColor,
+      // //  textTheme: GoogleFonts.poppinsTextTheme(Theme.of(context).textTheme).apply(bodyColor: Colors.white),
+      //   canvasColor: secondaryColor,
+      //
+      // ),
       initialRoute: AppPages.HOME,
       unknownRoute: GetPage(name: '/notFound', page: () => MainScreen()),
       defaultTransition: Transition.cupertino,
+
       getPages: AppPages.routes,
     );
   }

@@ -39,16 +39,17 @@ class OrderInfoCard extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
+                style: TextStyle(fontFamily: FONTS_STYLE_FAMILY),
                     title,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
                   Text(
-                    "$totalOrder Order",
+                    "$totalOrder سفارش",
                     style: Theme.of(context)
                         .textTheme
                         .bodySmall!
-                        .copyWith(color: Colors.white70),
+                        .copyWith(color: Colors.white70,fontFamily: FONTS_STYLE_FAMILY),
                   ),
                 ],
               ),

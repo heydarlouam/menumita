@@ -21,7 +21,7 @@ class ProductSummeryCard extends StatelessWidget {
         onTap(info.title);
       },
       child: Container(
-        padding: EdgeInsets.all(defaultPadding),
+        padding: EdgeInsets.all(6),
         decoration: BoxDecoration(
           color: secondaryColor,
           borderRadius: const BorderRadius.all(Radius.circular(10)),
@@ -34,7 +34,7 @@ class ProductSummeryCard extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Container(
-                  padding: EdgeInsets.all(defaultPadding * 0.75),
+                  padding: EdgeInsets.all(defaultPadding * 0.35),
                   height: 40,
                   width: 40,
                   decoration: BoxDecoration(
@@ -53,6 +53,7 @@ class ProductSummeryCard extends StatelessWidget {
             Text(
               info.title!,
               maxLines: 1,
+              style: TextStyle(fontFamily: FONTS_STYLE_FAMILY,fontSize: defaultPadding/1.4),
               overflow: TextOverflow.ellipsis,
             ),
             ProgressLine(
@@ -63,11 +64,11 @@ class ProductSummeryCard extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  "${info.productsCount} Product",
-                  style: Theme.of(context)
-                      .textTheme
-                      .bodySmall!
-                      .copyWith(color: Colors.white70),
+
+
+                  "${info.productsCount} محصول",
+                  style: TextStyle(color: Colors.white70,fontFamily: FONTS_STYLE_FAMILY,fontSize:defaultPadding/1.3),
+
                 ),
               ],
             )

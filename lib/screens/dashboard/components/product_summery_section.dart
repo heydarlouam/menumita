@@ -8,83 +8,77 @@ import '../../../utility/constants.dart';
 import 'product_summery_card.dart';
 
 class ProductSummerySection extends StatelessWidget {
-  const ProductSummerySection({
-    Key? key,
-  }) : super(key: key);
+  const ProductSummerySection({Key? key}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
-    final Size _size = MediaQuery.of(context).size;
+
+     final w = MediaQuery.of(context).size.width;
+
+
+
+    // ✅ موبایل (کمتر از 594px): 2 ستون
+    // ✅ تبلت و دسکتاپ (594px به بالا): 4 ستون
+    final int crossAxisCount = (w < 594) ? 2 : 4;
+
+    // نسبت ابعاد کارت‌ها؛ می‌تونی کمی تنظیمش کنی
+    final double aspect = (w < 594) ? 1.2 : 1.4;
 
     return Consumer<DataProvider>(
       builder: (context, dataProvider, _) {
-        int totalProduct =
+        final total =
             context.dataProvider.calculateProductWithQuantity(quantity: null);
-        int outOfStockProduct =
+        final out =
             context.dataProvider.calculateProductWithQuantity(quantity: 0);
-        int limitedStockProduct =
+        final lim =
             context.dataProvider.calculateProductWithQuantity(quantity: 1);
-        int otherStockProduct =
-            totalProduct - outOfStockProduct - limitedStockProduct;
+        final other = total - out - lim;
 
-        List<ProductSummeryInfo> productSummeryItems = [
+        final items = [
           ProductSummeryInfo(
-            title: ALL_PRODUCTS,
-            productsCount: totalProduct,
-            svgSrc: "assets/icons/Product1.svg",
-            color: primaryColor,
-            percentage: totalProduct != 0 ? 100 : 0,
-          ),
+              title: ALL_PRODUCTS,
+
+              productsCount: total,
+              svgSrc: "assets/icons/Product1.svg",
+              color: primaryColor,
+              percentage: total != 0 ? 100 : 0),
           ProductSummeryInfo(
-            title: STOCK_OUT_PRODUCTS,
-            productsCount: outOfStockProduct,
-            svgSrc: "assets/icons/Product2.svg",
-            color: Color(0xFFEA3829),
-            percentage: totalProduct != 0
-                ? (outOfStockProduct / totalProduct) * 100
-                : 0,
-          ),
+              title: STOCK_OUT_PRODUCTS,
+              productsCount: out,
+              svgSrc: "assets/icons/Product2.svg",
+              color: const Color(0xFFEA3829),
+              percentage: total != 0 ? (out / total) * 100 : 0),
           ProductSummeryInfo(
-            title: LIMITED_STOCK_PRODUCTS,
-            productsCount: limitedStockProduct,
-            svgSrc: "assets/icons/Product3.svg",
-            color: Color(0xFFECBE23),
-            percentage: totalProduct != 0
-                ? (limitedStockProduct / totalProduct) * 100
-                : 0,
-          ),
+              title: LIMITED_STOCK_PRODUCTS,
+              productsCount: lim,
+              svgSrc: "assets/icons/Product3.svg",
+              color: const Color(0xFFECBE23),
+              percentage: total != 0 ? (lim / total) * 100 : 0),
           ProductSummeryInfo(
-            title: OTHER_PRODUCTS,
-            productsCount: otherStockProduct,
-            svgSrc: "assets/icons/Product4.svg",
-            color: Color(0xFF47e228),
-            percentage: totalProduct != 0
-                ? (otherStockProduct / totalProduct) * 100
-                : 0,
-          ),
+              title: OTHER_PRODUCTS,
+              productsCount: other,
+              svgSrc: "assets/icons/Product4.svg",
+              color: const Color(0xFF47e228),
+              percentage: total != 0 ? (other / total) * 100 : 0),
         ];
 
-        return Column(
-          children: [
-            GridView.builder(
-              physics: NeverScrollableScrollPhysics(),
-              shrinkWrap: true,
-              itemCount: productSummeryItems.length,
-              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 4,
-                crossAxisSpacing: defaultPadding,
-                mainAxisSpacing: defaultPadding,
-                childAspectRatio: _size.width < 1400 ? 1.1 : 1.4,
-              ),
-              itemBuilder: (context, index) => ProductSummeryCard(
-                info: productSummeryItems[index],
-                onTap: (productType) {
-                  context.dataProvider
-                      .filterProductsByQuantity(productType ?? '');
-                },
-              ),
-            ),
-          ],
+        // ⚠️ خودِ ProductSummeryCard تغییر نکرده؛ فقط Grid ریسپانسیو شده.
+        return GridView.builder(
+          physics: const NeverScrollableScrollPhysics(),
+          shrinkWrap: true,
+          itemCount: items.length,
+          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: crossAxisCount,
+            crossAxisSpacing: defaultPadding,
+            mainAxisSpacing: defaultPadding,
+            childAspectRatio: aspect,
+          ),
+          itemBuilder: (context, i) => ProductSummeryCard(
+
+            info: items[i],
+            onTap: (t) =>
+                context.dataProvider.filterProductsByQuantity(t ?? ''),
+          ),
         );
       },
     );

@@ -1,129 +1,3 @@
-// import 'package:admin/utility/debouncer.dart';
-// import 'package:admin/utility/extensions.dart';
-// import 'package:flutter/material.dart';
-// import 'package:flutter_svg/flutter_svg.dart';
-//
-// import '../../../utility/constants.dart';
-//
-// class DashBoardHeader extends StatelessWidget {
-//   const DashBoardHeader({
-//     Key? key,
-//   }) : super(key: key);
-//
-//   @override
-//   Widget build(BuildContext context) {
-//     return Row(
-//       children: [
-//         Text(
-//           "Dashboard",
-//           style: Theme.of(context).textTheme.titleLarge,
-//         ),
-//         Spacer(flex: 1),
-//         Expanded(child: SearchField(
-//           onChange: (val) {
-//             context.dataProvider.filterProducts(val);
-//           },
-//         )),
-//         ProfileCard()
-//       ],
-//     );
-//   }
-// }
-//
-// class ProfileCard extends StatelessWidget {
-//   const ProfileCard({
-//     Key? key,
-//   }) : super(key: key);
-//
-//   @override
-//   Widget build(BuildContext context) {
-//     return Container(
-//       margin: EdgeInsets.only(left: defaultPadding),
-//       padding: EdgeInsets.symmetric(
-//         horizontal: defaultPadding,
-//         vertical: defaultPadding / 2,
-//       ),
-//       decoration: BoxDecoration(
-//         color: secondaryColor,
-//         borderRadius: const BorderRadius.all(Radius.circular(10)),
-//         border: Border.all(color: Colors.white10),
-//       ),
-//       child: Row(
-//         children: [
-//           Image.asset(
-//             "assets/images/profile_pic.png",
-//             height: 38,
-//           ),
-//           Padding(
-//             padding: const EdgeInsets.symmetric(horizontal: defaultPadding / 2),
-//             child: Text("Milademoun"),
-//           ),
-//           Icon(Icons.keyboard_arrow_down),
-//         ],
-//       ),
-//     );
-//   }
-// }
-//
-//
-// class SearchField extends StatefulWidget {
-//   final Function(String) onChange;
-//
-//   const SearchField({
-//     Key? key,
-//     required this.onChange,
-//   }) : super(key: key);
-//
-//   @override
-//   State<SearchField> createState() => _SearchFieldState();
-// }
-//
-// class _SearchFieldState extends State<SearchField> {
-//   late final Debouncer _debounce;
-//
-//   @override
-//   void initState() {
-//     super.initState();
-//     _debounce = Debouncer(const Duration(milliseconds: 350));
-//   }
-//
-//   @override
-//   void dispose() {
-//     _debounce.dispose();
-//     super.dispose();
-//   }
-//
-//   @override
-//   Widget build(BuildContext context) {
-//     return TextField(
-//       decoration: InputDecoration(
-//         hintText: "Search",
-//         fillColor: secondaryColor,
-//         filled: true,
-//         border: OutlineInputBorder(
-//           borderSide: BorderSide.none,
-//           borderRadius: const BorderRadius.all(Radius.circular(10)),
-//         ),
-//         suffixIcon: InkWell(
-//           onTap: () {},
-//           child: Container(
-//             padding: const EdgeInsets.all(defaultPadding * 0.75),
-//             margin: const EdgeInsets.symmetric(horizontal: defaultPadding / 2),
-//             decoration: BoxDecoration(
-//               color: primaryColor,
-//               borderRadius: const BorderRadius.all(Radius.circular(10)),
-//             ),
-//             child: SvgPicture.asset("assets/icons/Search.svg"),
-//           ),
-//         ),
-//       ),
-//       onChanged: (value) {
-//         _debounce(() => widget.onChange(value));
-//       },
-//     );
-//   }
-// }
-
 
 import 'package:admin/utility/debouncer.dart';
 import 'package:admin/utility/extensions.dart';
@@ -141,11 +15,16 @@ class DashBoardHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     return Row(
       children: [
+
+
         Text(
           "داشبورد",
-          style: Theme.of(context).textTheme.titleLarge,
+          style: Theme.of(context).textTheme.titleMedium?.copyWith(
+            fontFamily:FONTS_STYLE_FAMILY,
+          ),
         ),
-        Spacer(flex: 1),
+        SizedBox(width: 10,),
+        // Spacer(flex: 1),
         Expanded(
           child: SearchField(
             onChange: (val) {
@@ -153,46 +32,12 @@ class DashBoardHeader extends StatelessWidget {
             },
           ),
         ),
-        ProfileCard()
+        //  ProfileCard()
       ],
     );
   }
 }
 
-class ProfileCard extends StatelessWidget {
-  const ProfileCard({
-    Key? key,
-  }) : super(key: key);
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      margin: EdgeInsets.only(left: defaultPadding),
-      padding: EdgeInsets.symmetric(
-        horizontal: defaultPadding,
-        vertical: defaultPadding / 2,
-      ),
-      decoration: BoxDecoration(
-        color: secondaryColor,
-        borderRadius: const BorderRadius.all(Radius.circular(10)),
-        border: Border.all(color: Colors.white10),
-      ),
-      child: Row(
-        children: [
-          Image.asset(
-            "assets/images/profile_pic.png",
-            height: 38,
-          ),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: defaultPadding / 2),
-            child: Text("میلادمون"),
-          ),
-          Icon(Icons.keyboard_arrow_down),
-        ],
-      ),
-    );
-  }
-}
 
 class SearchField extends StatefulWidget {
   final Function(String) onChange;
@@ -225,7 +70,9 @@ class _SearchFieldState extends State<SearchField> {
   Widget build(BuildContext context) {
     return TextField(
       decoration: InputDecoration(
+        hintStyle: TextStyle(fontFamily: FONTS_STYLE_FAMILY),
         hintText: "جستجو",
+        suffixStyle: TextStyle(fontFamily: FONTS_STYLE_FAMILY),
         fillColor: secondaryColor,
         filled: true,
         border: OutlineInputBorder(
@@ -236,7 +83,7 @@ class _SearchFieldState extends State<SearchField> {
           onTap: () {},
           child: Container(
             padding: const EdgeInsets.all(defaultPadding * 0.75),
-            margin: const EdgeInsets.symmetric(horizontal: defaultPadding / 2),
+           // margin: const EdgeInsets.symmetric(horizontal: defaultPadding / 2),
             decoration: BoxDecoration(
               color: primaryColor,
               borderRadius: const BorderRadius.all(Radius.circular(10)),

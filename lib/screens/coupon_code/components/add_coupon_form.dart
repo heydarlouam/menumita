@@ -1,18 +1,18 @@
-// import 'package:flutter/material.dart';
-// import 'package:gap/gap.dart';
-// import 'package:provider/provider.dart';
-//
-// import '../../../models/category.dart';
-// import '../../../models/coupon.dart';
-// import '../../../models/product.dart';
-// import '../../../models/sub_category.dart';
-// import '../../../utility/constants.dart';
-// import '../../../utility/extensions.dart';
-// import '../../../widgets/custom_date_picker.dart';
-// import '../../../widgets/custom_dropdown.dart';
-// import '../../../widgets/custom_text_field.dart';
-// import '../provider/coupon_code_provider.dart';
-//
+import 'package:flutter/material.dart';
+import 'package:gap/gap.dart';
+import 'package:provider/provider.dart';
+
+import '../../../models/category.dart';
+import '../../../models/coupon.dart';
+import '../../../models/product.dart';
+import '../../../models/sub_category.dart';
+import '../../../utility/constants.dart';
+import '../../../utility/extensions.dart';
+import '../../../widgets/custom_date_picker.dart';
+import '../../../widgets/custom_dropdown.dart';
+import '../../../widgets/custom_text_field.dart';
+import '../provider/coupon_code_provider.dart';
+
 // class CouponSubmitForm extends StatefulWidget {
 //   final Coupon? coupon;
 //   const CouponSubmitForm({Key? key, this.coupon}) : super(key: key);
@@ -315,6 +315,8 @@
 //     context.couponCodeProvider.clearFields();
 //   });
 // }
+
+
 import 'package:flutter/material.dart';
 import 'package:gap/gap.dart';
 import 'package:provider/provider.dart';

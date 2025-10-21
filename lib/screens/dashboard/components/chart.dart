@@ -44,7 +44,7 @@ class Chart extends StatelessWidget {
                   },
                 ),
                 SizedBox(height: defaultPadding),
-                Text("سفارش")
+                Text("سفارش"   ,           style: TextStyle(fontFamily: FONTS_STYLE_FAMILY),)
               ],
             ),
           ),
