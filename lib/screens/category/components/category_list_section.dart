@@ -117,6 +117,8 @@
 
 
 
+import 'package:admin/utility/User_helper.dart';
+import 'package:admin/utility/dialog_helper.dart';
 import 'package:admin/utility/extensions.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -221,11 +223,26 @@ DataRow categoryDataRow(
       ),
       DataCell(Text(formatTimestamp(context, catInfo.createdAt))),
       DataCell(IconButton(
-        onPressed: () => edit?.call(),
+
+        onPressed: () async {
+          if (await UserSaveHelper.isExpired()) {
+            DialogHelper.showExpiredDialog(context);
+            return;
+          }
+          edit?.call();
+        },
+
         icon: const Icon(Icons.edit, color: Colors.white),
       )),
       DataCell(IconButton(
-        onPressed: () => delete?.call(),
+        onPressed: () async {
+          if (await UserSaveHelper.isExpired()) {
+            DialogHelper.showExpiredDialog(context);
+            return;
+          }
+          delete?.call();
+        },
+
         icon: const Icon(Icons.delete, color: Colors.red),
       )),
     ],

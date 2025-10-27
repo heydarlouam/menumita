@@ -120,6 +120,8 @@
 //     ],
 //   );
 // }
+import 'package:admin/utility/User_helper.dart';
+import 'package:admin/utility/dialog_helper.dart';
 import 'package:admin/utility/extensions.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -223,18 +225,28 @@ DataRow subCategoryDataRow(
       DataCell(Text(subCatInfo.categoryId?.name ?? '')),
       DataCell(Text(formatTimestamp(context, subCatInfo.createdAt))),
       DataCell(IconButton(
-        onPressed: () {
+        onPressed: () async {
+          if (await UserSaveHelper.isExpired()) {
+            DialogHelper.showExpiredDialog(context);
+            return;
+          }
           if (edit != null) edit();
         },
+
         icon: Icon(
           Icons.edit,
           color: Colors.white,
         ),
       )),
       DataCell(IconButton(
-        onPressed: () {
+        onPressed: () async {
+          if (await UserSaveHelper.isExpired()) {
+            DialogHelper.showExpiredDialog(context);
+            return;
+          }
           if (delete != null) delete();
         },
+
         icon: Icon(
           Icons.delete,
           color: Colors.red,

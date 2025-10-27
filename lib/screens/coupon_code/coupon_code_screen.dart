@@ -1,3 +1,6 @@
+import 'package:admin/screens/profile_card.dart';
+import 'package:admin/utility/User_helper.dart';
+import 'package:admin/utility/dialog_helper.dart';
 import 'package:admin/utility/extensions.dart';
 import 'package:flutter/material.dart';
 import 'package:gap/gap.dart';
@@ -100,11 +103,18 @@ class CouponCodeScreen extends StatelessWidget {
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Expanded(
-                            child: Text(
-                              "کوپن‌های من",
-                              style: Theme.of(context).textTheme.titleMedium,
-                            ),
+                          IconButton(
+                            onPressed: () async {
+                              if (await UserSaveHelper.isExpired()) {
+                                DialogHelper.showExpiredDialog(context);
+                                return;
+                              }
+                              context.dataProvider
+                                  .getAllCoupons(showSnack: true);
+                            },
+
+                            icon: Icon(Icons.refresh),
+                            tooltip: "تازه‌سازی لیست کوپن‌ها",
                           ),
                           ElevatedButton.icon(
                             style: TextButton.styleFrom(
@@ -113,21 +123,21 @@ class CouponCodeScreen extends StatelessWidget {
                                 vertical: defaultPadding,
                               ),
                             ),
-                            onPressed: () {
+
+                            onPressed: () async {
+                              if (await UserSaveHelper.isExpired()) {
+                                DialogHelper.showExpiredDialog(context);
+                                return;
+                              }
                               showAddCouponForm(context, null);
                             },
                             icon: Icon(Icons.add),
                             label: Text("ایجاد کوپن"),
                           ),
-                          Gap(20),
-                          IconButton(
-                            onPressed: () {
-                              context.dataProvider
-                                  .getAllCoupons(showSnack: true);
-                            },
-                            icon: Icon(Icons.refresh),
-                            tooltip: "تازه‌سازی لیست کوپن‌ها",
-                          ),
+                        //  Gap(20),
+
+                          const SizedBox(width: 12),
+                          const Expanded(child: ProfileCard()),
                         ],
                       ),
                       Gap(defaultPadding),

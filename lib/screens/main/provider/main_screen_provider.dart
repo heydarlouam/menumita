@@ -16,6 +16,7 @@ class MainScreenProvider extends ChangeNotifier {
   Widget selectedScreen = DashboardScreen();
 
   navigateToScreen(String screenName) {
+
     switch (screenName) {
       case 'داشبورد':
         selectedScreen = DashboardScreen();

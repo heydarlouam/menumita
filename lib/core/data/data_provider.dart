@@ -1,4 +1,5 @@
 
+import 'package:admin/utility/User_helper.dart';
 import 'package:admin/utility/snack_bar_helper.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart' hide Category;
@@ -58,8 +59,15 @@ class DataProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
+      // ✅ مقدار شماره تلفن از SharedPreferences
+      final phone = await UserSaveHelper.getPhoneNumber();
+      if (phone == null || phone.isEmpty) {
+        SnackBarHelper.showErrorSnackBar('شماره تلفن در حافظه یافت نشد!');
+        return _filteredOrders;
+      }
+
       final String endpoint =
-          'api/orders?phone_number_code=${Uri.encodeQueryComponent('12345')}&page=$page&perPage=$_ordersPageSize';
+          'api/orders?phone_number_code=${Uri.encodeQueryComponent(phone)}&page=$page&perPage=$_ordersPageSize';
 
       final response = await service.getItems(endpointUrl: endpoint);
 
@@ -206,9 +214,15 @@ class DataProvider extends ChangeNotifier {
 
   Future<List<Category>> getAllCategories({bool showSnack = false}) async {
     try {
+      // ✅ گرفتن phone_number از SharedPreferences
+      final phone = await UserSaveHelper.getPhoneNumber();
+      if (phone == null || phone.isEmpty) {
+        SnackBarHelper.showErrorSnackBar('شماره تلفن در حافظه یافت نشد!');
+        return _filteredCategories;
+      }
 
       final String endpoint =
-          'api/categories?phone_number_code=${Uri.encodeQueryComponent('12345')}';
+          'api/categories?phone_number_code=${Uri.encodeQueryComponent(phone)}';
 
       Response response = await service.getItems(endpointUrl: endpoint);
 
@@ -231,8 +245,7 @@ class DataProvider extends ChangeNotifier {
           notifyListeners();
 
           if (showSnack) {
-            SnackBarHelper.showSuccessSnackBar(
-                'Categories loaded successfully');
+            SnackBarHelper.showSuccessSnackBar('Categories loaded successfully');
           }
 
           return _filteredCategories;
@@ -266,16 +279,20 @@ class DataProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<List<SubCategory>> getAllSubCategories(
-      {bool showSnack = false}) async {
-
-    final String endpoint =
-        'api/subcategories?phone_number_code=${Uri.encodeQueryComponent('12345')}';
-
+  Future<List<SubCategory>> getAllSubCategories({bool showSnack = false}) async {
     try {
+      // ✅ گرفتن شماره تلفن از SharedPreferences
+      final phone = await UserSaveHelper.getPhoneNumber();
+      if (phone == null || phone.isEmpty) {
+        SnackBarHelper.showErrorSnackBar('شماره تلفن در حافظه یافت نشد!');
+        return _filteredSubCategories;
+      }
+
+      final String endpoint =
+          'api/subcategories?phone_number_code=${Uri.encodeQueryComponent(phone)}';
+
       // اضافه کردن api/ به endpoint
-      Response response = await service.getItems(
-          endpointUrl:endpoint);
+      Response response = await service.getItems(endpointUrl: endpoint);
 
       if (response.isOk) {
         if (response.body['success'] == true) {
@@ -295,8 +312,7 @@ class DataProvider extends ChangeNotifier {
           notifyListeners();
 
           if (showSnack) {
-            SnackBarHelper.showSuccessSnackBar(
-                'Subcategories loaded successfully');
+            SnackBarHelper.showSuccessSnackBar('Subcategories loaded successfully');
           }
 
           return _filteredSubCategories;
@@ -331,19 +347,19 @@ class DataProvider extends ChangeNotifier {
   }
 
   Future<List<Brand>> getAllBrands({bool showSnack = false}) async {
-    final String endpoint =
-        'api/brands?phone_number_code=${Uri.encodeQueryComponent('12345')}&expand=subcategory';
-
-
-
-
     try {
-      // Response response = await service.getItems(
-      //     endpointUrl:
-      //         'api/brands?expand=subcategory'); // اضافه کردن api/ و expand
-      Response response = await service.getItems(
-          endpointUrl:
-          endpoint); // اضافه کردن api/ و expand
+      // ✅ گرفتن شماره تلفن از SharedPreferences
+      final phone = await UserSaveHelper.getPhoneNumber();
+      if (phone == null || phone.isEmpty) {
+        SnackBarHelper.showErrorSnackBar('شماره تلفن در حافظه یافت نشد!');
+        return _filteredBrands;
+      }
+
+      final String endpoint =
+          'api/brands?phone_number_code=${Uri.encodeQueryComponent(phone)}&expand=subcategory';
+
+      // اضافه کردن api/ و expand
+      Response response = await service.getItems(endpointUrl: endpoint);
 
       if (response.isOk) {
         if (response.body['success'] == true) {
@@ -399,12 +415,18 @@ class DataProvider extends ChangeNotifier {
   }
 
   Future<List<VariantType>> getAllVariantTypes({bool showSnack = false}) async {
-    final String endpoint =
-        'api/variant-types?phone_number_code=${Uri.encodeQueryComponent('12345')}';
-
     try {
-      Response response =
-          await service.getItems(endpointUrl: endpoint);
+      // ✅ گرفتن شماره تلفن از SharedPreferences
+      final phone = await UserSaveHelper.getPhoneNumber();
+      if (phone == null || phone.isEmpty) {
+        SnackBarHelper.showErrorSnackBar('شماره تلفن در حافظه یافت نشد!');
+        return _filteredVariantTypes;
+      }
+
+      final String endpoint =
+          'api/variant-types?phone_number_code=${Uri.encodeQueryComponent(phone)}';
+
+      Response response = await service.getItems(endpointUrl: endpoint);
 
       if (response.isOk) {
         if (response.body['success'] == true) {
@@ -426,8 +448,7 @@ class DataProvider extends ChangeNotifier {
           notifyListeners();
 
           if (showSnack) {
-            SnackBarHelper.showSuccessSnackBar(
-                'Variant types loaded successfully');
+            SnackBarHelper.showSuccessSnackBar('Variant types loaded successfully');
           }
 
           return _filteredVariantTypes;
@@ -462,12 +483,18 @@ class DataProvider extends ChangeNotifier {
   }
 
   Future<List<Variant>> getAllVariants({bool showSnack = false}) async {
-    final String endpoint =
-        'api/variants?phone_number_code=${Uri.encodeQueryComponent('12345')}';
-
     try {
-      Response response = await service.getItems(
-          endpointUrl: endpoint);
+      // ✅ گرفتن شماره تلفن از SharedPreferences
+      final phone = await UserSaveHelper.getPhoneNumber();
+      if (phone == null || phone.isEmpty) {
+        SnackBarHelper.showErrorSnackBar('شماره تلفن در حافظه یافت نشد!');
+        return _filteredVariants;
+      }
+
+      final String endpoint =
+          'api/variants?phone_number_code=${Uri.encodeQueryComponent(phone)}';
+
+      Response response = await service.getItems(endpointUrl: endpoint);
 
       if (response.isOk) {
         if (response.body['success'] == true) {
@@ -523,13 +550,18 @@ class DataProvider extends ChangeNotifier {
   }
 
   Future<List<Product>> getAllProducts({bool showSnack = false}) async {
-
-    final String endpoint =
-        'api/products?phone_number_code=${Uri.encodeQueryComponent('12345')}';
-
     try {
-      Response response =
-          await service.getItems(endpointUrl: endpoint);
+      // ✅ گرفتن شماره تلفن از SharedPreferences
+      final phone = await UserSaveHelper.getPhoneNumber();
+      if (phone == null || phone.isEmpty) {
+        SnackBarHelper.showErrorSnackBar('شماره تلفن در حافظه یافت نشد!');
+        return _filteredProducts;
+      }
+
+      final String endpoint =
+          'api/products?phone_number_code=${Uri.encodeQueryComponent(phone)}';
+
+      Response response = await service.getItems(endpointUrl: endpoint);
 
       if (response.isOk) {
         // پردازش response بر اساس ساختار سرور شما
@@ -539,7 +571,7 @@ class DataProvider extends ChangeNotifier {
           List<dynamic> productsJson = responseBody['data'];
           print(responseBody['data']);
           List<Product> products =
-              productsJson.map((item) => Product.fromJson(item)).toList();
+          productsJson.map((item) => Product.fromJson(item)).toList();
 
           print('✅ ${products.length} products loaded successfully');
 
@@ -600,12 +632,17 @@ class DataProvider extends ChangeNotifier {
 
 
   Future<List<Poster>> getAllPosters({bool showSnack = false}) async {
-
-
-    final String endpoint =
-        'api/posters?phone_number_code=${Uri.encodeQueryComponent('12345')}';
-
     try {
+      // ✅ گرفتن شماره تلفن از SharedPreferences
+      final phone = await UserSaveHelper.getPhoneNumber();
+      if (phone == null || phone.isEmpty) {
+        SnackBarHelper.showErrorSnackBar('شماره تلفن در حافظه یافت نشد!');
+        return _filteredPosters;
+      }
+
+      final String endpoint =
+          'api/posters?phone_number_code=${Uri.encodeQueryComponent(phone)}';
+
       Response response = await service.getItems(endpointUrl: endpoint);
       if (response.isOk) {
         if (response.body['success'] == true) {
@@ -647,7 +684,6 @@ class DataProvider extends ChangeNotifier {
       rethrow;
     }
   }
-
 
 
 
@@ -730,13 +766,20 @@ class DataProvider extends ChangeNotifier {
 
     return totalProducts;
   }
+
   Future<List<Coupon>> getAllCoupons({bool showSnack = false}) async {
-
-    final String endpoint =
-        'api/coupons?phone_number_code=${Uri.encodeQueryComponent('12345')}';
-
     try {
-      Response response = await service.getItems(endpointUrl:endpoint);
+      // ✅ گرفتن شماره تلفن از SharedPreferences
+      final phone = await UserSaveHelper.getPhoneNumber();
+      if (phone == null || phone.isEmpty) {
+        SnackBarHelper.showErrorSnackBar('شماره تلفن در حافظه یافت نشد!');
+        return _filteredCoupons;
+      }
+
+      final String endpoint =
+          'api/coupons?phone_number_code=${Uri.encodeQueryComponent(phone)}';
+
+      Response response = await service.getItems(endpointUrl: endpoint);
 
       if (response.isOk) {
         if (response.body['success'] == true) {

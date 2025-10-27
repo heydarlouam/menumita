@@ -144,7 +144,8 @@ class SubCategoryHeader extends StatelessWidget {
           "زیر‌دسته",
           style: Theme.of(context).textTheme.titleLarge,
         ),
-        Spacer(flex: 2),
+        // Spacer(flex: 2),
+        SizedBox(width: 10,),
         Expanded(
           child: SearchField(
             onChange: (val) {
@@ -152,46 +153,46 @@ class SubCategoryHeader extends StatelessWidget {
             },
           ),
         ),
-        ProfileCard(),
+       // ProfileCard(),
       ],
     );
   }
 }
 
-class ProfileCard extends StatelessWidget {
-  const ProfileCard({
-    Key? key,
-  }) : super(key: key);
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      margin: EdgeInsets.only(left: defaultPadding),
-      padding: EdgeInsets.symmetric(
-        horizontal: defaultPadding,
-        vertical: defaultPadding / 2,
-      ),
-      decoration: BoxDecoration(
-        color: secondaryColor,
-        borderRadius: const BorderRadius.all(Radius.circular(10)),
-        border: Border.all(color: Colors.white10),
-      ),
-      child: Row(
-        children: [
-          Image.asset(
-            "assets/images/profile_pic.png",
-            height: 38,
-          ),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: defaultPadding / 2),
-            child: Text("میلاد ایمون"),
-          ),
-          Icon(Icons.keyboard_arrow_down),
-        ],
-      ),
-    );
-  }
-}
+// class ProfileCard extends StatelessWidget {
+//   const ProfileCard({
+//     Key? key,
+//   }) : super(key: key);
+//
+//   @override
+//   Widget build(BuildContext context) {
+//     return Container(
+//       margin: EdgeInsets.only(left: defaultPadding),
+//       padding: EdgeInsets.symmetric(
+//         horizontal: defaultPadding,
+//         vertical: defaultPadding / 2,
+//       ),
+//       decoration: BoxDecoration(
+//         color: secondaryColor,
+//         borderRadius: const BorderRadius.all(Radius.circular(10)),
+//         border: Border.all(color: Colors.white10),
+//       ),
+//       child: Row(
+//         children: [
+//           Image.asset(
+//             "assets/images/profile_pic.png",
+//             height: 38,
+//           ),
+//           Padding(
+//             padding: const EdgeInsets.symmetric(horizontal: defaultPadding / 2),
+//             child: Text("میلاد ایمون"),
+//           ),
+//           Icon(Icons.keyboard_arrow_down),
+//         ],
+//       ),
+//     );
+//   }
+// }
 
 class SearchField extends StatefulWidget {
   final Function(String) onChange;

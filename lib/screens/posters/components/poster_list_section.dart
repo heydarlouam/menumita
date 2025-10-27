@@ -75,6 +75,8 @@
 //   }
 // }
 
+import 'package:admin/utility/User_helper.dart';
+import 'package:admin/utility/dialog_helper.dart';
 import 'package:admin/utility/extensions.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -132,15 +134,27 @@ class PosterListSection extends StatelessWidget {
         ),
         DataCell(
           IconButton(
+            onPressed: () async {
+              if (await UserSaveHelper.isExpired()) {
+                DialogHelper.showExpiredDialog(context);
+                return;
+              }
+              showAddPosterForm(context, p);
+            },
             tooltip: 'ویرایش پوستر',
-            onPressed: () => showAddPosterForm(context, p),
+
             icon: const Icon(Icons.edit, color: Colors.white),
           ),
         ),
         DataCell(
           IconButton(
             tooltip: 'حذف پوستر',
+
             onPressed: () async {
+              if (await UserSaveHelper.isExpired()) {
+                DialogHelper.showExpiredDialog(context);
+                return;
+              }
               final ok = await context.posterProvider.deletePoster(p);
               if (ok && context.mounted) {
                 // عملیات تازه‌سازی در provider انجام می‌شود

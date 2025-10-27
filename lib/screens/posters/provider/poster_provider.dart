@@ -1,6 +1,7 @@
 
 import 'dart:io';
 
+import 'package:admin/utility/User_helper.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart' hide Category;
 import 'package:get/get.dart';
@@ -42,19 +43,42 @@ class PosterProvider extends ChangeNotifier {
   }
 
   // ---------- FormData Builder ----------
+  // Future<FormData> _buildFormData() async {
+  //   final Map<String, dynamic> fields = {
+  //     'poster_name': posterNameCtrl.text,
+  //     'phone_number_code':'12345'
+  //   };
+  //
+  //   if (imgXFile != null) {
+  //     final String fileName = imgXFile!.name;
+  //     final bytes = await imgXFile!.readAsBytes();
+  //     final mf = MultipartFile(bytes, filename: fileName);
+  //     fields['image'] = mf; // ✅ کلید فایل
+  //   }
+  //
+  //
+  //   return FormData(fields);
+  // }
   Future<FormData> _buildFormData() async {
+    // ✅ گرفتن شماره از SharedPreferences
+    final phone = await UserSaveHelper.getPhoneNumber();
+    if (phone == null || phone.isEmpty) {
+      SnackBarHelper.showErrorSnackBar('شماره تلفن در حافظه یافت نشد!');
+      // برای توقف جریان و جلوگیری از ارسال فرم بدون شماره
+      throw Exception('missing phone_number in SharedPreferences');
+    }
+
     final Map<String, dynamic> fields = {
       'poster_name': posterNameCtrl.text,
-      'phone_number_code':'12345'
+      'phone_number_code': phone, // ⬅️ به‌جای مقدار ثابت
     };
 
     if (imgXFile != null) {
       final String fileName = imgXFile!.name;
       final bytes = await imgXFile!.readAsBytes();
       final mf = MultipartFile(bytes, filename: fileName);
-      fields['image'] = mf; // ✅ کلید فایل
+      fields['image'] = mf; // کلید فایل
     }
-
 
     return FormData(fields);
   }

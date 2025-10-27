@@ -3,13 +3,13 @@ import 'package:flutter/material.dart';
 import 'package:gap/gap.dart';
 
 import '../../utility/constants.dart';
-import 'components/add_product_form.dart';
+import 'product/add_product_form.dart';
 import 'components/dash_board_header.dart';
-import 'components/order_details_section.dart';
-import 'components/product_list_section.dart';
-import 'components/product_summery_section.dart';
+import 'order/order_details_section.dart';
+import 'product/product_list_section.dart';
+import 'product/product_summery_section.dart';
 
-import 'components/product_actions_bar.dart';
+import 'product/product_actions_bar.dart';
 
 class DashboardScreen extends StatelessWidget {
   @override

@@ -70,7 +70,11 @@
 //   }
 // }
 
+import 'package:admin/screens/profile_card.dart';
+import 'package:admin/utility/User_helper.dart';
+import 'package:admin/utility/dialog_helper.dart';
 import 'package:admin/utility/extensions.dart';
+
 import 'package:flutter/material.dart';
 import 'package:gap/gap.dart';
 
@@ -90,55 +94,99 @@ class CategoryScreen extends StatelessWidget {
           children: [
             CategoryHeader(),
             SizedBox(height: defaultPadding),
+            // Row(
+            //   crossAxisAlignment: CrossAxisAlignment.start,
+            //   children: [
+            //     Expanded(
+            //       flex: 5,
+            //       child: Column(
+            //         children: [
+            //           Row(
+            //             mainAxisAlignment: MainAxisAlignment.end,
+            //             children: [
+            //
+            //               ElevatedButton.icon(
+            //                 style: TextButton.styleFrom(
+            //                   padding: EdgeInsets.symmetric(
+            //                     horizontal: defaultPadding * 1.5,
+            //                     vertical: defaultPadding,
+            //                   ),
+            //                 ),
+            //                 onPressed: () {
+            //                   showAddCategoryForm(context, null, 'افزودن دسته‌بندی');
+            //                 },
+            //                 icon: Icon(Icons.add),
+            //                 label: Text("افزودن دسته‌بندی"),
+            //               ),
+            //             //  Gap(20),
+            //               IconButton(
+            //                 onPressed: () {
+            //                   context.dataProvider.getAllCategories(showSnack: true);
+            //                 },
+            //                 icon: Icon(Icons.refresh),
+            //                 tooltip: 'بروزرسانی',
+            //               ),
+            //
+            //             ],
+            //           ),
+            //           Gap(defaultPadding),
+            //           CategoryListSection(),
+            //         ],
+            //       ),
+            //     ),
+            //   ],
+            // ),
             Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.end,
               children: [
-                Expanded(
-                  flex: 5,
-                  child: Column(
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.end,
-                        children: [
-                          Expanded(
-                            child: Text(
-                              "دسته‌بندی‌های من",
-                              style: Theme.of(context).textTheme.titleMedium,
-                            ),
-                          ),
-                          ElevatedButton.icon(
-                            style: TextButton.styleFrom(
-                              padding: EdgeInsets.symmetric(
-                                horizontal: defaultPadding * 1.5,
-                                vertical: defaultPadding,
-                              ),
-                            ),
-                            onPressed: () {
-                              showAddCategoryForm(context, null, 'افزودن دسته‌بندی');
-                            },
-                            icon: Icon(Icons.add),
-                            label: Text("افزودن دسته‌بندی"),
-                          ),
-                          Gap(20),
-                          IconButton(
-                            onPressed: () {
-                              context.dataProvider.getAllCategories(showSnack: true);
-                            },
-                            icon: Icon(Icons.refresh),
-                            tooltip: 'بروزرسانی',
-                          ),
-                        ],
-                      ),
-                      Gap(defaultPadding),
-                      CategoryListSection(),
-                    ],
-                  ),
+
+                IconButton(
+
+                  onPressed: () async {
+                    if (await UserSaveHelper.isExpired()) {
+                      DialogHelper.showExpiredDialog(context);
+                      return;
+                    }
+                    context.dataProvider.getAllCategories(showSnack: true);
+                  },
+
+
+                  icon: const Icon(Icons.refresh),
+                  tooltip: 'بروزرسانی',
                 ),
+                const SizedBox(width: 12),
+                ElevatedButton.icon(
+                  style: TextButton.styleFrom(
+                    padding: EdgeInsets.symmetric(
+                      horizontal:
+           defaultPadding * 1.5,
+                      vertical: defaultPadding,
+                    ),
+                  ),
+                  onPressed: () async {
+                    if (await UserSaveHelper.isExpired()) {
+                      DialogHelper.showExpiredDialog(context);
+                      return;
+                    }
+                    showAddCategoryForm(context, null, 'افزودن دسته‌بندی');
+                  },
+
+                  icon: const Icon(Icons.add),
+                  label: const Text("افزودن دسته‌بندی"),
+                ),
+
+                // ⬇️ اینو اضافه کن تا پروفایل کارت بیاد سمت راست همین ردیف
+                const SizedBox(width: 12),
+                const Expanded(child: ProfileCard()),
               ],
             ),
+                      Gap(defaultPadding),
+                      CategoryListSection(),
           ],
         ),
       ),
     );
   }
 }
+
+

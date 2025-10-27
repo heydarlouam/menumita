@@ -1,4 +1,5 @@
 
+import 'package:admin/utility/User_helper.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:get/get_connect/http/src/response/response.dart';
 
@@ -298,34 +299,97 @@ class VariantsTypeProvider extends ChangeNotifier {
   bool get isSubmitting => _isSubmitting;
 
   // ---------------- Helpers
-  Map<String, dynamic> _createBody() => {
-    'name': nameCtrl.text.trim(),
-    'type': typeCtrl.text.trim(),
-    'phone_number_code': '12345', // قانون ثابت
-  };
-
-  Map<String, dynamic> _updateBody() {
-    final body = <String, dynamic>{
-      'name': nameCtrl.text.trim(),
-      'phone_number_code': '12345',
-    };
-    // فقط اگر type را پر/تغییر داده‌ایم ارسال کنیم
-    if (typeCtrl.text.trim().isNotEmpty) {
-      body['type'] = typeCtrl.text.trim();
-    }
-    return body;
-  }
+  // Map<String, dynamic> _createBody() => {
+  //   'name': nameCtrl.text.trim(),
+  //   'type': typeCtrl.text.trim(),
+  //   'phone_number_code': '12345', // قانون ثابت
+  // };
+  //
+  // Map<String, dynamic> _updateBody() {
+  //   final body = <String, dynamic>{
+  //     'name': nameCtrl.text.trim(),
+  //     'phone_number_code': '12345',
+  //   };
+  //   // فقط اگر type را پر/تغییر داده‌ایم ارسال کنیم
+  //   if (typeCtrl.text.trim().isNotEmpty) {
+  //     body['type'] = typeCtrl.text.trim();
+  //   }
+  //   return body;
+  // }
 
   bool _ok(Response res) => res.isOk && (res.body?['success'] == true);
 
   // ---------------- CRUD
+  // Future<bool> addVariantType() async {
+  //   try {
+  //     final Response res = await service.addItem(
+  //       endpointUrl: 'api/variant-types',
+  //       itemData: _createBody(),
+  //     );
+  //     if (_ok(res)) {
+  //       SnackBarHelper.showSuccessSnackBar(res.body['message'] ?? 'Created');
+  //       clearFields();
+  //       await _dataProvider.getAllVariantTypes();
+  //       return true;
+  //     }
+  //     SnackBarHelper.showErrorSnackBar(
+  //       res.body?['message'] ?? res.body?['error'] ?? res.statusText ?? 'Failed',
+  //     );
+  //     return false;
+  //   } catch (e) {
+  //     SnackBarHelper.showErrorSnackBar('Error: $e');
+  //     return false;
+  //   }
+  // }
+  //
+  // Future<bool> updateVariantType() async {
+  //   try {
+  //     final id = forUpdate?.sId ?? '';
+  //     if (id.isEmpty) {
+  //       SnackBarHelper.showErrorSnackBar('ID missing');
+  //       return false;
+  //     }
+  //     final Response res = await service.updateItem(
+  //       endpointUrl: 'api/variant-types',
+  //       itemId: id,
+  //       itemData: _updateBody(),
+  //     );
+  //     if (_ok(res)) {
+  //       SnackBarHelper.showSuccessSnackBar(res.body['message'] ?? 'Updated');
+  //       clearFields();
+  //       await _dataProvider.getAllVariantTypes();
+  //       return true;
+  //     }
+  //     SnackBarHelper.showErrorSnackBar(
+  //       res.body?['message'] ?? res.body?['error'] ?? res.statusText ?? 'Failed',
+  //     );
+  //     return false;
+  //   } catch (e) {
+  //     SnackBarHelper.showErrorSnackBar('Error: $e');
+  //     return false;
+  //   }
+  // }
   Future<bool> addVariantType() async {
     try {
+      // شماره از SharedPreferences
+      final phone = await UserSaveHelper.getPhoneNumber();
+      if (phone == null || phone.isEmpty) {
+        SnackBarHelper.showErrorSnackBar('شماره تلفن در حافظه یافت نشد!');
+        return false;
+      }
+
+      final Map<String, dynamic> body = {
+        'name': nameCtrl.text.trim(),
+        'type': typeCtrl.text.trim(),
+        'phone_number_code': phone, // ⬅️ به‌جای مقدار ثابت
+      };
+
       final Response res = await service.addItem(
         endpointUrl: 'api/variant-types',
-        itemData: _createBody(),
+        itemData: body,
       );
-      if (_ok(res)) {
+
+      if (res.isOk && (res.body?['success'] == true)) {
         SnackBarHelper.showSuccessSnackBar(res.body['message'] ?? 'Created');
         clearFields();
         await _dataProvider.getAllVariantTypes();
@@ -348,12 +412,29 @@ class VariantsTypeProvider extends ChangeNotifier {
         SnackBarHelper.showErrorSnackBar('ID missing');
         return false;
       }
+
+      // شماره از SharedPreferences
+      final phone = await UserSaveHelper.getPhoneNumber();
+      if (phone == null || phone.isEmpty) {
+        SnackBarHelper.showErrorSnackBar('شماره تلفن در حافظه یافت نشد!');
+        return false;
+      }
+
+      final Map<String, dynamic> body = {
+        'name': nameCtrl.text.trim(),
+        'phone_number_code': phone, // ⬅️ به‌جای مقدار ثابت
+      };
+      // فقط اگر type پر شده باشد ارسال کن
+      final t = typeCtrl.text.trim();
+      if (t.isNotEmpty) body['type'] = t;
+
       final Response res = await service.updateItem(
         endpointUrl: 'api/variant-types',
         itemId: id,
-        itemData: _updateBody(),
+        itemData: body,
       );
-      if (_ok(res)) {
+
+      if (res.isOk && (res.body?['success'] == true)) {
         SnackBarHelper.showSuccessSnackBar(res.body['message'] ?? 'Updated');
         clearFields();
         await _dataProvider.getAllVariantTypes();

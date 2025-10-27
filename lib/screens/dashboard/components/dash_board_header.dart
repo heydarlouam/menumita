@@ -32,12 +32,11 @@ class DashBoardHeader extends StatelessWidget {
             },
           ),
         ),
-        //  ProfileCard()
+        //  ProfileCard(),
       ],
     );
   }
 }
-
 
 class SearchField extends StatefulWidget {
   final Function(String) onChange;

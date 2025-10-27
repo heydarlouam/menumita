@@ -63,6 +63,8 @@
 //
 
 
+import 'package:admin/utility/User_helper.dart';
+import 'package:admin/utility/dialog_helper.dart';
 import 'package:admin/utility/extensions.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -104,14 +106,28 @@ class VariantsListSection extends StatelessWidget {
                 DataCell(Text(item.variantTypeId?.name ?? '')),
                 DataCell(
                   IconButton(
+                    onPressed: () async {
+                      if (await UserSaveHelper.isExpired()) {
+                        DialogHelper.showExpiredDialog(context);
+                        return;
+                      }
+                      showAddVariantForm(context, item);
+                    },
                     icon: const Icon(Icons.edit, color: Colors.white),
-                    onPressed: () => showAddVariantForm(context, item),
+
                   ),
                 ),
                 DataCell(
                   IconButton(
+                    onPressed: () async {
+                      if (await UserSaveHelper.isExpired()) {
+                        DialogHelper.showExpiredDialog(context);
+                        return;
+                      }
+                      context.variantProvider.deleteVariant(item);
+                    },
                     icon: const Icon(Icons.delete, color: Colors.red),
-                    onPressed: () => context.variantProvider.deleteVariant(item),
+
                   ),
                 ),
               ],

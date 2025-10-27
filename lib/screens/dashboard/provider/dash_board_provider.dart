@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'dart:io';
 
+import 'package:admin/utility/User_helper.dart';
 import 'package:flutter/foundation.dart' hide Category;
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -78,12 +79,102 @@ class DashBoardProvider extends ChangeNotifier {
           : fallback;
 
   // ---------- Submit (Create or Update) ----------
+  // Future<bool> submitProduct() async {
+  //   if (_isSubmitting) return false;
+  //   _isSubmitting = true;
+  //   notifyListeners();
+  //
+  //   try {
+  //     // تبدیل variant names به variant IDs
+  //     List<String> variantIds = [];
+  //     if (selectedVariants.isNotEmpty) {
+  //       variantIds = _dataProvider.variants
+  //           .where((variant) => selectedVariants.contains(variant.name))
+  //           .map((variant) => variant.sId ?? '')
+  //           .where((id) => id.isNotEmpty)
+  //           .toList();
+  //     }
+  //
+  //     final Map<String, dynamic> formDataMap = {
+  //       'name': productNameCtrl.text,
+  //       'description': productDescCtrl.text,
+  //       'quantity': int.tryParse(productQntCtrl.text) ?? 0,
+  //       'price': double.tryParse(productPriceCtrl.text) ?? 0.0,
+  //       'offer_price': productOffPriceCtrl.text.isEmpty
+  //           ? (double.tryParse(productPriceCtrl.text) ?? 0.0)
+  //           : (double.tryParse(productOffPriceCtrl.text) ?? 0.0),
+  //       'category': selectedCategory?.sId ?? '',
+  //       'subcategory': selectedSubCategory?.sId,
+  //       'brand': selectedBrand?.sId,
+  //       'variant_type': selectedVariantType?.sId,
+  //       'variants': jsonEncode(variantIds), // سرورت این‌طوری می‌خواست
+  //       'phone_number_code': '12345', // ✅ طبق قانونتان
+  //     };
+  //
+  //     // ساخت FormData با تصاویر (PocketBase: کلید یکسان 'images')
+  //     final FormData form = await createFormDataForMultipleImage(
+  //       imgXFiles: [
+  //         if (imgXFile1 != null) {'images': imgXFile1},
+  //         if (imgXFile2 != null) {'images': imgXFile2},
+  //         if (imgXFile3 != null) {'images': imgXFile3},
+  //         if (imgXFile4 != null) {'images': imgXFile4},
+  //         if (imgXFile5 != null) {'images': imgXFile5},
+  //       ],
+  //       formData: formDataMap,
+  //     );
+  //
+  //     final String? targetId = productForUpdate?.sId;
+  //     final bool isUpdate = (targetId != null && targetId.isNotEmpty);
+  //
+  //     final Response res = isUpdate
+  //         ? await service.updateItem(
+  //       endpointUrl: 'api/products',
+  //       itemId: targetId!,
+  //       itemData: form,
+  //     )
+  //         : await service.addItem(
+  //       endpointUrl: 'api/products',
+  //       itemData: form,
+  //     );
+  //
+  //     final Map<String, dynamic>? body = _parseBody(res.body);
+  //     final bool ok = _isOk(res) && _okFlag(body);
+  //
+  //     if (ok) {
+  //       await _dataProvider.getAllProducts(showSnack: true);
+  //       final msg = _msg(
+  //         body,
+  //         isUpdate ? 'Product updated successfully' : 'Product created successfully',
+  //       );
+  //       SnackBarHelper.showSuccessSnackBar(msg);
+  //       clearFields();
+  //       return true;
+  //     } else {
+  //       final err = body?['message'] ?? body?['error'] ?? 'Operation failed';
+  //       SnackBarHelper.showErrorSnackBar(err.toString());
+  //       return false;
+  //     }
+  //   } catch (e) {
+  //     SnackBarHelper.showErrorSnackBar('An error occurred: $e');
+  //     return false;
+  //   } finally {
+  //     _isSubmitting = false;
+  //     notifyListeners();
+  //   }
+  // }
   Future<bool> submitProduct() async {
     if (_isSubmitting) return false;
     _isSubmitting = true;
     notifyListeners();
 
     try {
+      // ✅ شماره را از SharedPreferences بگیر
+      final phone = await UserSaveHelper.getPhoneNumber();
+      if (phone == null || phone.isEmpty) {
+        SnackBarHelper.showErrorSnackBar('شماره تلفن در حافظه یافت نشد!');
+        return false;
+      }
+
       // تبدیل variant names به variant IDs
       List<String> variantIds = [];
       if (selectedVariants.isNotEmpty) {
@@ -106,11 +197,12 @@ class DashBoardProvider extends ChangeNotifier {
         'subcategory': selectedSubCategory?.sId,
         'brand': selectedBrand?.sId,
         'variant_type': selectedVariantType?.sId,
-        'variants': jsonEncode(variantIds), // سرورت این‌طوری می‌خواست
-        'phone_number_code': '12345', // ✅ طبق قانونتان
+        'variants': jsonEncode(variantIds),
+        // ⬅️ به‌جای مقدار ثابت
+        'phone_number_code': phone,
       };
 
-      // ساخت FormData با تصاویر (PocketBase: کلید یکسان 'images')
+      // ساخت FormData با تصاویر
       final FormData form = await createFormDataForMultipleImage(
         imgXFiles: [
           if (imgXFile1 != null) {'images': imgXFile1},
@@ -161,6 +253,7 @@ class DashBoardProvider extends ChangeNotifier {
       notifyListeners();
     }
   }
+
 
   // ---------- Delete ----------
   deleteProduct(Product product) async {

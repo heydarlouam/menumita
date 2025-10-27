@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:developer';
 
 
+import 'package:admin/utility/User_helper.dart';
 import 'package:admin/utility/snack_bar_helper.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:get/get.dart';
@@ -50,12 +51,95 @@ class SubCategoryProvider extends ChangeNotifier {
           : fallback;
 
   // ---------- Create ----------
+  // Future<bool> addSubCategory() async {
+  //   try {
+  //     final Map<String, dynamic> subCategory = {
+  //       'name': subCategoryNameCtrl.text,
+  //       'category': selectedCategory?.sId,
+  //       'phone_number_code':'12345'
+  //     };
+  //
+  //     final response = await service.addItem(
+  //       endpointUrl: 'api/subcategories',
+  //       itemData: subCategory,
+  //     );
+  //
+  //     if (response.isOk) {
+  //       final m = _parseBody(response.body);
+  //       if (_okFlag(m)) {
+  //         clearFields();
+  //         SnackBarHelper.showSuccessSnackBar(
+  //             _msg(m, 'Sub category added successfully'));
+  //         log('sub category added');
+  //         await _dataProvider.getAllSubCategories();
+  //         return true;
+  //       } else {
+  //         SnackBarHelper.showErrorSnackBar(
+  //             'Failed to add sub category: ${m?['error'] ?? m?['message'] ?? 'Unknown error'}');
+  //         return false;
+  //       }
+  //     } else {
+  //       SnackBarHelper.showErrorSnackBar('Error: ${response.statusText}');
+  //       return false;
+  //     }
+  //   } catch (e) {
+  //     SnackBarHelper.showErrorSnackBar('An error occurred: $e');
+  //     return false;
+  //   }
+  // }
+  //
+  // // ---------- Update ----------
+  // Future<bool> updateSubCategory() async {
+  //   try {
+  //     final Map<String, dynamic> subCategory = {
+  //       'name': subCategoryNameCtrl.text,
+  //       'category': selectedCategory?.sId,
+  //       'phone_number_code':'12345'
+  //     };
+  //
+  //     final response = await service.updateItem(
+  //       endpointUrl: 'api/subcategories',
+  //       itemId: subCategoryForUpdate?.sId ?? '',
+  //       itemData: subCategory,
+  //     );
+  //
+  //     if (response.isOk) {
+  //       final m = _parseBody(response.body);
+  //       if (_okFlag(m)) {
+  //         clearFields();
+  //         SnackBarHelper.showSuccessSnackBar(
+  //             _msg(m, 'Sub category updated successfully'));
+  //         log('sub category updated');
+  //         await _dataProvider.getAllSubCategories();
+  //         return true;
+  //       } else {
+  //         SnackBarHelper.showErrorSnackBar(
+  //             'Failed to update sub category: ${m?['error'] ?? m?['message'] ?? 'Unknown error'}');
+  //         return false;
+  //       }
+  //     } else {
+  //       SnackBarHelper.showErrorSnackBar('Error: ${response.statusText}');
+  //       return false;
+  //     }
+  //   } catch (e) {
+  //     SnackBarHelper.showErrorSnackBar('An error occurred: $e');
+  //     return false;
+  //   }
+  // }
+
   Future<bool> addSubCategory() async {
     try {
+      // ⬅️ گرفتن شماره از SharedPreferences
+      final phone = await UserSaveHelper.getPhoneNumber();
+      if (phone == null || phone.isEmpty) {
+        SnackBarHelper.showErrorSnackBar('شماره تلفن در حافظه یافت نشد!');
+        return false;
+      }
+
       final Map<String, dynamic> subCategory = {
         'name': subCategoryNameCtrl.text,
         'category': selectedCategory?.sId,
-        'phone_number_code':'12345'
+        'phone_number_code': phone, // ⬅️ به‌جای مقدار ثابت
       };
 
       final response = await service.addItem(
@@ -87,13 +171,19 @@ class SubCategoryProvider extends ChangeNotifier {
     }
   }
 
-  // ---------- Update ----------
   Future<bool> updateSubCategory() async {
     try {
+      // ⬅️ گرفتن شماره از SharedPreferences
+      final phone = await UserSaveHelper.getPhoneNumber();
+      if (phone == null || phone.isEmpty) {
+        SnackBarHelper.showErrorSnackBar('شماره تلفن در حافظه یافت نشد!');
+        return false;
+      }
+
       final Map<String, dynamic> subCategory = {
         'name': subCategoryNameCtrl.text,
         'category': selectedCategory?.sId,
-        'phone_number_code':'12345'
+        'phone_number_code': phone, // ⬅️ به‌جای مقدار ثابت
       };
 
       final response = await service.updateItem(

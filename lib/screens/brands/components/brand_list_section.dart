@@ -86,6 +86,8 @@
 // }
 
 
+import 'package:admin/utility/User_helper.dart';
+import 'package:admin/utility/dialog_helper.dart';
 import 'package:admin/utility/extensions.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -145,23 +147,49 @@ class BrandListSection extends StatelessWidget {
       cells: [
         DataCell(Text(b.name ?? '')),
         DataCell(Text(_subName(b))),
+        // DataCell(
+        //   IconButton(
+        //     onPressed: () {
+        //       showAddBrandForm(context, b); // ویرایش
+        //     },
+        //     icon: const Icon(Icons.edit, color: Colors.white),
+        //   ),
+        // ),
         DataCell(
           IconButton(
-            onPressed: () {
-              showAddBrandForm(context, b); // ویرایش
+            onPressed: () async {
+              if (await UserSaveHelper.isExpired()) {
+                DialogHelper.showExpiredDialog(context);
+                return;
+              }
+              showAddBrandForm(context, b);
             },
             icon: const Icon(Icons.edit, color: Colors.white),
           ),
         ),
+
+        // DataCell(
+        //   IconButton(
+        //     onPressed: () async {
+        //       final ok = await context.brandProvider.deleteBrand(b);
+        //       // یادآوری: getAllBrands در provider فراخوانی می‌شود و جدول به‌صورت خودکار ریفرش خواهد شد.
+        //     },
+        //     icon: const Icon(Icons.delete, color: Colors.red),
+        //   ),
+        // ),
         DataCell(
           IconButton(
             onPressed: () async {
-              final ok = await context.brandProvider.deleteBrand(b);
-              // یادآوری: getAllBrands در provider فراخوانی می‌شود و جدول به‌صورت خودکار ریفرش خواهد شد.
+              if (await UserSaveHelper.isExpired()) {
+                DialogHelper.showExpiredDialog(context);
+                return;
+              }
+              await context.brandProvider.deleteBrand(b);
             },
             icon: const Icon(Icons.delete, color: Colors.red),
           ),
         ),
+
       ],
     );
   }

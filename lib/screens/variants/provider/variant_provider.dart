@@ -1,4 +1,5 @@
 
+import 'package:admin/utility/User_helper.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:get/get.dart';
 
@@ -193,32 +194,96 @@ class VariantsProvider extends ChangeNotifier {
 
   VariantsProvider(this._dataProvider);
 
-  Map<String, dynamic> _createBody() => {
-    'name': variantCtrl.text.trim(),
-    'variant_type': selectedVariantType?.sId,
-    'phone_number_code': '12345', // قانون ثابت
-  };
-
-  Map<String, dynamic> _updateBody() {
-    final body = <String, dynamic>{
-      'name': variantCtrl.text.trim(),
-      'phone_number_code': '12345',
-    };
-    if (selectedVariantType?.sId != null) {
-      body['variant_type'] = selectedVariantType!.sId;
-    }
-    return body;
-  }
+  // Map<String, dynamic> _createBody() => {
+  //   'name': variantCtrl.text.trim(),
+  //   'variant_type': selectedVariantType?.sId,
+  //   'phone_number_code': '12345', // قانون ثابت
+  // };
+  //
+  // Map<String, dynamic> _updateBody() {
+  //   final body = <String, dynamic>{
+  //     'name': variantCtrl.text.trim(),
+  //     'phone_number_code': '12345',
+  //   };
+  //   if (selectedVariantType?.sId != null) {
+  //     body['variant_type'] = selectedVariantType!.sId;
+  //   }
+  //   return body;
+  // }
+  //
+  // Future<void> addVariant() async {
+  //   try {
+  //     final Response res = await service.addItem(
+  //       endpointUrl: 'api/variants',
+  //       itemData: _createBody(),
+  //     );
+  //     if (res.isOk && (res.body?['success'] == true)) {
+  //       clearFields();
+  //       SnackBarHelper.showSuccessSnackBar(res.body['message'] ?? 'Variant added successfully');
+  //       await _dataProvider.getAllVariants();
+  //     } else {
+  //       SnackBarHelper.showErrorSnackBar(
+  //         res.body?['message'] ?? res.body?['error'] ?? res.statusText ?? 'Failed to add variant',
+  //       );
+  //     }
+  //   } catch (e) {
+  //     SnackBarHelper.showErrorSnackBar('An error occurred: $e');
+  //     rethrow;
+  //   }
+  // }
+  //
+  // Future<void> updateVariant() async {
+  //   try {
+  //     final String id = variantForUpdate?.sId ?? '';
+  //     if (id.isEmpty) {
+  //       SnackBarHelper.showErrorSnackBar('ID missing');
+  //       return;
+  //     }
+  //     final Response res = await service.updateItem(
+  //       endpointUrl: 'api/variants',
+  //       itemId: id,
+  //       itemData: _updateBody(),
+  //     );
+  //     if (res.isOk && (res.body?['success'] == true)) {
+  //       clearFields();
+  //       SnackBarHelper.showSuccessSnackBar(res.body['message'] ?? 'Variant updated successfully');
+  //       await _dataProvider.getAllVariants();
+  //     } else {
+  //       SnackBarHelper.showErrorSnackBar(
+  //         res.body?['message'] ?? res.body?['error'] ?? res.statusText ?? 'Failed to update variant',
+  //       );
+  //     }
+  //   } catch (e) {
+  //     SnackBarHelper.showErrorSnackBar('An error occurred: $e');
+  //     rethrow;
+  //   }
+  // }
 
   Future<void> addVariant() async {
     try {
+      // ⬅️ گرفتن شماره از SharedPreferences
+      final phone = await UserSaveHelper.getPhoneNumber();
+      if (phone == null || phone.isEmpty) {
+        SnackBarHelper.showErrorSnackBar('شماره تلفن در حافظه یافت نشد!');
+        return;
+      }
+
+      final Map<String, dynamic> body = {
+        'name': variantCtrl.text.trim(),
+        'variant_type': selectedVariantType?.sId,
+        'phone_number_code': phone, // ⬅️ جایگزین مقدار ثابت
+      };
+
       final Response res = await service.addItem(
         endpointUrl: 'api/variants',
-        itemData: _createBody(),
+        itemData: body,
       );
+
       if (res.isOk && (res.body?['success'] == true)) {
         clearFields();
-        SnackBarHelper.showSuccessSnackBar(res.body['message'] ?? 'Variant added successfully');
+        SnackBarHelper.showSuccessSnackBar(
+          res.body['message'] ?? 'Variant added successfully',
+        );
         await _dataProvider.getAllVariants();
       } else {
         SnackBarHelper.showErrorSnackBar(
@@ -238,14 +303,33 @@ class VariantsProvider extends ChangeNotifier {
         SnackBarHelper.showErrorSnackBar('ID missing');
         return;
       }
+
+      // ⬅️ گرفتن شماره از SharedPreferences
+      final phone = await UserSaveHelper.getPhoneNumber();
+      if (phone == null || phone.isEmpty) {
+        SnackBarHelper.showErrorSnackBar('شماره تلفن در حافظه یافت نشد!');
+        return;
+      }
+
+      final Map<String, dynamic> body = {
+        'name': variantCtrl.text.trim(),
+        'phone_number_code': phone, // ⬅️ جایگزین مقدار ثابت
+      };
+      if (selectedVariantType?.sId != null) {
+        body['variant_type'] = selectedVariantType!.sId;
+      }
+
       final Response res = await service.updateItem(
         endpointUrl: 'api/variants',
         itemId: id,
-        itemData: _updateBody(),
+        itemData: body,
       );
+
       if (res.isOk && (res.body?['success'] == true)) {
         clearFields();
-        SnackBarHelper.showSuccessSnackBar(res.body['message'] ?? 'Variant updated successfully');
+        SnackBarHelper.showSuccessSnackBar(
+          res.body['message'] ?? 'Variant updated successfully',
+        );
         await _dataProvider.getAllVariants();
       } else {
         SnackBarHelper.showErrorSnackBar(

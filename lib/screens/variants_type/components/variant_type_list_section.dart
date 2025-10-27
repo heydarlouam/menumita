@@ -273,6 +273,8 @@
 // }
 
 
+import 'package:admin/utility/User_helper.dart';
+import 'package:admin/utility/dialog_helper.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -314,19 +316,32 @@ class VariantsTypeListSection extends StatelessWidget {
                 DataCell(Text(item.type ?? '')),
                 DataCell(
                   IconButton(
+                    onPressed: () async {
+                      if (await UserSaveHelper.isExpired()) {
+                        DialogHelper.showExpiredDialog(context);
+                        return;
+                      }
+                      showAddVariantTypeForm(
+                        context,
+                        item,
+                        'ویرایش نوع ویژگی',
+                      );
+                    },
                     icon: const Icon(Icons.edit, color: Colors.white),
-                    onPressed: () => showAddVariantTypeForm(
-                      context,
-                      item,
-                      'ویرایش نوع ویژگی',
-                    ),
+
                   ),
                 ),
                 DataCell(
                   IconButton(
+                    onPressed: () async {
+                      if (await UserSaveHelper.isExpired()) {
+                        DialogHelper.showExpiredDialog(context);
+                        return;
+                      }
+                      context.variantTypeProvider.deleteVariantType(item);
+                    },
                     icon: const Icon(Icons.delete, color: Colors.red),
-                    onPressed: () =>
-                        context.variantTypeProvider.deleteVariantType(item),
+
                   ),
                 ),
               ],

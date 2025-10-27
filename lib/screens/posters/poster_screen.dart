@@ -71,6 +71,9 @@
 // }
 
 
+import 'package:admin/screens/profile_card.dart';
+import 'package:admin/utility/User_helper.dart';
+import 'package:admin/utility/dialog_helper.dart';
 import 'package:admin/utility/extensions.dart';
 import 'package:flutter/material.dart';
 import 'package:gap/gap.dart';
@@ -101,11 +104,24 @@ class PosterScreen extends StatelessWidget {
                       Row(
                         mainAxisAlignment: MainAxisAlignment.end,
                         children: [
-                          Expanded(
-                            child: Text(
-                              "پوسترهای من",
-                              style: Theme.of(context).textTheme.titleMedium,
-                            ),
+                          // Expanded(
+                          //   child: Text(
+                          //     "پوسترهای من",
+                          //     style: Theme.of(context).textTheme.titleMedium,
+                          //   ),
+                          // ),
+                          IconButton(
+                            tooltip: "بروزرسانی لیست",
+                            onPressed: () async {
+                              if (await UserSaveHelper.isExpired()) {
+                                DialogHelper.showExpiredDialog(context);
+                                return;
+                              }
+                              context.dataProvider
+                                  .getAllPosters(showSnack: true);
+                            },
+
+                            icon: Icon(Icons.refresh),
                           ),
                           ElevatedButton.icon(
                             style: TextButton.styleFrom(
@@ -114,21 +130,21 @@ class PosterScreen extends StatelessWidget {
                                 vertical: defaultPadding,
                               ),
                             ),
-                            onPressed: () {
+                            onPressed: () async {
+                              if (await UserSaveHelper.isExpired()) {
+                                DialogHelper.showExpiredDialog(context);
+                                return;
+                              }
                               showAddPosterForm(context, null);
                             },
+
                             icon: Icon(Icons.add),
                             label: Text("افزودن پوستر"),
                           ),
-                          Gap(20),
-                          IconButton(
-                            tooltip: "بروزرسانی لیست",
-                            onPressed: () {
-                              context.dataProvider
-                                  .getAllPosters(showSnack: true);
-                            },
-                            icon: Icon(Icons.refresh),
-                          ),
+                        //  Gap(20),
+
+                          const SizedBox(width: 12),
+                          const Expanded(child: ProfileCard()),
                         ],
                       ),
                       Gap(defaultPadding),

@@ -1,3 +1,5 @@
+import 'package:admin/utility/User_helper.dart';
+import 'package:admin/utility/dialog_helper.dart';
 import 'package:admin/utility/extensions.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -172,16 +174,30 @@ class CouponListSection extends StatelessWidget {
         DataCell(Text('${coupon.discountAmount ?? ''}')),
         DataCell(
           IconButton(
+            onPressed: () async {
+              if (await UserSaveHelper.isExpired()) {
+                DialogHelper.showExpiredDialog(context);
+                return;
+              }
+              showAddCouponForm(context, coupon);
+            },
+
             tooltip: 'ویرایش کوپن',
-            onPressed: () => showAddCouponForm(context, coupon),
+
             icon: const Icon(Icons.edit, color: Colors.white),
           ),
         ),
         DataCell(
           IconButton(
+            onPressed: () async {
+              if (await UserSaveHelper.isExpired()) {
+                DialogHelper.showExpiredDialog(context);
+                return;
+              }
+              context.couponCodeProvider.deleteCoupon(coupon);
+            },
             tooltip: 'حذف کوپن',
-            onPressed: () =>
-                context.couponCodeProvider.deleteCoupon(coupon),
+
             icon: const Icon(Icons.delete, color: Colors.red),
           ),
         ),

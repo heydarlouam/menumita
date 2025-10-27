@@ -1,5 +1,6 @@
 import 'dart:developer';
 
+import 'package:admin/utility/User_helper.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:get/get.dart';
 
@@ -49,13 +50,21 @@ class BrandProvider extends ChangeNotifier {
           ? m!['message'] as String
           : fallback;
 
-  // ---------- Create ----------
+
+// ---------- Create ----------
   Future<bool> addBrand() async {
     try {
+      // ✅ گرفتن شماره از SharedPreferences
+      final phone = await UserSaveHelper.getPhoneNumber();
+      if (phone == null || phone.isEmpty) {
+        SnackBarHelper.showErrorSnackBar('شماره تلفن در حافظه یافت نشد!');
+        return false;
+      }
+
       final Map<String, dynamic> brand = {
         'name': brandNameCtrl.text,
         'subcategory': selectedSubCategory?.sId,
-        'phone_number_code':'12345'
+        'phone_number_code': phone, // ← جایگزین عدد ثابت
       };
 
       final response = await service.addItem(
@@ -67,14 +76,14 @@ class BrandProvider extends ChangeNotifier {
         final m = _parseBody(response.body);
         if (_okFlag(m)) {
           clearFields();
-          SnackBarHelper.showSuccessSnackBar(
-              _msg(m, 'Brand added successfully'));
+          SnackBarHelper.showSuccessSnackBar(_msg(m, 'Brand added successfully'));
           log('brand added');
           await _dataProvider.getAllBrands();
           return true;
         } else {
           SnackBarHelper.showErrorSnackBar(
-              'Failed to add brand: ${m?['error'] ?? m?['message'] ?? 'Unknown error'}');
+            'Failed to add brand: ${m?['error'] ?? m?['message'] ?? 'Unknown error'}',
+          );
           return false;
         }
       } else {
@@ -87,13 +96,20 @@ class BrandProvider extends ChangeNotifier {
     }
   }
 
-  // ---------- Update ----------
+// ---------- Update ----------
   Future<bool> updateBrand() async {
     try {
+      // ✅ گرفتن شماره از SharedPreferences
+      final phone = await UserSaveHelper.getPhoneNumber();
+      if (phone == null || phone.isEmpty) {
+        SnackBarHelper.showErrorSnackBar('شماره تلفن در حافظه یافت نشد!');
+        return false;
+      }
+
       final Map<String, dynamic> brand = {
         'name': brandNameCtrl.text,
         'subcategory': selectedSubCategory?.sId,
-        'phone_number_code':'12345'
+        'phone_number_code': phone, // ← جایگزین عدد ثابت
       };
 
       final response = await service.updateItem(
@@ -106,14 +122,14 @@ class BrandProvider extends ChangeNotifier {
         final m = _parseBody(response.body);
         if (_okFlag(m)) {
           clearFields();
-          SnackBarHelper.showSuccessSnackBar(
-              _msg(m, 'Brand updated successfully'));
+          SnackBarHelper.showSuccessSnackBar(_msg(m, 'Brand updated successfully'));
           log('brand updated');
           await _dataProvider.getAllBrands();
           return true;
         } else {
           SnackBarHelper.showErrorSnackBar(
-              'Failed to update brand: ${m?['error'] ?? m?['message'] ?? 'Unknown error'}');
+            'Failed to update brand: ${m?['error'] ?? m?['message'] ?? 'Unknown error'}',
+          );
           return false;
         }
       } else {
@@ -125,6 +141,83 @@ class BrandProvider extends ChangeNotifier {
       return false;
     }
   }
+
+  // // ---------- Create ----------
+  // Future<bool> addBrand() async {
+  //   try {
+  //     final Map<String, dynamic> brand = {
+  //       'name': brandNameCtrl.text,
+  //       'subcategory': selectedSubCategory?.sId,
+  //       'phone_number_code':'12345'
+  //     };
+  //
+  //     final response = await service.addItem(
+  //       endpointUrl: 'api/brands',
+  //       itemData: brand,
+  //     );
+  //
+  //     if (response.isOk) {
+  //       final m = _parseBody(response.body);
+  //       if (_okFlag(m)) {
+  //         clearFields();
+  //         SnackBarHelper.showSuccessSnackBar(
+  //             _msg(m, 'Brand added successfully'));
+  //         log('brand added');
+  //         await _dataProvider.getAllBrands();
+  //         return true;
+  //       } else {
+  //         SnackBarHelper.showErrorSnackBar(
+  //             'Failed to add brand: ${m?['error'] ?? m?['message'] ?? 'Unknown error'}');
+  //         return false;
+  //       }
+  //     } else {
+  //       SnackBarHelper.showErrorSnackBar('Error: ${response.statusText}');
+  //       return false;
+  //     }
+  //   } catch (e) {
+  //     SnackBarHelper.showErrorSnackBar('An error occurred: $e');
+  //     return false;
+  //   }
+  // }
+  //
+  // // ---------- Update ----------
+  // Future<bool> updateBrand() async {
+  //   try {
+  //     final Map<String, dynamic> brand = {
+  //       'name': brandNameCtrl.text,
+  //       'subcategory': selectedSubCategory?.sId,
+  //       'phone_number_code':'12345'
+  //     };
+  //
+  //     final response = await service.updateItem(
+  //       endpointUrl: 'api/brands',
+  //       itemId: brandForUpdate?.sId ?? '',
+  //       itemData: brand,
+  //     );
+  //
+  //     if (response.isOk) {
+  //       final m = _parseBody(response.body);
+  //       if (_okFlag(m)) {
+  //         clearFields();
+  //         SnackBarHelper.showSuccessSnackBar(
+  //             _msg(m, 'Brand updated successfully'));
+  //         log('brand updated');
+  //         await _dataProvider.getAllBrands();
+  //         return true;
+  //       } else {
+  //         SnackBarHelper.showErrorSnackBar(
+  //             'Failed to update brand: ${m?['error'] ?? m?['message'] ?? 'Unknown error'}');
+  //         return false;
+  //       }
+  //     } else {
+  //       SnackBarHelper.showErrorSnackBar('Error: ${response.statusText}');
+  //       return false;
+  //     }
+  //   } catch (e) {
+  //     SnackBarHelper.showErrorSnackBar('An error occurred: $e');
+  //     return false;
+  //   }
+  // }
 
   // ---------- Unified Submit ----------
   Future<bool> submitBrand() async {
