@@ -45,7 +45,7 @@ class OrderInfoCard extends StatelessWidget {
                     overflow: TextOverflow.ellipsis,
                   ),
                   Text(
-                    "$totalOrder سفارش",
+                    "$totalOrder سفارش ",
                     style: Theme.of(context)
                         .textTheme
                         .bodySmall!

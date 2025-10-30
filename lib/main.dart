@@ -1,3 +1,4 @@
+import 'package:admin/screens/orderpaid/provider/order_provider_paid.dart';
 import 'package:admin/services/auth_api.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_login/flutter_login.dart';
@@ -106,6 +107,7 @@ void main() {
     FlutterError.onError = (FlutterErrorDetails details) {
       FlutterError.dumpErrorToConsole(details);
     };
+    WidgetsFlutterBinding.ensureInitialized();
 
     runApp(
       MultiProvider(
@@ -116,6 +118,7 @@ void main() {
           ChangeNotifierProvider(create: (context) => SubCategoryProvider(context.dataProvider)),
           ChangeNotifierProvider(create: (context) => BrandProvider(context.dataProvider)),
           ChangeNotifierProvider(create: (context) => PosterProvider(context.dataProvider)),
+          ChangeNotifierProvider(create: (context) => OrderPaidProvider(context.dataProvider)),
           ChangeNotifierProvider(create: (context) => OrderProvider(context.dataProvider)),
           ChangeNotifierProvider(create: (context) => VariantsTypeProvider(context.dataProvider)),
           ChangeNotifierProvider(create: (context) => VariantsProvider(context.dataProvider)),

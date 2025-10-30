@@ -30,8 +30,8 @@ dependencies:
   shamsi_date: ^1.0.1
   persian_datetime_picker: ^3.1.0
   slide_countdown: ^2.0.2
-
-
+  socket_io_client: ^3.0.2
+  flutter_local_notifications: ^19.5.0
 dev_dependencies:
   flutter_test:
     sdk: flutter

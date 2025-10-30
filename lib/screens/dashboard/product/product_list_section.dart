@@ -18,6 +18,7 @@ class ProductListSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
+      width: double.infinity, // 👈 اضافه کن
       padding: const EdgeInsets.all(defaultPadding),
       decoration: const BoxDecoration(
         color: secondaryColor,
@@ -28,28 +29,55 @@ class ProductListSection extends StatelessWidget {
           final items = dataProvider.products;
 
           // ✅ حفظ DataTable (دیزاین قبلی). فقط برای موبایل/تبلت اسکرول افقی می‌دیم.
-          return SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(minWidth: 1000), // حداقل پهنای جدول
-              child: DataTable(
-                columnSpacing: defaultPadding,
-                columns: const [
-
-                  DataColumn(label: Text("نام محصول",style: TextStyle(fontFamily: FONTS_STYLE_FAMILY),)),
-                  DataColumn(label: Text("دسته‌بندی",style: TextStyle(fontFamily: FONTS_STYLE_FAMILY),)),
-                  DataColumn(label: Text("زیر‌دسته",style: TextStyle(fontFamily: FONTS_STYLE_FAMILY),)),
-                  DataColumn(label: Text("قیمت",style: TextStyle(fontFamily: FONTS_STYLE_FAMILY),)),
-                  DataColumn(label: Text("ویرایش",style: TextStyle(fontFamily: FONTS_STYLE_FAMILY),)),
-                  DataColumn(label: Text("حذف",style: TextStyle(fontFamily: FONTS_STYLE_FAMILY),)),
-                ],
-                rows: List.generate(items.length, (index) {
-                  final p = items[index];
-                  return _productDataRow(context, p);
-                }),
-              ),
-            ),
+          // return SingleChildScrollView(
+          //   scrollDirection: Axis.horizontal,
+          //   child: ConstrainedBox(
+          //     constraints: const BoxConstraints(minWidth: 1000), // حداقل پهنای جدول
+          //     child: DataTable(
+          //       columnSpacing: defaultPadding,
+          //       columns: const [
+          //
+          //         DataColumn(label: Text("نام محصول",style: TextStyle(fontFamily: FONTS_STYLE_FAMILY),)),
+          //         DataColumn(label: Text("دسته‌بندی",style: TextStyle(fontFamily: FONTS_STYLE_FAMILY),)),
+          //         DataColumn(label: Text("زیر‌دسته",style: TextStyle(fontFamily: FONTS_STYLE_FAMILY),)),
+          //         DataColumn(label: Text("قیمت",style: TextStyle(fontFamily: FONTS_STYLE_FAMILY),)),
+          //         DataColumn(label: Text("ویرایش",style: TextStyle(fontFamily: FONTS_STYLE_FAMILY),)),
+          //         DataColumn(label: Text("حذف",style: TextStyle(fontFamily: FONTS_STYLE_FAMILY),)),
+          //       ],
+          //       rows: List.generate(items.length, (index) {
+          //         final p = items[index];
+          //         return _productDataRow(context, p);
+          //       }),
+          //     ),
+          //   ),
+          // );
+          return LayoutBuilder(
+            builder: (_, cons) {
+              final w = cons.maxWidth; // عرض واقعی همین کارت/کانتینر
+              return SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(minWidth: w), // 👈 داینامیک: به اندازه‌ی عرض موجود
+                  child: DataTable(
+                    columnSpacing: defaultPadding,
+                    columns: const [
+                      DataColumn(label: Text("نام محصول", style: TextStyle(fontFamily: FONTS_STYLE_FAMILY))),
+                      DataColumn(label: Text("دسته‌بندی", style: TextStyle(fontFamily: FONTS_STYLE_FAMILY))),
+                      DataColumn(label: Text("زیر‌دسته", style: TextStyle(fontFamily: FONTS_STYLE_FAMILY))),
+                      DataColumn(label: Text("قیمت", style: TextStyle(fontFamily: FONTS_STYLE_FAMILY))),
+                      DataColumn(label: Text("ویرایش", style: TextStyle(fontFamily: FONTS_STYLE_FAMILY))),
+                      DataColumn(label: Text("حذف", style: TextStyle(fontFamily: FONTS_STYLE_FAMILY))),
+                    ],
+                    rows: List.generate(items.length, (index) {
+                      final p = items[index];
+                      return _productDataRow(context, p);
+                    }),
+                  ),
+                ),
+              );
+            },
           );
+
         },
       ),
     );

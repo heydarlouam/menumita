@@ -56,28 +56,34 @@ class OrderDetailsSection extends StatelessWidget {
               ),
               OrderInfoCard(
                 svgSrc: "assets/icons/delivery5.svg",
-                title: "سفارش‌های در انتظار بررسی",
+
+                title: "سفارش‌های در انتظار تأیید",
                 totalOrder: pendingOrder,
               ),
               OrderInfoCard(
                 svgSrc: "assets/icons/delivery6.svg",
-                title: "سفارش‌های در حال پردازش",
+
+                 title: "سفارش‌های در حال آماده‌سازی",
                 totalOrder: processingOrder,
               ),
-              OrderInfoCard(
-                svgSrc: "assets/icons/delivery2.svg",
-                title: "سفارش‌های لغوشده",
-                totalOrder: cancelledOrder,
-              ),
+
               OrderInfoCard(
                 svgSrc: "assets/icons/delivery4.svg",
-                title: "سفارش‌های ارسال‌شده",
+                title: "سفارش‌های ارسال شده",
+
                 totalOrder: shippedOrder,
               ),
               OrderInfoCard(
                 svgSrc: "assets/icons/delivery3.svg",
                 title: "سفارش‌های تحویل‌داده‌شده",
+
                 totalOrder: deliveredOrder,
+              ),
+              OrderInfoCard(
+                svgSrc: "assets/icons/delivery2.svg",
+                title: "سفارش‌های لغوشده",
+
+                totalOrder: cancelledOrder,
               ),
             ],
           ),

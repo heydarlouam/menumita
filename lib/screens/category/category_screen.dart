@@ -94,48 +94,7 @@ class CategoryScreen extends StatelessWidget {
           children: [
             CategoryHeader(),
             SizedBox(height: defaultPadding),
-            // Row(
-            //   crossAxisAlignment: CrossAxisAlignment.start,
-            //   children: [
-            //     Expanded(
-            //       flex: 5,
-            //       child: Column(
-            //         children: [
-            //           Row(
-            //             mainAxisAlignment: MainAxisAlignment.end,
-            //             children: [
-            //
-            //               ElevatedButton.icon(
-            //                 style: TextButton.styleFrom(
-            //                   padding: EdgeInsets.symmetric(
-            //                     horizontal: defaultPadding * 1.5,
-            //                     vertical: defaultPadding,
-            //                   ),
-            //                 ),
-            //                 onPressed: () {
-            //                   showAddCategoryForm(context, null, 'افزودن دسته‌بندی');
-            //                 },
-            //                 icon: Icon(Icons.add),
-            //                 label: Text("افزودن دسته‌بندی"),
-            //               ),
-            //             //  Gap(20),
-            //               IconButton(
-            //                 onPressed: () {
-            //                   context.dataProvider.getAllCategories(showSnack: true);
-            //                 },
-            //                 icon: Icon(Icons.refresh),
-            //                 tooltip: 'بروزرسانی',
-            //               ),
-            //
-            //             ],
-            //           ),
-            //           Gap(defaultPadding),
-            //           CategoryListSection(),
-            //         ],
-            //       ),
-            //     ),
-            //   ],
-            // ),
+
             Row(
               mainAxisAlignment: MainAxisAlignment.end,
               children: [

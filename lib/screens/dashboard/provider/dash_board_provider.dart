@@ -22,10 +22,40 @@ class DashBoardProvider extends ChangeNotifier {
   HttpService service = HttpService();
   final DataProvider _dataProvider;
   final addProductFormKey = GlobalKey<FormState>();
+  final Set<int> removedImageSlots = {};
 
   // --- Busy state (هم‌راستا با CategoryProvider)
   bool _isSubmitting = false;
   bool get isSubmitting => _isSubmitting;
+  // void markImageRemoved(int slot) {
+  //   switch (slot) {
+  //     case 1:
+  //       selectedMainImage = null;
+  //       imgXFile1 = null;
+  //       break;
+  //     case 2:
+  //       selectedSecondImage = null;
+  //       imgXFile2 = null;
+  //       break;
+  //     case 3:
+  //       selectedThirdImage = null;
+  //       imgXFile3 = null;
+  //       break;
+  //     case 4:
+  //       selectedFourthImage = null;
+  //       imgXFile4 = null;
+  //       break;
+  //     case 5:
+  //       selectedFifthImage = null;
+  //       imgXFile5 = null;
+  //       break;
+  //     default:
+  //       return;
+  //   }
+  //   // ✅ این اسلات باید سمت سرور حذف شود
+  //   removedImageSlots.add(slot);
+  //   notifyListeners();
+  // }
 
   //?text editing controllers in dashBoard screen
   TextEditingController productNameCtrl = TextEditingController();
@@ -78,13 +108,20 @@ class DashBoardProvider extends ChangeNotifier {
           ? m!['message'] as String
           : fallback;
 
-  // ---------- Submit (Create or Update) ----------
+
   // Future<bool> submitProduct() async {
   //   if (_isSubmitting) return false;
   //   _isSubmitting = true;
   //   notifyListeners();
   //
   //   try {
+  //     // ✅ شماره را از SharedPreferences بگیر
+  //     final phone = await UserSaveHelper.getPhoneNumber();
+  //     if (phone == null || phone.isEmpty) {
+  //       SnackBarHelper.showErrorSnackBar('شماره تلفن در حافظه یافت نشد!');
+  //       return false;
+  //     }
+  //
   //     // تبدیل variant names به variant IDs
   //     List<String> variantIds = [];
   //     if (selectedVariants.isNotEmpty) {
@@ -107,11 +144,12 @@ class DashBoardProvider extends ChangeNotifier {
   //       'subcategory': selectedSubCategory?.sId,
   //       'brand': selectedBrand?.sId,
   //       'variant_type': selectedVariantType?.sId,
-  //       'variants': jsonEncode(variantIds), // سرورت این‌طوری می‌خواست
-  //       'phone_number_code': '12345', // ✅ طبق قانونتان
+  //       'variants': jsonEncode(variantIds),
+  //       // ⬅️ به‌جای مقدار ثابت
+  //       'phone_number_code': phone,
   //     };
   //
-  //     // ساخت FormData با تصاویر (PocketBase: کلید یکسان 'images')
+  //     // ساخت FormData با تصاویر
   //     final FormData form = await createFormDataForMultipleImage(
   //       imgXFiles: [
   //         if (imgXFile1 != null) {'images': imgXFile1},
@@ -162,28 +200,38 @@ class DashBoardProvider extends ChangeNotifier {
   //     notifyListeners();
   //   }
   // }
+
   Future<bool> submitProduct() async {
     if (_isSubmitting) return false;
     _isSubmitting = true;
     notifyListeners();
 
     try {
-      // ✅ شماره را از SharedPreferences بگیر
       final phone = await UserSaveHelper.getPhoneNumber();
       if (phone == null || phone.isEmpty) {
         SnackBarHelper.showErrorSnackBar('شماره تلفن در حافظه یافت نشد!');
         return false;
       }
 
-      // تبدیل variant names به variant IDs
+      // variant names -> ids
       List<String> variantIds = [];
       if (selectedVariants.isNotEmpty) {
         variantIds = _dataProvider.variants
-            .where((variant) => selectedVariants.contains(variant.name))
-            .map((variant) => variant.sId ?? '')
+            .where((v) => selectedVariants.contains(v.name))
+            .map((v) => v.sId ?? '')
             .where((id) => id.isNotEmpty)
             .toList();
       }
+
+      // ✅ آرایه‌های موازی فایل‌ها و اسلات‌ها
+      final List<Map<String, XFile?>> imageEntries = [];
+      final List<int> imageSlots = [];
+
+      if (imgXFile1 != null) { imageEntries.add({'images': imgXFile1}); imageSlots.add(1); }
+      if (imgXFile2 != null) { imageEntries.add({'images': imgXFile2}); imageSlots.add(2); }
+      if (imgXFile3 != null) { imageEntries.add({'images': imgXFile3}); imageSlots.add(3); }
+      if (imgXFile4 != null) { imageEntries.add({'images': imgXFile4}); imageSlots.add(4); }
+      if (imgXFile5 != null) { imageEntries.add({'images': imgXFile5}); imageSlots.add(5); }
 
       final Map<String, dynamic> formDataMap = {
         'name': productNameCtrl.text,
@@ -198,20 +246,17 @@ class DashBoardProvider extends ChangeNotifier {
         'brand': selectedBrand?.sId,
         'variant_type': selectedVariantType?.sId,
         'variants': jsonEncode(variantIds),
-        // ⬅️ به‌جای مقدار ثابت
         'phone_number_code': phone,
+
+        // ✅ اسلات‌های حذف‌شده (برای PUT اهمیت دارد)
+        'remove_image_indexes': jsonEncode(removedImageSlots.toList()),
       };
 
-      // ساخت FormData با تصاویر
+      // ✅ ساخت FormData با فایل‌ها + الصاق image_slots
       final FormData form = await createFormDataForMultipleImage(
-        imgXFiles: [
-          if (imgXFile1 != null) {'images': imgXFile1},
-          if (imgXFile2 != null) {'images': imgXFile2},
-          if (imgXFile3 != null) {'images': imgXFile3},
-          if (imgXFile4 != null) {'images': imgXFile4},
-          if (imgXFile5 != null) {'images': imgXFile5},
-        ],
+        imgXFiles: imageEntries,
         formData: formDataMap,
+        imageSlots: imageSlots, // ← جدید
       );
 
       final String? targetId = productForUpdate?.sId;
@@ -254,7 +299,6 @@ class DashBoardProvider extends ChangeNotifier {
     }
   }
 
-
   // ---------- Delete ----------
   deleteProduct(Product product) async {
     try {
@@ -284,6 +328,30 @@ class DashBoardProvider extends ChangeNotifier {
   }
 
   // ---------- Image Picking ----------
+  // void pickImage({required int imageCardNumber}) async {
+  //   final ImagePicker picker = ImagePicker();
+  //   final XFile? image = await picker.pickImage(source: ImageSource.gallery);
+  //   if (image != null) {
+  //     if (imageCardNumber == 1) {
+  //       selectedMainImage = File(image.path);
+  //       imgXFile1 = image;
+  //     } else if (imageCardNumber == 2) {
+  //       selectedSecondImage = File(image.path);
+  //       imgXFile2 = image;
+  //     } else if (imageCardNumber == 3) {
+  //       selectedThirdImage = File(image.path);
+  //       imgXFile3 = image;
+  //     } else if (imageCardNumber == 4) {
+  //       selectedFourthImage = File(image.path);
+  //       imgXFile4 = image;
+  //     } else if (imageCardNumber == 5) {
+  //       selectedFifthImage = File(image.path);
+  //       imgXFile5 = image;
+  //     }
+  //     notifyListeners();
+  //   }
+  // }
+
   void pickImage({required int imageCardNumber}) async {
     final ImagePicker picker = ImagePicker();
     final XFile? image = await picker.pickImage(source: ImageSource.gallery);
@@ -304,33 +372,97 @@ class DashBoardProvider extends ChangeNotifier {
         selectedFifthImage = File(image.path);
         imgXFile5 = image;
       }
+
+      // ✅ اگر قبلاً برای این اسلات حذف ثبت شده بود، چون الان جایگزین می‌کنیم، حذف را لغو کن
+      removedImageSlots.remove(imageCardNumber);
+
       notifyListeners();
     }
   }
 
+  // Future<FormData> createFormDataForMultipleImage({
+  //   required List<Map<String, XFile?>>? imgXFiles,
+  //   required Map<String, dynamic> formData,
+  // }) async {
+  //   final FormData form = FormData(formData);
+  //
+  //   if (imgXFiles != null) {
+  //     for (int i = 0; i < imgXFiles.length; i++) {
+  //       XFile? imgXFile = imgXFiles[i]['images'];
+  //       if (imgXFile != null) {
+  //         if (kIsWeb) {
+  //           String fileName = imgXFile.name;
+  //           Uint8List byteImg = await imgXFile.readAsBytes();
+  //           form.files.add(MapEntry('images', MultipartFile(byteImg, filename: fileName)));
+  //         } else {
+  //           String filePath = imgXFile.path;
+  //           String fileName = filePath.split('/').last;
+  //           form.files.add(MapEntry('images', await MultipartFile(filePath, filename: fileName)));
+  //         }
+  //       }
+  //     }
+  //   }
+  //   return form;
+  // }
   Future<FormData> createFormDataForMultipleImage({
     required List<Map<String, XFile?>>? imgXFiles,
     required Map<String, dynamic> formData,
+    List<int>? imageSlots, // ← جدید
   }) async {
     final FormData form = FormData(formData);
 
-    if (imgXFiles != null) {
+    if (imgXFiles != null && imgXFiles.isNotEmpty) {
       for (int i = 0; i < imgXFiles.length; i++) {
-        XFile? imgXFile = imgXFiles[i]['images'];
+        final XFile? imgXFile = imgXFiles[i]['images'];
         if (imgXFile != null) {
           if (kIsWeb) {
-            String fileName = imgXFile.name;
-            Uint8List byteImg = await imgXFile.readAsBytes();
+            final String fileName = imgXFile.name;
+            final Uint8List byteImg = await imgXFile.readAsBytes();
             form.files.add(MapEntry('images', MultipartFile(byteImg, filename: fileName)));
           } else {
-            String filePath = imgXFile.path;
-            String fileName = filePath.split('/').last;
+            final String filePath = imgXFile.path;
+            final String fileName = filePath.split('/').last;
             form.files.add(MapEntry('images', await MultipartFile(filePath, filename: fileName)));
+          }
+
+          // ✅ الصاق شماره اسلات متناظر با همین فایل
+          if (imageSlots != null && i < imageSlots.length) {
+            form.fields.add(MapEntry('image_slots', imageSlots[i].toString()));
           }
         }
       }
     }
+
     return form;
+  }
+  void markImageRemoved(int slot) {
+    switch (slot) {
+      case 1:
+        selectedMainImage = null;
+        imgXFile1 = null;
+        break;
+      case 2:
+        selectedSecondImage = null;
+        imgXFile2 = null;
+        break;
+      case 3:
+        selectedThirdImage = null;
+        imgXFile3 = null;
+        break;
+      case 4:
+        selectedFourthImage = null;
+        imgXFile4 = null;
+        break;
+      case 5:
+        selectedFifthImage = null;
+        imgXFile5 = null;
+        break;
+      default:
+        return;
+    }
+    // ✅ این اسلات باید سمت سرور حذف شود
+    removedImageSlots.add(slot);
+    notifyListeners();
   }
 
   // ---------- Filters ----------
@@ -458,6 +590,7 @@ class DashBoardProvider extends ChangeNotifier {
     subCategoriesByCategory = [];
     brandsBySubCategory = [];
     variantsByVariantType = [];
+    removedImageSlots.clear();
   }
 
   clearFields() {

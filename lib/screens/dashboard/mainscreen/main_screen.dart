@@ -103,6 +103,7 @@ class MainScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     context.dataProvider; // warm-up
     return LayoutBuilder(
+
       builder: (context, constraints) {
         final isDesktop = constraints.maxWidth >= 1024;
 
@@ -137,34 +138,7 @@ class MainScreen extends StatelessWidget {
         }
 
 
-        // return Scaffold(
-        //   appBar: AppBar(
-        //     backgroundColor: secondaryColor,
-        //     title: const Text(
-        //       'menumita',
-        //       style: TextStyle(fontFamily: FONTS_STYLE_FAMILY),
-        //     ),
-        //     leading: Builder(
-        //       builder: (context) => IconButton(
-        //         onPressed: () => Scaffold.of(context).openDrawer(),
-        //         icon: Image.asset(
-        //           'assets/images/menumita_menu.png',
-        //           width: 48,
-        //           height: 48,
-        //           color: Colors.white, // یا رنگ برند شما
-        //         ),
-        //       ),
-        //     ),
-        //   ),
-        //   drawer: const Drawer(
-        //     child: SafeArea(child: SideMenuCard()),
-        //   ),
-        //   body: SafeArea(
-        //     child: Consumer<MainScreenProvider>(
-        //       builder: (context, provider, _) => provider.selectedScreen,
-        //     ),
-        //   ),
-        // );
+
         return Scaffold(
           appBar: AppBar(
             backgroundColor: secondaryColor,

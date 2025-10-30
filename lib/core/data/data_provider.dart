@@ -17,11 +17,155 @@ import '../../models/variant.dart';
 import '../../models/variant_type.dart';
 import '../../services/http_services.dart';
 import '../../utility/constants.dart';
+import 'dart:async';
+import 'package:socket_io_client/socket_io_client.dart' as IO;
 
 class DataProvider extends ChangeNotifier {
   HttpService service = HttpService();
 
+/////////////////////////////////////////////////////////
+// اگر menu_type == menu_one باشد، بخش سفارش‌ها غیرفعال است
+  Future<bool> _isOrdersEnabled() async {
+    try {
+      final info = await UserSaveHelper.getUserInfo(showError: false);
+      final menuType = (info?['menu_type'] ?? '').toString().trim().toLowerCase();
+      return menuType != 'menu_one';
+    } catch (_) {
+      // اگر نتوانستیم بخوانیم، محافظه‌کارانه فعال در نظر می‌گیریم
+      return true;
+    }
+  }
+  Future<void> _bootOrders() async {
+    if (!await _isOrdersEnabled()) {
+      // اطمینان از قطع بودن ریل‌تایم
+      await disposeOrdersRealtime();
+      // اگر خواستی پیام بگذاری:
+      // SnackBarHelper.showInfoSnackBar('ماژول سفارش‌ها برای این نوع منو غیرفعال است');
+      return;
+    }
+    await getAllsOrders();
+    await initOrdersRealtime();
+    await     getAllCoupons();
+  }
 
+
+/////////////////////////////////////////////////////////
+
+/////////////////////////////////////////////////////////
+  // Realtime (ساده و عمومی)
+  IO.Socket? _ordersSocket;
+  Timer? _notifyDebounce;
+
+  void _safeNotify() {
+    _notifyDebounce?.cancel();
+    _notifyDebounce = Timer(const Duration(milliseconds: 120), () {
+      notifyListeners();
+    });
+  }
+
+  Future<void> initOrdersRealtime() async {
+    await disposeOrdersRealtime(); // اگر قبلاً وصل بوده
+
+    try {
+      final phone = await UserSaveHelper.getPhoneNumber(); // برای فیلتر سمت کلاینت
+      final url = MAIN_URL; // مثلا: http://10.0.2.2:5001 یا http://localhost:5001
+
+      _ordersSocket = IO.io(
+        url,
+        IO.OptionBuilder()
+            .setTransports(['websocket'])
+            .disableAutoConnect()
+            .enableReconnection()
+            .setReconnectionDelay(600)
+            .setReconnectionDelayMax(4000)
+            .build(),
+      );
+
+      _ordersSocket!
+        ..onConnect((_) {
+          // وصل شد
+        })
+        ..on('orders_change', (payload) {
+          _applyOrderChange(payload, phoneNumberCode: phone);
+        })
+        ..onError((e) {
+          // debugPrint('socket error: $e');
+        })
+        ..onDisconnect((_) {
+          // debugPrint('socket disconnected');
+        })
+        ..connect();
+    } catch (_) {}
+  }
+
+  Future<void> disposeOrdersRealtime() async {
+    try {
+      _ordersSocket?.dispose();
+      _ordersSocket?.destroy();
+      _ordersSocket = null;
+    } catch (_) {}
+  }
+  void _applyOrderChange(dynamic payload, {String? phoneNumberCode}) {
+    try {
+      if (payload is! Map) return;
+      final action = (payload['action'] ?? '').toString();
+      final rec = payload['record'];
+      if (rec is! Map) return;
+
+      // یکدست‌سازی id با مدل تو (Order.fromJson معمولاً sId می‌خواد)
+      final json = Map<String, dynamic>.from(rec);
+      json['sId'] ??= json['id'];
+
+      // فیلتر tenant
+      if (phoneNumberCode != null && phoneNumberCode.isNotEmpty) {
+        final p = (json['phone_number_code'] ?? '').toString();
+        if (p.isNotEmpty && p != phoneNumberCode) return;
+      }
+
+      final order = Order.fromJson(json);
+
+      if (action == 'create' || action == 'update') {
+        _upsertOrderInList(_allsOrders, order);
+        _upsertOrderInList(_allOrders, order);
+      } else if (action == 'delete') {
+        final id = order.sId ?? json['id']?.toString();
+        if (id != null) {
+          _removeOrderFromList(_allsOrders, id);
+          _removeOrderFromList(_allOrders, id);
+        }
+      } else {
+        return;
+      }
+
+      // بازاعمال فیلترها (ساده: نمایش کامل؛ اگر حالت فیلتر فعال داری، همان منطق را اینجا صدا بزن)
+      _filteredOrdersall = List.unmodifiable(_allsOrders);
+      _filteredOrders    = List.unmodifiable(_allOrders);
+
+      _safeNotify();
+    } catch (_) {}
+  }
+
+  void _upsertOrderInList(List<Order> list, Order incoming) {
+    final idx = list.indexWhere((o) => (o.sId ?? '') == (incoming.sId ?? ''));
+    if (idx == -1) {
+      list.insert(0, incoming); // جدید بالا
+    } else {
+      list[idx] = incoming;     // بروزرسانی
+    }
+  }
+
+  void _removeOrderFromList(List<Order> list, String id) {
+    list.removeWhere((o) => (o.sId ?? '') == id);
+  }
+
+  @override
+  void dispose() {
+    _notifyDebounce?.cancel();
+    disposeOrdersRealtime();
+    super.dispose();
+  }
+
+/////////////////////////////////////////////////////////
 
 
   final int _ordersPageSize = 50;
@@ -52,6 +196,10 @@ class DataProvider extends ChangeNotifier {
     _ordersPage += 1;
     return _fetchOrdersPage(_ordersPage, showSnack: showSnack);
   }
+
+
+
+
 
   Future<List<Order>> _fetchOrdersPage(int page, {bool showSnack = false}) async {
     if (_ordersLoading) return _filteredOrders; // گارد مضاعف
@@ -113,18 +261,6 @@ class DataProvider extends ChangeNotifier {
     }
   }
 
-  // فیلترها
-  void filterOrders(String status) {
-    if (status == ORDER_STATUS_ALL || status.isEmpty) {
-      _filteredOrders = List.unmodifiable(_allOrders);
-    } else {
-      final s = status.toLowerCase();
-      _filteredOrders = List.unmodifiable(
-        _allOrders.where((o) => (o.orderStatus ?? '').toLowerCase() == s),
-      );
-    }
-    notifyListeners();
-  }
 
   void searchOrders(String query) {
     if (query.isEmpty) {
@@ -204,10 +340,117 @@ class DataProvider extends ChangeNotifier {
     getAllVariantTypes();
     getAllVariants();
     getAllPosters();
-    getAllCoupons();
+    // getAllCoupons();
+    // getAllsOrders();
+    // getAllsOrders().then((_) {
+    //   // بعد از بار اول لیست، realtime را وصل کن
+    //   initOrdersRealtime();
+    // });
+    _bootOrders();
   }
 
 
+// -------------------------------
+// 🔹 لیست‌ها
+// -------------------------------
+  final List<Order> _allsOrders = [];
+  List<Order> _filteredOrdersall = [];
+
+  List<Order> get allsOrders => _filteredOrdersall;
+
+// -------------------------------
+// 🔹 گرفتن همه سفارش‌ها (از روت /api/ordersalls)
+// -------------------------------
+  Future<List<Order>> getAllsOrders({bool showSnack = false}) async {
+    try {
+      // ✅ گرفتن phone_number_code از SharedPreferences
+      final phone = await UserSaveHelper.getPhoneNumber();
+      if (phone == null || phone.isEmpty) {
+        SnackBarHelper.showErrorSnackBar('شماره تلفن در حافظه یافت نشد!');
+        return _allsOrders;
+      }
+
+      final String endpoint =
+          'api/ordersalls?phone_number_code=${Uri.encodeQueryComponent(phone)}';
+
+      final Response response = await service.getItems(endpointUrl: endpoint);
+
+      if (response.isOk) {
+        final body = response.body;
+        if (body is Map && body['success'] == true && body['data'] is List) {
+          final List<dynamic> data = body['data'];
+
+          _allsOrders
+            ..clear()
+            ..addAll(data.map((e) => Order.fromJson(e as Map<String, dynamic>)));
+
+          // فیلتر اولیه: همه سفارش‌ها
+          _filteredOrdersall = List.unmodifiable(_allsOrders);
+
+          print('✅ Orders loaded: ${_allsOrders.length}');
+          if (_allsOrders.isNotEmpty) {
+            final o = _allsOrders.first;
+            print(
+                '🔍 First order => id: ${o.sId}, status: ${o.orderStatus}, total: ${o.totalPrice}');
+          }
+
+          notifyListeners();
+          if (showSnack) {
+            SnackBarHelper.showSuccessSnackBar('Orders loaded successfully');
+          }
+          return _allsOrders;
+        } else {
+          throw Exception('Invalid response format');
+        }
+      } else {
+        throw Exception('HTTP ${response.statusCode}: ${response.statusText}');
+      }
+    } catch (e) {
+      print('❌ Error in getAllsOrders: $e');
+      if (showSnack) {
+        SnackBarHelper.showErrorSnackBar('Failed to load orders: $e');
+      }
+      rethrow;
+    }
+  }
+
+// -------------------------------
+// 🔹 فیلتر بر اساس وضعیت سفارش (status)
+// -------------------------------
+  void filterAllOrders(String status) {
+    if (status == ORDER_STATUS_ALL || status.isEmpty) {
+      _filteredOrdersall = List.unmodifiable(_allsOrders);
+    } else {
+      final s = status.toLowerCase();
+      _filteredOrdersall = List.unmodifiable(
+        _allsOrders.where(
+              (o) => (o.orderStatus ?? '').toLowerCase() == s,
+        ),
+      );
+    }
+    notifyListeners();
+  }
+
+// -------------------------------
+// 🔹 جستجو بین سفارش‌ها
+// -------------------------------
+  void searchAllOrders(String query) {
+    if (query.isEmpty) {
+      _filteredOrdersall = List.unmodifiable(_allsOrders);
+    } else {
+      final q = query.toLowerCase();
+      _filteredOrdersall = List.unmodifiable(
+        _allsOrders.where(
+              (o) =>
+          (o.userName ?? '').toLowerCase().contains(q) ||
+              (o.orderStatus ?? '').toLowerCase().contains(q) ||
+              (o.paymentMethod ?? '').toLowerCase().contains(q) ||
+              (o.sId ?? '').toLowerCase().contains(q),
+        ),
+      );
+    }
+    notifyListeners();
+  }
 
 
 
@@ -706,9 +949,9 @@ class DataProvider extends ChangeNotifier {
     int totalOrders = 0;
 
     if (status == null) {
-      totalOrders = _allOrders.length;
+      totalOrders = _allsOrders.length;
     } else {
-      for (Order order in _allOrders) {
+      for (Order order in _allsOrders) {
         if (order.orderStatus == status) {
           totalOrders++;
         }

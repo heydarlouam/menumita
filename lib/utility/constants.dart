@@ -24,6 +24,7 @@ const ORDER_STATUS_PROCESSING = 'Processing';
 const ORDER_STATUS_SHIPPED = 'Shipped';
 const ORDER_STATUS_DELIVERED = 'Delivered';
 const ORDER_STATUS_CANCELLED = 'Cancelled';
+const ORDER_STATUS_PAID = 'Paid';
 
 const ALL_PRODUCTS = "همه محصولات";
 const STOCK_OUT_PRODUCTS = "اتمام موجودی";

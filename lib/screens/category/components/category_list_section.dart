@@ -147,41 +147,85 @@ class CategoryListSection extends StatelessWidget {
         color: secondaryColor,
         borderRadius: BorderRadius.all(Radius.circular(10)),
       ),
-      child: SizedBox(
-        width: double.infinity,
-        child: Consumer<DataProvider>(
-          builder: (context, dataProvider, child) {
-            return DataTable(
-              columnSpacing: defaultPadding,
-              columns: const [
-                DataColumn(label: Text("نام دسته‌بندی")),
-                DataColumn(label: Text("تاریخ افزودن")),
-                DataColumn(label: Text("ویرایش")),
-                DataColumn(label: Text("حذف")),
-              ],
-              rows: List.generate(
-                dataProvider.categories.length,
-                    (index) => categoryDataRow(
-                  context,
-                  dataProvider.categories[index],
-                  delete: () {
-                    context.categoryProvider
-                        .deleteCategory(dataProvider.categories[index]);
-                  },
-                  edit: () {
-                    showAddCategoryForm(
-                      context,
-                      dataProvider.categories[index],
-                      'ویرایش دسته‌بندی',
-                    );
-                  },
-                  buildImageUrl: _imgUrl,
-                ),
+      // child: SizedBox(
+      //   width: double.infinity,
+      //   child: Consumer<DataProvider>(
+      //     builder: (context, dataProvider, child) {
+      //       return DataTable(
+      //         columnSpacing: defaultPadding,
+      //         columns: const [
+      //           DataColumn(label: Text("نام دسته‌بندی")),
+      //           DataColumn(label: Text("تاریخ افزودن")),
+      //           DataColumn(label: Text("ویرایش")),
+      //           DataColumn(label: Text("حذف")),
+      //         ],
+      //         rows: List.generate(
+      //           dataProvider.categories.length,
+      //               (index) => categoryDataRow(
+      //             context,
+      //             dataProvider.categories[index],
+      //             delete: () {
+      //               context.categoryProvider
+      //                   .deleteCategory(dataProvider.categories[index]);
+      //             },
+      //             edit: () {
+      //               showAddCategoryForm(
+      //                 context,
+      //                 dataProvider.categories[index],
+      //                 'ویرایش دسته‌بندی',
+      //               );
+      //             },
+      //             buildImageUrl: _imgUrl,
+      //           ),
+      //         ),
+      //       );
+      //     },
+      //   ),
+      // ),
+      child: LayoutBuilder(
+        builder: (_, cons) {
+          final w = cons.maxWidth; // عرض واقعی همین کارت
+          return SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: ConstrainedBox(
+              constraints: BoxConstraints(minWidth: w), // حداقل = عرض کارت
+              child: Consumer<DataProvider>(
+                builder: (context, dataProvider, child) {
+                  return DataTable(
+                    columnSpacing: defaultPadding,
+                    columns: const [
+                      DataColumn(label: Text("نام دسته‌بندی")),
+                      DataColumn(label: Text("تاریخ افزودن")),
+                      DataColumn(label: Text("ویرایش")),
+                      DataColumn(label: Text("حذف")),
+                    ],
+                    rows: List.generate(
+                      dataProvider.categories.length,
+                          (index) => categoryDataRow(
+                        context,
+                        dataProvider.categories[index],
+                        delete: () {
+                          context.categoryProvider
+                              .deleteCategory(dataProvider.categories[index]);
+                        },
+                        edit: () {
+                          showAddCategoryForm(
+                            context,
+                            dataProvider.categories[index],
+                            'ویرایش دسته‌بندی',
+                          );
+                        },
+                        buildImageUrl: _imgUrl,
+                      ),
+                    ),
+                  );
+                },
               ),
-            );
-          },
-        ),
+            ),
+          );
+        },
       ),
+
     );
   }
 }

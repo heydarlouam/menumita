@@ -1,4 +1,5 @@
 
+import 'package:admin/screens/orderpaid/order_screen_paid.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
@@ -20,6 +21,9 @@ class MainScreenProvider extends ChangeNotifier {
     switch (screenName) {
       case 'داشبورد':
         selectedScreen = DashboardScreen();
+        break;
+      case 'سفارش در جریان':
+        selectedScreen = OrderScreenPaid();
         break;
       case 'دسته‌بندی':
         selectedScreen = CategoryScreen();

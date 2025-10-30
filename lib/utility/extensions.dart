@@ -1,3 +1,4 @@
+import 'package:admin/screens/orderpaid/provider/order_provider_paid.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:provider/provider.dart';
 
@@ -67,4 +68,5 @@ extension Providers on BuildContext {
   CouponCodeProvider get couponCodeProvider => read<CouponCodeProvider>();
   PosterProvider get posterProvider => read<PosterProvider>();
   OrderProvider get orderProvider => read<OrderProvider>();
+  OrderPaidProvider get orderPaidProvider => read<OrderPaidProvider>();
 }

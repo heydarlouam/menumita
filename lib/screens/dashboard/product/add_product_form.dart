@@ -212,7 +212,6 @@ class ProductSubmitForm extends StatelessWidget {
             imageUrl = product!.images![imageIndex].url;
           }
         }
-
         return ProductImageCard(
           labelText: label,
           imageFile: selectedImage,
@@ -220,32 +219,44 @@ class ProductSubmitForm extends StatelessWidget {
           onTap: () {
             dashProvider.pickImage(imageCardNumber: cardNumber);
           },
-          onRemoveImage: () {
-            switch (cardNumber) {
-              case 1:
-                dashProvider.selectedMainImage = null;
-                dashProvider.imgXFile1 = null;
-                break;
-              case 2:
-                dashProvider.selectedSecondImage = null;
-                dashProvider.imgXFile2 = null;
-                break;
-              case 3:
-                dashProvider.selectedThirdImage = null;
-                dashProvider.imgXFile3 = null;
-                break;
-              case 4:
-                dashProvider.selectedFourthImage = null;
-                dashProvider.imgXFile4 = null;
-                break;
-              case 5:
-                dashProvider.selectedFifthImage = null;
-                dashProvider.imgXFile5 = null;
-                break;
-            }
-            dashProvider.updateUI();
-          },
+          onRemoveImage: () => dashProvider.markImageRemoved(cardNumber), // ← همین
         );
+
+        // return ProductImageCard(
+        //   labelText: label,
+        //   imageFile: selectedImage,
+        //   imageUrlForUpdateImage: imageUrl,
+        //   onTap: () {
+        //     dashProvider.pickImage(imageCardNumber: cardNumber);
+        //   },
+        //   // onRemoveImage: () {
+        //   //   switch (cardNumber) {
+        //   //     case 1:
+        //   //       dashProvider.selectedMainImage = null;
+        //   //       dashProvider.imgXFile1 = null;
+        //   //       break;
+        //   //     case 2:
+        //   //       dashProvider.selectedSecondImage = null;
+        //   //       dashProvider.imgXFile2 = null;
+        //   //       break;
+        //   //     case 3:
+        //   //       dashProvider.selectedThirdImage = null;
+        //   //       dashProvider.imgXFile3 = null;
+        //   //       break;
+        //   //     case 4:
+        //   //       dashProvider.selectedFourthImage = null;
+        //   //       dashProvider.imgXFile4 = null;
+        //   //       break;
+        //   //     case 5:
+        //   //       dashProvider.selectedFifthImage = null;
+        //   //       dashProvider.imgXFile5 = null;
+        //   //       break;
+        //   //   }
+        //   //   dashProvider.updateUI();
+        //   // },
+        //   onRemoveImage: () => context.dashBoardProvider.markImageRemoved(cardNumber),
+        //
+        // );
       },
     );
   }

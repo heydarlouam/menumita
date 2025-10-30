@@ -118,6 +118,29 @@ class BrandListSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final data = context.watch<DataProvider>();
+    //
+    // return Container(
+    //   padding: const EdgeInsets.all(defaultPadding),
+    //   decoration: const BoxDecoration(
+    //     color: secondaryColor,
+    //     borderRadius: BorderRadius.all(Radius.circular(10)),
+    //   ),
+    //   width: double.infinity,
+    //   child: DataTable(
+    //     columnSpacing: defaultPadding,
+    //     columns: const [
+    //       DataColumn(label: Text('نام برند')),
+    //       DataColumn(label: Text('زیر‌دسته')),
+    //       DataColumn(label: Text('ویرایش')),
+    //       DataColumn(label: Text('حذف')),
+    //     ],
+    //     rows: List.generate(
+    //       data.brands.length,
+    //           (index) => _brandRow(context, data.brands[index]),
+    //     ),
+    //   ),
+    // );
+    //
 
     return Container(
       padding: const EdgeInsets.all(defaultPadding),
@@ -126,20 +149,33 @@ class BrandListSection extends StatelessWidget {
         borderRadius: BorderRadius.all(Radius.circular(10)),
       ),
       width: double.infinity,
-      child: DataTable(
-        columnSpacing: defaultPadding,
-        columns: const [
-          DataColumn(label: Text('نام برند')),
-          DataColumn(label: Text('زیر‌دسته')),
-          DataColumn(label: Text('ویرایش')),
-          DataColumn(label: Text('حذف')),
-        ],
-        rows: List.generate(
-          data.brands.length,
-              (index) => _brandRow(context, data.brands[index]),
-        ),
+      child: LayoutBuilder(
+        builder: (_, cons) {
+          final w = cons.maxWidth; // عرض واقعی همین کارت
+          return SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: ConstrainedBox(
+              constraints: BoxConstraints(minWidth: w), // حداقل = عرض کارت
+              child: DataTable(
+                columnSpacing: defaultPadding,
+                columns: const [
+                  DataColumn(label: Text('نام برند')),
+                  DataColumn(label: Text('زیر‌دسته')),
+                  DataColumn(label: Text('ویرایش')),
+                  DataColumn(label: Text('حذف')),
+                ],
+                rows: List.generate(
+                  data.brands.length,
+                      (index) => _brandRow(context, data.brands[index]),
+                ),
+              ),
+            ),
+          );
+        },
       ),
+
     );
+
   }
 
   DataRow _brandRow(BuildContext context, Brand b) {
@@ -147,14 +183,7 @@ class BrandListSection extends StatelessWidget {
       cells: [
         DataCell(Text(b.name ?? '')),
         DataCell(Text(_subName(b))),
-        // DataCell(
-        //   IconButton(
-        //     onPressed: () {
-        //       showAddBrandForm(context, b); // ویرایش
-        //     },
-        //     icon: const Icon(Icons.edit, color: Colors.white),
-        //   ),
-        // ),
+
         DataCell(
           IconButton(
             onPressed: () async {
@@ -168,15 +197,7 @@ class BrandListSection extends StatelessWidget {
           ),
         ),
 
-        // DataCell(
-        //   IconButton(
-        //     onPressed: () async {
-        //       final ok = await context.brandProvider.deleteBrand(b);
-        //       // یادآوری: getAllBrands در provider فراخوانی می‌شود و جدول به‌صورت خودکار ریفرش خواهد شد.
-        //     },
-        //     icon: const Icon(Icons.delete, color: Colors.red),
-        //   ),
-        // ),
+
         DataCell(
           IconButton(
             onPressed: () async {
