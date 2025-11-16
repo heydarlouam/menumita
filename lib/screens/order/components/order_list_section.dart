@@ -59,34 +59,7 @@ class OrderListSection extends StatelessWidget {
         color: secondaryColor,
         borderRadius: BorderRadius.all(Radius.circular(10)),
       ),
-      // child: SizedBox(
-      //   width: double.infinity,
-      //   child: NotificationListener<ScrollNotification>(
-      //     onNotification: (sn) {
-      //       // اسکرول بی‌نهایت با گاردها
-      //       final nearBottom = sn.metrics.pixels >= sn.metrics.maxScrollExtent - 40;
-      //       if (nearBottom && hasMore && !isLoading) {
-      //         context.read<DataProvider>().loadMoreOrders();
-      //       }
-      //       return false;
-      //     },
-      //     child: SingleChildScrollView(
-      //       child: DataTable(
-      //         columnSpacing: defaultPadding,
-      //         columns: const [
-      //           DataColumn(label: Text("نام مشتری")),
-      //           DataColumn(label: Text("مبلغ سفارش")),
-      //           DataColumn(label: Text("پرداخت")),
-      //           DataColumn(label: Text("وضعیت")),
-      //           DataColumn(label: Text("تاریخ")),
-      //           DataColumn(label: Text("ویرایش")),
-      //           DataColumn(label: Text("حذف")),
-      //         ],
-      //         rows: rows,
-      //       ),
-      //     ),
-      //   ),
-      // ),
+
       child: LayoutBuilder(
         builder: (_, cons) {
           final w = cons.maxWidth; // عرض واقعی همین کارت

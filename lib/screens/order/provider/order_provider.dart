@@ -29,6 +29,12 @@ class OrderProvider extends ChangeNotifier {
     super.dispose();
   }
 
+  /// ✅ متد مشترک برای رفرش لیست سفارش‌ها بعد از هر تغییر
+  Future<void> _refreshOrders() async {
+    await _dataProvider.loadInitialOrders(showSnack: true);
+
+    notifyListeners();
+  }
   Future<bool> updateOrder() async {
     if (orderForUpdate == null) {
       SnackBarHelper.showErrorSnackBar('No order selected for update');
@@ -54,7 +60,7 @@ class OrderProvider extends ChangeNotifier {
       if (response.isOk && response.body['success'] == true) {
         SnackBarHelper.showSuccessSnackBar(
             response.body['message'] ?? 'Order updated successfully');
-        await _dataProvider.getAllOrders();
+        await _refreshOrders(); // ✅ رفرش بعد از حذف
         resetForm();
         return true;
       } else {
@@ -82,7 +88,7 @@ class OrderProvider extends ChangeNotifier {
       if (response.isOk && response.body['success'] == true) {
         SnackBarHelper.showSuccessSnackBar(
             response.body['message'] ?? 'Order deleted successfully!');
-        await _dataProvider.getAllOrders();
+        await _refreshOrders(); // ✅ رفرش بعد از حذف
         return true;
       } else {
         SnackBarHelper.showErrorSnackBar(
@@ -106,13 +112,15 @@ class OrderProvider extends ChangeNotifier {
 
       if (response.isOk && response.body['success'] == true) {
         SnackBarHelper.showSuccessSnackBar('Order status updated to $newStatus');
-        await _dataProvider.getAllOrders();
+        await _refreshOrders(); // ✅ رفرش بعد از حذف
         return true;
       } else {
         SnackBarHelper.showErrorSnackBar(
             'Failed to update order status: ${response.body?['message'] ?? response.statusText}');
         return false;
       }
+
+
     } catch (e) {
       log('❌ Update order status error: $e');
       SnackBarHelper.showErrorSnackBar('An error occurred: $e');
@@ -130,7 +138,7 @@ class OrderProvider extends ChangeNotifier {
 
       if (response.isOk && response.body['success'] == true) {
         SnackBarHelper.showSuccessSnackBar('Tracking URL updated');
-        await _dataProvider.getAllOrders();
+        await _refreshOrders(); // ✅ رفرش بعد از حذف
         return true;
       } else {
         SnackBarHelper.showErrorSnackBar(
