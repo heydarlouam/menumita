@@ -39,13 +39,7 @@ class OrdersKanbanBoardPaid extends StatelessWidget {
             return _KanbanColumn(
               status: status,
               orders: items,
-              // onAccept: (order) async {
-              //   // آپدیت وضعیت → Provider شنود می‌کند و خودش ری‌بیلد می‌شود
-              //   final ok = await context.read<OrderPaidProvider>()
-              //       .updateOrderStatus(order.sId ?? '', status);
-              //   // اگر بخواهی، می‌توانی در صورت خطا اسنک‌بار نشان بدهی
-              //   // if (!ok) SnackBarHelper.showErrorSnackBar('خطا در تغییر وضعیت');
-              // },
+
               onAccept: (order) async {
                 if ((order.orderStatus ?? ORDER_STATUS_PENDING) == status) {
                   return; // همون ستون بود → هیچ کاری نکن

@@ -28,29 +28,7 @@ class ProductListSection extends StatelessWidget {
         selector: (_, dp) => dp.products,
         builder: (context, items, _) {
 
-          // ✅ حفظ DataTable (دیزاین قبلی). فقط برای موبایل/تبلت اسکرول افقی می‌دیم.
-          // return SingleChildScrollView(
-          //   scrollDirection: Axis.horizontal,
-          //   child: ConstrainedBox(
-          //     constraints: const BoxConstraints(minWidth: 1000), // حداقل پهنای جدول
-          //     child: DataTable(
-          //       columnSpacing: defaultPadding,
-          //       columns: const [
-          //
-          //         DataColumn(label: Text("نام محصول",style: TextStyle(fontFamily: FONTS_STYLE_FAMILY),)),
-          //         DataColumn(label: Text("دسته‌بندی",style: TextStyle(fontFamily: FONTS_STYLE_FAMILY),)),
-          //         DataColumn(label: Text("زیر‌دسته",style: TextStyle(fontFamily: FONTS_STYLE_FAMILY),)),
-          //         DataColumn(label: Text("قیمت",style: TextStyle(fontFamily: FONTS_STYLE_FAMILY),)),
-          //         DataColumn(label: Text("ویرایش",style: TextStyle(fontFamily: FONTS_STYLE_FAMILY),)),
-          //         DataColumn(label: Text("حذف",style: TextStyle(fontFamily: FONTS_STYLE_FAMILY),)),
-          //       ],
-          //       rows: List.generate(items.length, (index) {
-          //         final p = items[index];
-          //         return _productDataRow(context, p);
-          //       }),
-          //     ),
-          //   ),
-          // );
+
           return LayoutBuilder(
             builder: (_, cons) {
               final w = cons.maxWidth; // عرض واقعی همین کارت/کانتینر

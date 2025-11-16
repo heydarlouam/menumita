@@ -24,77 +24,6 @@ import 'screens/variants_type/provider/variant_type_provider.dart';
 import 'utility/constants.dart';
 import 'utility/extensions.dart';
 
-// void main() {
-//
-//   runZonedGuarded(() {
-//     WidgetsFlutterBinding.ensureInitialized();
-//
-//     FlutterError.onError = (FlutterErrorDetails details) {
-//       FlutterError.dumpErrorToConsole(details);
-//     };
-//
-//     runApp(
-//       MultiProvider(
-//         providers: [
-//           ChangeNotifierProvider(create: (_) => DataProvider()),
-//           ChangeNotifierProvider(create: (_) => MainScreenProvider()),
-//           ChangeNotifierProvider(create: (context) => CategoryProvider(context.dataProvider)),
-//           ChangeNotifierProvider(create: (context) => SubCategoryProvider(context.dataProvider)),
-//           ChangeNotifierProvider(create: (context) => BrandProvider(context.dataProvider)),
-//           ChangeNotifierProvider(create: (context) => PosterProvider(context.dataProvider)),
-//           ChangeNotifierProvider(create: (context) => OrderProvider(context.dataProvider)),
-//           ChangeNotifierProvider(create: (context) => VariantsTypeProvider(context.dataProvider)),
-//           ChangeNotifierProvider(create: (context) => VariantsProvider(context.dataProvider)),
-//           ChangeNotifierProvider(create: (context) => DashBoardProvider(context.dataProvider)),
-//           ChangeNotifierProvider(create: (context) => CouponCodeProvider(context.dataProvider)),
-//         ],
-//         child: MyApp(),
-//       ),
-//     );
-//
-//   }, (error, stack) {
-//     // TODO: گزارش خطا (Sentry/Logger)
-//   });
-// }
-//
-// // در همان فایل main.dart شما:
-// class MyApp extends StatelessWidget {
-//   @override
-//   Widget build(BuildContext context) {
-//     return GetMaterialApp(
-//       debugShowCheckedModeBanner: false,
-//       title: 'menumita',
-//       locale: const Locale('fa'),
-//       theme: ThemeData(
-//         brightness: Brightness.dark,
-//         fontFamily: FONTS_STYLE_FAMILY,
-//         scaffoldBackgroundColor: bgColor,
-//         canvasColor: secondaryColor,
-//         textTheme: Theme.of(context).textTheme.apply(
-//           bodyColor: Colors.white,
-//           displayColor: Colors.white,
-//         ),
-//         // ✅ اضافه کن: تغییر رنگ تمام ProgressIndicatorها (دایره‌های لودینگ)
-//         progressIndicatorTheme: const ProgressIndicatorThemeData(
-//           color: Colors.grey, // 👈 رنگ لودینگ دلخواهت
-//         ),
-//
-//         // ✅ اگه نسخه‌ی flutter_login از ColorScheme.secondary استفاده می‌کنه:
-//         colorScheme: const ColorScheme.dark().copyWith(
-//           secondary: Colors.grey, // 👈 رنگ لودینگ و Accent سراسری
-//         ),
-//       ),
-//
-//       // ✅ به‌جای initialRoute و AppPages.HOME از RootDecider استفاده کن:
-//       home: const RootDecider(),
-//
-//       // اگر خواستی نگه دار، ولی در این حالت اجباری نیست:
-//       unknownRoute: GetPage(name: '/notFound', page: () =>  MainScreen()),
-//       defaultTransition: Transition.cupertino,
-//       getPages: AppPages.routes,
-//     );
-//   }
-// }
 
 void main() {
   runZonedGuarded(() async {
@@ -167,33 +96,4 @@ class MyApp extends StatelessWidget {
 }
 
 
-
-// class MyApp extends StatelessWidget {
-//   @override
-//   Widget build(BuildContext context) {
-//     return GetMaterialApp(
-//
-//       debugShowCheckedModeBanner: false,
-//       title: 'menumita',
-//       locale: const Locale('fa'), // 👈 زبان پیش‌فرض
-//
-//       theme: ThemeData(
-//         brightness: Brightness.dark, // چون تم تاریک داری
-//         fontFamily: FONTS_STYLE_FAMILY,
-//         scaffoldBackgroundColor: bgColor,
-//         canvasColor: secondaryColor,
-//         textTheme: Theme.of(context).textTheme.apply(
-//           bodyColor: Colors.white,
-//           displayColor: Colors.white,
-//         ),
-//       ),
-//
-//       initialRoute: AppPages.HOME,
-//       unknownRoute: GetPage(name: '/notFound', page: () => MainScreen()),
-//       defaultTransition: Transition.cupertino,
-//
-//       getPages: AppPages.routes,
-//     );
-//   }
-// }
 

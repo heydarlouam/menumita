@@ -15,11 +15,11 @@ import '../../../models/category.dart';
 import '../../../models/product.dart';
 import '../../../models/sub_category.dart';
 import '../../../models/variant_type.dart';
-import '../../../services/http_services.dart';
+import '../../../core/data/repositories/category_repository.dart';
 import '../../../utility/snack_bar_helper.dart';
 
 class DashBoardProvider extends ChangeNotifier {
-  HttpService service = HttpService();
+  final ProductRepository repository = ProductRepository();
   final DataProvider _dataProvider;
   final addProductFormKey = GlobalKey<FormState>();
   final Set<int> removedImageSlots = {};
@@ -27,37 +27,7 @@ class DashBoardProvider extends ChangeNotifier {
   // --- Busy state (هم‌راستا با CategoryProvider)
   bool _isSubmitting = false;
   bool get isSubmitting => _isSubmitting;
-  // void markImageRemoved(int slot) {
-  //   switch (slot) {
-  //     case 1:
-  //       selectedMainImage = null;
-  //       imgXFile1 = null;
-  //       break;
-  //     case 2:
-  //       selectedSecondImage = null;
-  //       imgXFile2 = null;
-  //       break;
-  //     case 3:
-  //       selectedThirdImage = null;
-  //       imgXFile3 = null;
-  //       break;
-  //     case 4:
-  //       selectedFourthImage = null;
-  //       imgXFile4 = null;
-  //       break;
-  //     case 5:
-  //       selectedFifthImage = null;
-  //       imgXFile5 = null;
-  //       break;
-  //     default:
-  //       return;
-  //   }
-  //   // ✅ این اسلات باید سمت سرور حذف شود
-  //   removedImageSlots.add(slot);
-  //   notifyListeners();
-  // }
 
-  //?text editing controllers in dashBoard screen
   TextEditingController productNameCtrl = TextEditingController();
   TextEditingController productDescCtrl = TextEditingController();
   TextEditingController productQntCtrl = TextEditingController();
@@ -109,97 +79,6 @@ class DashBoardProvider extends ChangeNotifier {
           : fallback;
 
 
-  // Future<bool> submitProduct() async {
-  //   if (_isSubmitting) return false;
-  //   _isSubmitting = true;
-  //   notifyListeners();
-  //
-  //   try {
-  //     // ✅ شماره را از SharedPreferences بگیر
-  //     final phone = await UserSaveHelper.getPhoneNumber();
-  //     if (phone == null || phone.isEmpty) {
-  //       SnackBarHelper.showErrorSnackBar('شماره تلفن در حافظه یافت نشد!');
-  //       return false;
-  //     }
-  //
-  //     // تبدیل variant names به variant IDs
-  //     List<String> variantIds = [];
-  //     if (selectedVariants.isNotEmpty) {
-  //       variantIds = _dataProvider.variants
-  //           .where((variant) => selectedVariants.contains(variant.name))
-  //           .map((variant) => variant.sId ?? '')
-  //           .where((id) => id.isNotEmpty)
-  //           .toList();
-  //     }
-  //
-  //     final Map<String, dynamic> formDataMap = {
-  //       'name': productNameCtrl.text,
-  //       'description': productDescCtrl.text,
-  //       'quantity': int.tryParse(productQntCtrl.text) ?? 0,
-  //       'price': double.tryParse(productPriceCtrl.text) ?? 0.0,
-  //       'offer_price': productOffPriceCtrl.text.isEmpty
-  //           ? (double.tryParse(productPriceCtrl.text) ?? 0.0)
-  //           : (double.tryParse(productOffPriceCtrl.text) ?? 0.0),
-  //       'category': selectedCategory?.sId ?? '',
-  //       'subcategory': selectedSubCategory?.sId,
-  //       'brand': selectedBrand?.sId,
-  //       'variant_type': selectedVariantType?.sId,
-  //       'variants': jsonEncode(variantIds),
-  //       // ⬅️ به‌جای مقدار ثابت
-  //       'phone_number_code': phone,
-  //     };
-  //
-  //     // ساخت FormData با تصاویر
-  //     final FormData form = await createFormDataForMultipleImage(
-  //       imgXFiles: [
-  //         if (imgXFile1 != null) {'images': imgXFile1},
-  //         if (imgXFile2 != null) {'images': imgXFile2},
-  //         if (imgXFile3 != null) {'images': imgXFile3},
-  //         if (imgXFile4 != null) {'images': imgXFile4},
-  //         if (imgXFile5 != null) {'images': imgXFile5},
-  //       ],
-  //       formData: formDataMap,
-  //     );
-  //
-  //     final String? targetId = productForUpdate?.sId;
-  //     final bool isUpdate = (targetId != null && targetId.isNotEmpty);
-  //
-  //     final Response res = isUpdate
-  //         ? await service.updateItem(
-  //       endpointUrl: 'api/products',
-  //       itemId: targetId!,
-  //       itemData: form,
-  //     )
-  //         : await service.addItem(
-  //       endpointUrl: 'api/products',
-  //       itemData: form,
-  //     );
-  //
-  //     final Map<String, dynamic>? body = _parseBody(res.body);
-  //     final bool ok = _isOk(res) && _okFlag(body);
-  //
-  //     if (ok) {
-  //       await _dataProvider.getAllProducts(showSnack: true);
-  //       final msg = _msg(
-  //         body,
-  //         isUpdate ? 'Product updated successfully' : 'Product created successfully',
-  //       );
-  //       SnackBarHelper.showSuccessSnackBar(msg);
-  //       clearFields();
-  //       return true;
-  //     } else {
-  //       final err = body?['message'] ?? body?['error'] ?? 'Operation failed';
-  //       SnackBarHelper.showErrorSnackBar(err.toString());
-  //       return false;
-  //     }
-  //   } catch (e) {
-  //     SnackBarHelper.showErrorSnackBar('An error occurred: $e');
-  //     return false;
-  //   } finally {
-  //     _isSubmitting = false;
-  //     notifyListeners();
-  //   }
-  // }
 
   Future<bool> submitProduct() async {
     if (_isSubmitting) return false;
@@ -263,15 +142,8 @@ class DashBoardProvider extends ChangeNotifier {
       final bool isUpdate = (targetId != null && targetId.isNotEmpty);
 
       final Response res = isUpdate
-          ? await service.updateItem(
-        endpointUrl: 'api/products',
-        itemId: targetId!,
-        itemData: form,
-      )
-          : await service.addItem(
-        endpointUrl: 'api/products',
-        itemData: form,
-      );
+          ? await repository.updateProduct(targetId!, form)
+          : await repository.addProduct(form);
 
       final Map<String, dynamic>? body = _parseBody(res.body);
       final bool ok = _isOk(res) && _okFlag(body);
@@ -302,9 +174,8 @@ class DashBoardProvider extends ChangeNotifier {
   // ---------- Delete ----------
   deleteProduct(Product product) async {
     try {
-      Response response = await service.deleteItem(
-        endpointUrl: 'api/products',
-        itemId: product.sId ?? '',
+      Response response = await repository.deleteProduct(
+        product.sId ?? '',
       );
 
       if (response.isOk) {
@@ -327,30 +198,6 @@ class DashBoardProvider extends ChangeNotifier {
     }
   }
 
-  // ---------- Image Picking ----------
-  // void pickImage({required int imageCardNumber}) async {
-  //   final ImagePicker picker = ImagePicker();
-  //   final XFile? image = await picker.pickImage(source: ImageSource.gallery);
-  //   if (image != null) {
-  //     if (imageCardNumber == 1) {
-  //       selectedMainImage = File(image.path);
-  //       imgXFile1 = image;
-  //     } else if (imageCardNumber == 2) {
-  //       selectedSecondImage = File(image.path);
-  //       imgXFile2 = image;
-  //     } else if (imageCardNumber == 3) {
-  //       selectedThirdImage = File(image.path);
-  //       imgXFile3 = image;
-  //     } else if (imageCardNumber == 4) {
-  //       selectedFourthImage = File(image.path);
-  //       imgXFile4 = image;
-  //     } else if (imageCardNumber == 5) {
-  //       selectedFifthImage = File(image.path);
-  //       imgXFile5 = image;
-  //     }
-  //     notifyListeners();
-  //   }
-  // }
 
   void pickImage({required int imageCardNumber}) async {
     final ImagePicker picker = ImagePicker();
@@ -380,30 +227,7 @@ class DashBoardProvider extends ChangeNotifier {
     }
   }
 
-  // Future<FormData> createFormDataForMultipleImage({
-  //   required List<Map<String, XFile?>>? imgXFiles,
-  //   required Map<String, dynamic> formData,
-  // }) async {
-  //   final FormData form = FormData(formData);
-  //
-  //   if (imgXFiles != null) {
-  //     for (int i = 0; i < imgXFiles.length; i++) {
-  //       XFile? imgXFile = imgXFiles[i]['images'];
-  //       if (imgXFile != null) {
-  //         if (kIsWeb) {
-  //           String fileName = imgXFile.name;
-  //           Uint8List byteImg = await imgXFile.readAsBytes();
-  //           form.files.add(MapEntry('images', MultipartFile(byteImg, filename: fileName)));
-  //         } else {
-  //           String filePath = imgXFile.path;
-  //           String fileName = filePath.split('/').last;
-  //           form.files.add(MapEntry('images', await MultipartFile(filePath, filename: fileName)));
-  //         }
-  //       }
-  //     }
-  //   }
-  //   return form;
-  // }
+
   Future<FormData> createFormDataForMultipleImage({
     required List<Map<String, XFile?>>? imgXFiles,
     required Map<String, dynamic> formData,

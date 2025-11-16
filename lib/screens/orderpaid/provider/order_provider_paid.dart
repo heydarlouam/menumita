@@ -1,6 +1,7 @@
 import 'dart:developer';
 
 import 'package:admin/utility/snack_bar_helper.dart';
+import 'package:admin/utility/User_helper.dart';
 import 'package:flutter/cupertino.dart';
 
 import '../../../core/data/data_provider.dart';
@@ -39,9 +40,16 @@ class OrderPaidProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
+      final phone = await UserSaveHelper.getPhoneNumber();
+      if (phone == null || phone.isEmpty) {
+        SnackBarHelper.showErrorSnackBar('شماره تلفن در حافظه یافت نشد!');
+        return false;
+      }
+
       final order = {
         'trackingUrl': trackingUrlCtrl.text,
         'orderStatus': selectedOrderStatus,
+        'phone_number_code': phone,
       };
 
       final response = await repository.updateOrder(
@@ -96,7 +104,16 @@ class OrderPaidProvider extends ChangeNotifier {
 
   Future<bool> updateOrderStatus(String orderId, String newStatus) async {
     try {
-      final response = await repository.updateStatus(orderId, newStatus);
+      final phone = await UserSaveHelper.getPhoneNumber();
+      if (phone == null || phone.isEmpty) {
+        SnackBarHelper.showErrorSnackBar('شماره تلفن در حافظه یافت نشد!');
+        return false;
+      }
+
+      final response = await repository.updateOrder(
+        orderId,
+        {'orderStatus': newStatus, 'phone_number_code': phone},
+      );
 
       if (response.isOk && response.body['success'] == true) {
         SnackBarHelper.showSuccessSnackBar(
@@ -117,7 +134,16 @@ class OrderPaidProvider extends ChangeNotifier {
 
   Future<bool> updateTrackingUrl(String orderId, String trackingUrl) async {
     try {
-      final response = await repository.updateTracking(orderId, trackingUrl);
+      final phone = await UserSaveHelper.getPhoneNumber();
+      if (phone == null || phone.isEmpty) {
+        SnackBarHelper.showErrorSnackBar('شماره تلفن در حافظه یافت نشد!');
+        return false;
+      }
+
+      final response = await repository.updateOrder(
+        orderId,
+        {'trackingUrl': trackingUrl, 'phone_number_code': phone},
+      );
 
       if (response.isOk && response.body['success'] == true) {
         SnackBarHelper.showSuccessSnackBar('Tracking URL updated');
@@ -149,33 +175,7 @@ class OrderPaidProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  // Future<bool> updateOrderStatus(String orderId, String newStatus) async {
-  //   try {
-  //     final phoneNumberCode = await UserSaveHelper.getPhoneNumberCode(); // یا هر متد موجود مشابه
-  //     final response = await service.updateItem(
-  //       endpointUrl: 'api/orders',
-  //       itemId: orderId,
-  //       itemData: {
-  //         'orderStatus': newStatus,
-  //         'phone_number_code': phoneNumberCode, // ⬅️ قانون ثابت
-  //       },
-  //     );
-  //     if (response.isOk && response.body['success'] == true) {
-  //       SnackBarHelper.showSuccessSnackBar('Order status updated to $newStatus');
-  //       await _dataProvider.getAllsOrders();
-  //       return true;
-  //     } else {
-  //       SnackBarHelper.showErrorSnackBar(
-  //         'Failed to update order status: ${response.body?['message'] ?? response.statusText}',
-  //       );
-  //       return false;
-  //     }
-  //   } catch (e) {
-  //     log('❌ Update order status error: $e');
-  //     SnackBarHelper.showErrorSnackBar('An error occurred: $e');
-  //     return false;
-  //   }
-  // }
+
 
   void updateUI() => notifyListeners();
 }

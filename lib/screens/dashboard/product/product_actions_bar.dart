@@ -33,17 +33,7 @@ class ProductActionsBar extends StatelessWidget {
                 textStyle: const TextStyle(
                     fontFamily: FONTS_STYLE_FAMILY, color: Colors.black),
                 child:
-                // IconButton(
-                //   onPressed: () async {
-                //     if (await UserSaveHelper.isExpired()) {
-                //       DialogHelper.showExpiredDialog(context);
-                //       return;
-                //     }
-                //    onRefresh
-                //     ;
-                //   },
-                //   icon: const Icon(Icons.refresh),
-                // ),
+
                 IconButton(
                   onPressed: () async {
                     if (await UserSaveHelper.isExpired()) {
@@ -64,13 +54,7 @@ class ProductActionsBar extends StatelessWidget {
                       vertical: defaultPadding,
                     ),
                   ),
-                  // onPressed: () async {
-                  //   if (await UserSaveHelper.isExpired()) {
-                  //     DialogHelper.showExpiredDialog(context);
-                  //     return;
-                  //   }
-                  //   onAdd;
-                  // },
+
                   onPressed: () async {
                     if (await UserSaveHelper.isExpired()) {
                       DialogHelper.showExpiredDialog(context);

@@ -24,54 +24,7 @@ class VariantsListSection extends StatelessWidget {
         color: secondaryColor,
         borderRadius: BorderRadius.all(Radius.circular(10)),
       ),
-      // width: double.infinity,
-      // child: DataTable(
-      //   columnSpacing: defaultPadding,
-      //   columns: const [
-      //     DataColumn(label: Text('نام ویژگی')),
-      //     DataColumn(label: Text('نوع ویژگی')),
-      //     DataColumn(label: Text('ویرایش')),
-      //     DataColumn(label: Text('حذف')),
-      //   ],
-      //   rows: List.generate(
-      //     data.variants.length,
-      //         (i) {
-      //       final Variant item = data.variants[i];
-      //       return DataRow(
-      //         cells: [
-      //           DataCell(Text(item.name ?? '')),
-      //           DataCell(Text(item.variantTypeId?.name ?? '')),
-      //           DataCell(
-      //             IconButton(
-      //               onPressed: () async {
-      //                 if (await UserSaveHelper.isExpired()) {
-      //                   DialogHelper.showExpiredDialog(context);
-      //                   return;
-      //                 }
-      //                 showAddVariantForm(context, item);
-      //               },
-      //               icon: const Icon(Icons.edit, color: Colors.white),
-      //
-      //             ),
-      //           ),
-      //           DataCell(
-      //             IconButton(
-      //               onPressed: () async {
-      //                 if (await UserSaveHelper.isExpired()) {
-      //                   DialogHelper.showExpiredDialog(context);
-      //                   return;
-      //                 }
-      //                 context.variantProvider.deleteVariant(item);
-      //               },
-      //               icon: const Icon(Icons.delete, color: Colors.red),
-      //
-      //             ),
-      //           ),
-      //         ],
-      //       );
-      //     },
-      //   ),
-      // ),
+
       width: double.infinity,
       child: LayoutBuilder(
         builder: (_, cons) {

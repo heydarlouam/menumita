@@ -79,6 +79,12 @@ class ProductRepository {
     final endpoint = 'api/products?phone_number_code=${Uri.encodeQueryComponent(phone)}';
     return _service.getItems(endpointUrl: endpoint);
   }
+  Future<Response> addProduct(FormData form) =>
+      _service.addItem(endpointUrl: 'api/products', itemData: form);
+  Future<Response> updateProduct(String id, FormData form) =>
+      _service.updateItem(endpointUrl: 'api/products', itemId: id, itemData: form);
+  Future<Response> deleteProduct(String id) =>
+      _service.deleteItem(endpointUrl: 'api/products', itemId: id);
 }
 
 class CouponRepository {

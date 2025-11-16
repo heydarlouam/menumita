@@ -25,49 +25,7 @@ class SubCategoryListSection extends StatelessWidget {
         color: secondaryColor,
         borderRadius: const BorderRadius.all(Radius.circular(10)),
       ),
-      // child: SizedBox(
-      //   width: double.infinity,
-      //   child: Consumer<DataProvider>(
-      //     builder: (context, dataProvider, child) {
-      //       return DataTable(
-      //         columnSpacing: defaultPadding,
-      //         columns: [
-      //           DataColumn(
-      //             label: Text("نام زیر‌دسته"),
-      //           ),
-      //           DataColumn(
-      //             label: Text("دسته‌بندی"),
-      //           ),
-      //           DataColumn(
-      //             label: Text("تاریخ افزودن"),
-      //           ),
-      //           DataColumn(
-      //             label: Text("ویرایش"),
-      //           ),
-      //           DataColumn(
-      //             label: Text("حذف"),
-      //           ),
-      //         ],
-      //         rows: List.generate(
-      //           dataProvider.subCategories.length,
-      //               (index) => subCategoryDataRow(
-      //             context,
-      //             dataProvider.subCategories[index],
-      //             index + 1,
-      //             edit: () {
-      //               showAddSubCategoryForm(
-      //                   context, dataProvider.subCategories[index]);
-      //             },
-      //             delete: () {
-      //               context.subCategoryProvider
-      //                   .deleteSubCategory(dataProvider.subCategories[index]);
-      //             },
-      //           ),
-      //         ),
-      //       );
-      //     },
-      //   ),
-      // ),
+
       child: SizedBox(
         width: double.infinity,
         child: LayoutBuilder(

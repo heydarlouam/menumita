@@ -2,6 +2,7 @@ import 'dart:developer';
 
 
 import 'package:admin/utility/snack_bar_helper.dart';
+import 'package:admin/utility/User_helper.dart';
 import 'package:flutter/cupertino.dart';
 
 import '../../../core/data/data_provider.dart';
@@ -46,9 +47,16 @@ class OrderProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
+      final phone = await UserSaveHelper.getPhoneNumber();
+      if (phone == null || phone.isEmpty) {
+        SnackBarHelper.showErrorSnackBar('شماره تلفن در حافظه یافت نشد!');
+        return false;
+      }
+
       final order = {
         'trackingUrl': trackingUrlCtrl.text,
         'orderStatus': selectedOrderStatus,
+        'phone_number_code': phone,
       };
 
       final response = await repository.updateOrder(
@@ -102,7 +110,16 @@ class OrderProvider extends ChangeNotifier {
 
   Future<bool> updateOrderStatus(String orderId, String newStatus) async {
     try {
-      final response = await repository.updateStatus(orderId, newStatus);
+      final phone = await UserSaveHelper.getPhoneNumber();
+      if (phone == null || phone.isEmpty) {
+        SnackBarHelper.showErrorSnackBar('شماره تلفن در حافظه یافت نشد!');
+        return false;
+      }
+
+      final response = await repository.updateOrder(
+        orderId,
+        {'orderStatus': newStatus, 'phone_number_code': phone},
+      );
 
       if (response.isOk && response.body['success'] == true) {
         SnackBarHelper.showSuccessSnackBar('Order status updated to $newStatus');
@@ -124,7 +141,16 @@ class OrderProvider extends ChangeNotifier {
 
   Future<bool> updateTrackingUrl(String orderId, String trackingUrl) async {
     try {
-      final response = await repository.updateTracking(orderId, trackingUrl);
+      final phone = await UserSaveHelper.getPhoneNumber();
+      if (phone == null || phone.isEmpty) {
+        SnackBarHelper.showErrorSnackBar('شماره تلفن در حافظه یافت نشد!');
+        return false;
+      }
+
+      final response = await repository.updateOrder(
+        orderId,
+        {'trackingUrl': trackingUrl, 'phone_number_code': phone},
+      );
 
       if (response.isOk && response.body['success'] == true) {
         SnackBarHelper.showSuccessSnackBar('Tracking URL updated');

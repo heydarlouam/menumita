@@ -13,8 +13,6 @@ import '../../../models/sub_category.dart';
 import '../../../core/data/repositories/category_repository.dart';
 import '../../../utility/snack_bar_helper.dart';
 
-
-
 class CouponCodeProvider extends ChangeNotifier {
   final CouponRepository repository = CouponRepository();
   final DataProvider _dataProvider;
@@ -24,7 +22,8 @@ class CouponCodeProvider extends ChangeNotifier {
   final addCouponFormKey = GlobalKey<FormState>();
   final TextEditingController couponCodeCtrl = TextEditingController();
   final TextEditingController discountAmountCtrl = TextEditingController();
-  final TextEditingController minimumPurchaseAmountCtrl = TextEditingController();
+  final TextEditingController minimumPurchaseAmountCtrl =
+      TextEditingController();
   final TextEditingController endDateCtrl = TextEditingController();
 
   String selectedDiscountType = 'fixed';
@@ -48,28 +47,7 @@ class CouponCodeProvider extends ChangeNotifier {
     super.dispose();
   }
 
-  // Map<String, dynamic> _buildPayload() {
-  //   final discount = double.tryParse(discountAmountCtrl.text) ?? 0;
-  //   final minPurchase = minimumPurchaseAmountCtrl.text.isNotEmpty
-  //       ? (double.tryParse(minimumPurchaseAmountCtrl.text) ?? 0)
-  //       : 0;
-  //
-  //   return {
-  //     'couponCode': couponCodeCtrl.text.trim(),
-  //     'discountType': selectedDiscountType,
-  //     'discountAmount': discount,
-  //     'minimumPurchaseAmount': minPurchase,
-  //     'endDate': endDateCtrl.text,
-  //     'status': selectedCouponStatus,
-  //     'applicableCategory': selectedCategory?.sId ?? "",
-  //     'applicableSubCategory': selectedSubCategory?.sId ?? "",
-  //     'applicableProduct': selectedProduct?.sId ?? "",
-  //     // قانون ثابت:
-  //     'phone_number_code': '12345',
-  //   };
-  // }
-  // ✨ قبلی: Map<String, dynamic> _buildPayload()
-// ✨ جدید:
+
   Future<Map<String, dynamic>?> _buildPayload() async {
     // گرفتن شماره از SharedPreferences
     final phone = await UserSaveHelper.getPhoneNumber();
@@ -98,8 +76,10 @@ class CouponCodeProvider extends ChangeNotifier {
     };
   }
 
-
   Future<bool> addCoupon() async {
+    if (_isSubmitting) return false;
+    _isSubmitting = true;
+    notifyListeners();
     try {
       // اعتبارسنجی تاریخ
       if (endDateCtrl.text.isEmpty) {
@@ -117,9 +97,6 @@ class CouponCodeProvider extends ChangeNotifier {
         return false;
       }
 
-      _isSubmitting = true;
-      notifyListeners();
-
       // ✅ اینجا حتما await
       final payload = await _buildPayload();
       if (payload == null) return false;
@@ -135,7 +112,8 @@ class CouponCodeProvider extends ChangeNotifier {
         return true;
       }
 
-      final msg = response.body?['error'] ?? response.statusText ?? 'Unknown error';
+      final msg =
+          response.body?['error'] ?? response.statusText ?? 'Unknown error';
       SnackBarHelper.showErrorSnackBar('Failed to add coupon: $msg');
       return false;
     } catch (e) {
@@ -147,8 +125,8 @@ class CouponCodeProvider extends ChangeNotifier {
     }
   }
 
-
   Future<bool> updateCoupon() async {
+    if (_isSubmitting) return false;
     try {
       _isSubmitting = true;
       notifyListeners();
@@ -170,7 +148,8 @@ class CouponCodeProvider extends ChangeNotifier {
         return true;
       }
 
-      final msg = response.body?['error'] ?? response.statusText ?? 'Unknown error';
+      final msg =
+          response.body?['error'] ?? response.statusText ?? 'Unknown error';
       SnackBarHelper.showErrorSnackBar('Failed to update coupon: $msg');
       return false;
     } catch (e) {

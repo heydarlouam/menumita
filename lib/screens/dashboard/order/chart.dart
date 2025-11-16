@@ -54,9 +54,7 @@ class Chart extends StatelessWidget {
   }
 
   List<PieChartSectionData> _buildPieChartSelectionData(BuildContext context) {
-    final DataProvider dataProvider = Provider.of<DataProvider>(context);
 
-    int totalOrder = context.dataProvider.calculateOrdersWithStatus();
     int pendingOrder = context.dataProvider
         .calculateOrdersWithStatus(status: ORDER_STATUS_PENDING);
     int processingOrder = context.dataProvider

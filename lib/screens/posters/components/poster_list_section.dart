@@ -24,19 +24,7 @@ class PosterListSection extends StatelessWidget {
         borderRadius: BorderRadius.all(Radius.circular(10)),
       ),
       width: double.infinity,
-      // child: DataTable(
-      //   columnSpacing: defaultPadding,
-      //   columns: const [
-      //     DataColumn(label: Text('عنوان پوستر')),
-      //     DataColumn(label: Text('تصویر')),
-      //     DataColumn(label: Text('ویرایش')),
-      //     DataColumn(label: Text('حذف')),
-      //   ],
-      //   rows: List.generate(
-      //     data.posters.length,
-      //         (index) => _row(context, data.posters[index]),
-      //   ),
-      // ),
+
       child: LayoutBuilder(
         builder: (_, cons) {
           final w = cons.maxWidth; // عرض واقعی کارت/کنتینر
