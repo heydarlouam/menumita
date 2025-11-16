@@ -10,11 +10,12 @@ import 'package:get/get.dart';
 import '../../../core/data/data_provider.dart';
 import '../../../models/category.dart';
 import '../../../models/sub_category.dart';
-import '../../../services/http_services.dart';
+
+import '../../../core/data/repositories/category_repository.dart';
 
 
 class SubCategoryProvider extends ChangeNotifier {
-  final HttpService service = HttpService();
+  final SubCategoryRepository repository = SubCategoryRepository();
   final DataProvider _dataProvider;
 
   final addSubCategoryFormKey = GlobalKey<FormState>();
@@ -142,10 +143,7 @@ class SubCategoryProvider extends ChangeNotifier {
         'phone_number_code': phone, // ⬅️ به‌جای مقدار ثابت
       };
 
-      final response = await service.addItem(
-        endpointUrl: 'api/subcategories',
-        itemData: subCategory,
-      );
+      final response = await repository.addSubCategory(subCategory);
 
       if (response.isOk) {
         final m = _parseBody(response.body);
@@ -186,10 +184,9 @@ class SubCategoryProvider extends ChangeNotifier {
         'phone_number_code': phone, // ⬅️ به‌جای مقدار ثابت
       };
 
-      final response = await service.updateItem(
-        endpointUrl: 'api/subcategories',
-        itemId: subCategoryForUpdate?.sId ?? '',
-        itemData: subCategory,
+      final response = await repository.updateSubCategory(
+        subCategoryForUpdate?.sId ?? '',
+        subCategory,
       );
 
       if (response.isOk) {
@@ -245,9 +242,8 @@ class SubCategoryProvider extends ChangeNotifier {
   // ---------- Delete ----------
   Future<bool> deleteSubCategory(SubCategory subCategory) async {
     try {
-      final response = await service.deleteItem(
-        endpointUrl: 'api/subcategories',
-        itemId: subCategory.sId ?? '',
+      final response = await repository.deleteSubCategory(
+        subCategory.sId ?? '',
       );
 
       if (response.isOk) {

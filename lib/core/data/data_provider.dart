@@ -1,4 +1,4 @@
-
+import 'package:admin/core/data/repositories/category_repository.dart';
 import 'package:admin/utility/User_helper.dart';
 import 'package:admin/utility/snack_bar_helper.dart';
 import 'package:flutter/cupertino.dart';
@@ -15,26 +15,38 @@ import '../../models/product.dart';
 import '../../models/sub_category.dart';
 import '../../models/variant.dart';
 import '../../models/variant_type.dart';
-import '../../services/http_services.dart';
+
 import '../../utility/constants.dart';
 import 'dart:async';
 import 'package:socket_io_client/socket_io_client.dart' as IO;
 
 class DataProvider extends ChangeNotifier {
-  HttpService service = HttpService();
+  final CategoryRepository categoryRepo = CategoryRepository();
+  final BrandRepository brandRepo = BrandRepository();
+  final SubCategoryRepository subCategoryRepo = SubCategoryRepository();
+  final VariantTypeRepository variantTypeRepo = VariantTypeRepository();
+  final VariantRepository variantRepo = VariantRepository();
+  final ProductRepository productRepo = ProductRepository();
+  final PosterRepository posterRepo = PosterRepository();
+  final CouponRepository couponRepo = CouponRepository();
+  final OrderRepository orderRepo = OrderRepository();
+
+  bool _initialized = false;
 
 /////////////////////////////////////////////////////////
 // اگر menu_type == menu_one باشد، بخش سفارش‌ها غیرفعال است
   Future<bool> _isOrdersEnabled() async {
     try {
       final info = await UserSaveHelper.getUserInfo(showError: false);
-      final menuType = (info?['menu_type'] ?? '').toString().trim().toLowerCase();
+      final menuType =
+          (info?['menu_type'] ?? '').toString().trim().toLowerCase();
       return menuType != 'menu_one';
     } catch (_) {
       // اگر نتوانستیم بخوانیم، محافظه‌کارانه فعال در نظر می‌گیریم
       return true;
     }
   }
+
   Future<void> _bootOrders() async {
     if (!await _isOrdersEnabled()) {
       // اطمینان از قطع بودن ریل‌تایم
@@ -45,9 +57,8 @@ class DataProvider extends ChangeNotifier {
     }
     await getAllsOrders();
     await initOrdersRealtime();
-    await     getAllCoupons();
+    await getAllCoupons();
   }
-
 
 /////////////////////////////////////////////////////////
 
@@ -67,8 +78,10 @@ class DataProvider extends ChangeNotifier {
     await disposeOrdersRealtime(); // اگر قبلاً وصل بوده
 
     try {
-      final phone = await UserSaveHelper.getPhoneNumber(); // برای فیلتر سمت کلاینت
-      final url = MAIN_URL; // مثلا: http://10.0.2.2:5001 یا http://localhost:5001
+      final phone =
+          await UserSaveHelper.getPhoneNumber(); // برای فیلتر سمت کلاینت
+      final url =
+          MAIN_URL; // مثلا: http://10.0.2.2:5001 یا http://localhost:5001
 
       _ordersSocket = IO.io(
         url,
@@ -105,6 +118,7 @@ class DataProvider extends ChangeNotifier {
       _ordersSocket = null;
     } catch (_) {}
   }
+
   void _applyOrderChange(dynamic payload, {String? phoneNumberCode}) {
     try {
       if (payload is! Map) return;
@@ -139,7 +153,7 @@ class DataProvider extends ChangeNotifier {
 
       // بازاعمال فیلترها (ساده: نمایش کامل؛ اگر حالت فیلتر فعال داری، همان منطق را اینجا صدا بزن)
       _filteredOrdersall = List.unmodifiable(_allsOrders);
-      _filteredOrders    = List.unmodifiable(_allOrders);
+      _filteredOrders = List.unmodifiable(_allOrders);
 
       _safeNotify();
     } catch (_) {}
@@ -150,7 +164,7 @@ class DataProvider extends ChangeNotifier {
     if (idx == -1) {
       list.insert(0, incoming); // جدید بالا
     } else {
-      list[idx] = incoming;     // بروزرسانی
+      list[idx] = incoming; // بروزرسانی
     }
   }
 
@@ -166,7 +180,6 @@ class DataProvider extends ChangeNotifier {
   }
 
 /////////////////////////////////////////////////////////
-
 
   final int _ordersPageSize = 50;
   int _ordersPage = 1;
@@ -197,11 +210,8 @@ class DataProvider extends ChangeNotifier {
     return _fetchOrdersPage(_ordersPage, showSnack: showSnack);
   }
 
-
-
-
-
-  Future<List<Order>> _fetchOrdersPage(int page, {bool showSnack = false}) async {
+  Future<List<Order>> _fetchOrdersPage(int page,
+      {bool showSnack = false}) async {
     if (_ordersLoading) return _filteredOrders; // گارد مضاعف
     _ordersLoading = true;
     notifyListeners();
@@ -214,10 +224,11 @@ class DataProvider extends ChangeNotifier {
         return _filteredOrders;
       }
 
-      final String endpoint =
-          'api/orders?phone_number_code=${Uri.encodeQueryComponent(phone)}&page=$page&perPage=$_ordersPageSize';
-
-      final response = await service.getItems(endpointUrl: endpoint);
+      final response = await orderRepo.fetchPaged(
+        phone,
+        page: page,
+        perPage: _ordersPageSize,
+      );
 
       if (!response.isOk) {
         throw Exception('HTTP ${response.statusCode}: ${response.statusText}');
@@ -230,7 +241,7 @@ class DataProvider extends ChangeNotifier {
 
       final List<dynamic> ordersData = responseBody['data'] ?? [];
       final List<Order> pageOrders =
-      ordersData.map((item) => Order.fromJson(item)).toList();
+          ordersData.map((item) => Order.fromJson(item)).toList();
 
       // append
       _allOrders.addAll(pageOrders);
@@ -261,7 +272,6 @@ class DataProvider extends ChangeNotifier {
     }
   }
 
-
   void searchOrders(String query) {
     if (query.isEmpty) {
       _filteredOrders = List.unmodifiable(_allOrders);
@@ -269,7 +279,7 @@ class DataProvider extends ChangeNotifier {
       final q = query.toLowerCase();
       _filteredOrders = List.unmodifiable(
         _allOrders.where((o) =>
-        (o.userName ?? '').toLowerCase().contains(q) ||
+            (o.userName ?? '').toLowerCase().contains(q) ||
             (o.orderStatus ?? '').toLowerCase().contains(q) ||
             (o.paymentMethod ?? '').toLowerCase().contains(q) ||
             (o.sId ?? '').toLowerCase().contains(q)),
@@ -284,7 +294,6 @@ class DataProvider extends ChangeNotifier {
   }
 
   // ... بقیه‌ی کلاس مثل قبل ...
-
 
   List<Category> _allCategories = [];
   List<Category> _filteredCategories = [];
@@ -330,25 +339,34 @@ class DataProvider extends ChangeNotifier {
 
   List<Poster> get posters => _filteredPosters;
 
-
-
   DataProvider() {
-    getAllProducts();
-    getAllCategories();
-    getAllSubCategories();
-    getAllBrands();
-    getAllVariantTypes();
-    getAllVariants();
-    getAllPosters();
-    // getAllCoupons();
-    // getAllsOrders();
-    // getAllsOrders().then((_) {
-    //   // بعد از بار اول لیست، realtime را وصل کن
-    //   initOrdersRealtime();
-    // });
-    _bootOrders();
+    _maybeInitOnStartup();
   }
 
+  Future<void> _maybeInitOnStartup() async {
+    final phone = await UserSaveHelper.getPhoneNumber(showError: false);
+    if (phone == null || phone.isEmpty) return;
+    await initAll();
+  }
+
+  Future<void> initAll() async {
+    if (_initialized) return;
+    _initialized = true;
+    await Future.wait([
+      getAllProducts(),
+      getAllCategories(),
+      getAllSubCategories(),
+      getAllBrands(),
+      getAllVariantTypes(),
+      getAllVariants(),
+      getAllPosters(),
+    ]);
+    await _bootOrders();
+  }
+
+  Future<void> initAfterLogin() async {
+    await initAll();
+  }
 
 // -------------------------------
 // 🔹 لیست‌ها
@@ -370,10 +388,7 @@ class DataProvider extends ChangeNotifier {
         return _allsOrders;
       }
 
-      final String endpoint =
-          'api/ordersalls?phone_number_code=${Uri.encodeQueryComponent(phone)}';
-
-      final Response response = await service.getItems(endpointUrl: endpoint);
+      final Response response = await orderRepo.fetchAlls(phone);
 
       if (response.isOk) {
         final body = response.body;
@@ -382,7 +397,8 @@ class DataProvider extends ChangeNotifier {
 
           _allsOrders
             ..clear()
-            ..addAll(data.map((e) => Order.fromJson(e as Map<String, dynamic>)));
+            ..addAll(
+                data.map((e) => Order.fromJson(e as Map<String, dynamic>)));
 
           // فیلتر اولیه: همه سفارش‌ها
           _filteredOrdersall = List.unmodifiable(_allsOrders);
@@ -424,7 +440,7 @@ class DataProvider extends ChangeNotifier {
       final s = status.toLowerCase();
       _filteredOrdersall = List.unmodifiable(
         _allsOrders.where(
-              (o) => (o.orderStatus ?? '').toLowerCase() == s,
+          (o) => (o.orderStatus ?? '').toLowerCase() == s,
         ),
       );
     }
@@ -441,8 +457,8 @@ class DataProvider extends ChangeNotifier {
       final q = query.toLowerCase();
       _filteredOrdersall = List.unmodifiable(
         _allsOrders.where(
-              (o) =>
-          (o.userName ?? '').toLowerCase().contains(q) ||
+          (o) =>
+              (o.userName ?? '').toLowerCase().contains(q) ||
               (o.orderStatus ?? '').toLowerCase().contains(q) ||
               (o.paymentMethod ?? '').toLowerCase().contains(q) ||
               (o.sId ?? '').toLowerCase().contains(q),
@@ -451,9 +467,6 @@ class DataProvider extends ChangeNotifier {
     }
     notifyListeners();
   }
-
-
-
 
   Future<List<Category>> getAllCategories({bool showSnack = false}) async {
     try {
@@ -464,10 +477,7 @@ class DataProvider extends ChangeNotifier {
         return _filteredCategories;
       }
 
-      final String endpoint =
-          'api/categories?phone_number_code=${Uri.encodeQueryComponent(phone)}';
-
-      Response response = await service.getItems(endpointUrl: endpoint);
+      Response response = await categoryRepo.fetchAll(phone);
 
       if (response.isOk) {
         if (response.body['success'] == true) {
@@ -488,7 +498,8 @@ class DataProvider extends ChangeNotifier {
           notifyListeners();
 
           if (showSnack) {
-            SnackBarHelper.showSuccessSnackBar('Categories loaded successfully');
+            SnackBarHelper.showSuccessSnackBar(
+                'Categories loaded successfully');
           }
 
           return _filteredCategories;
@@ -522,7 +533,8 @@ class DataProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<List<SubCategory>> getAllSubCategories({bool showSnack = false}) async {
+  Future<List<SubCategory>> getAllSubCategories(
+      {bool showSnack = false}) async {
     try {
       // ✅ گرفتن شماره تلفن از SharedPreferences
       final phone = await UserSaveHelper.getPhoneNumber();
@@ -531,11 +543,7 @@ class DataProvider extends ChangeNotifier {
         return _filteredSubCategories;
       }
 
-      final String endpoint =
-          'api/subcategories?phone_number_code=${Uri.encodeQueryComponent(phone)}';
-
-      // اضافه کردن api/ به endpoint
-      Response response = await service.getItems(endpointUrl: endpoint);
+      Response response = await subCategoryRepo.fetchAll(phone);
 
       if (response.isOk) {
         if (response.body['success'] == true) {
@@ -555,7 +563,8 @@ class DataProvider extends ChangeNotifier {
           notifyListeners();
 
           if (showSnack) {
-            SnackBarHelper.showSuccessSnackBar('Subcategories loaded successfully');
+            SnackBarHelper.showSuccessSnackBar(
+                'Subcategories loaded successfully');
           }
 
           return _filteredSubCategories;
@@ -598,11 +607,7 @@ class DataProvider extends ChangeNotifier {
         return _filteredBrands;
       }
 
-      final String endpoint =
-          'api/brands?phone_number_code=${Uri.encodeQueryComponent(phone)}&expand=subcategory';
-
-      // اضافه کردن api/ و expand
-      Response response = await service.getItems(endpointUrl: endpoint);
+      Response response = await brandRepo.fetchAll(phone);
 
       if (response.isOk) {
         if (response.body['success'] == true) {
@@ -666,10 +671,7 @@ class DataProvider extends ChangeNotifier {
         return _filteredVariantTypes;
       }
 
-      final String endpoint =
-          'api/variant-types?phone_number_code=${Uri.encodeQueryComponent(phone)}';
-
-      Response response = await service.getItems(endpointUrl: endpoint);
+      Response response = await variantTypeRepo.fetchAll(phone);
 
       if (response.isOk) {
         if (response.body['success'] == true) {
@@ -691,7 +693,8 @@ class DataProvider extends ChangeNotifier {
           notifyListeners();
 
           if (showSnack) {
-            SnackBarHelper.showSuccessSnackBar('Variant types loaded successfully');
+            SnackBarHelper.showSuccessSnackBar(
+                'Variant types loaded successfully');
           }
 
           return _filteredVariantTypes;
@@ -734,10 +737,7 @@ class DataProvider extends ChangeNotifier {
         return _filteredVariants;
       }
 
-      final String endpoint =
-          'api/variants?phone_number_code=${Uri.encodeQueryComponent(phone)}';
-
-      Response response = await service.getItems(endpointUrl: endpoint);
+      Response response = await variantRepo.fetchAll(phone);
 
       if (response.isOk) {
         if (response.body['success'] == true) {
@@ -801,10 +801,7 @@ class DataProvider extends ChangeNotifier {
         return _filteredProducts;
       }
 
-      final String endpoint =
-          'api/products?phone_number_code=${Uri.encodeQueryComponent(phone)}';
-
-      Response response = await service.getItems(endpointUrl: endpoint);
+      Response response = await productRepo.fetchAll(phone);
 
       if (response.isOk) {
         // پردازش response بر اساس ساختار سرور شما
@@ -814,7 +811,7 @@ class DataProvider extends ChangeNotifier {
           List<dynamic> productsJson = responseBody['data'];
           print(responseBody['data']);
           List<Product> products =
-          productsJson.map((item) => Product.fromJson(item)).toList();
+              productsJson.map((item) => Product.fromJson(item)).toList();
 
           print('✅ ${products.length} products loaded successfully');
 
@@ -873,7 +870,6 @@ class DataProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-
   Future<List<Poster>> getAllPosters({bool showSnack = false}) async {
     try {
       // ✅ گرفتن شماره تلفن از SharedPreferences
@@ -883,10 +879,7 @@ class DataProvider extends ChangeNotifier {
         return _filteredPosters;
       }
 
-      final String endpoint =
-          'api/posters?phone_number_code=${Uri.encodeQueryComponent(phone)}';
-
-      Response response = await service.getItems(endpointUrl: endpoint);
+      Response response = await posterRepo.fetchAll(phone);
       if (response.isOk) {
         if (response.body['success'] == true) {
           List<dynamic> data = response.body['data'];
@@ -927,8 +920,6 @@ class DataProvider extends ChangeNotifier {
       rethrow;
     }
   }
-
-
 
   void filterPosters(String keyword) {
     keyword = keyword.trim();
@@ -1019,10 +1010,7 @@ class DataProvider extends ChangeNotifier {
         return _filteredCoupons;
       }
 
-      final String endpoint =
-          'api/coupons?phone_number_code=${Uri.encodeQueryComponent(phone)}';
-
-      Response response = await service.getItems(endpointUrl: endpoint);
+      Response response = await couponRepo.fetchAll(phone);
 
       if (response.isOk) {
         if (response.body['success'] == true) {
@@ -1047,20 +1035,24 @@ class DataProvider extends ChangeNotifier {
             print('   - Status: ${_allCoupons.first.status}');
             print('   - End Date: ${_allCoupons.first.endDate}');
             print('   - Category ID: ${_allCoupons.first.applicableCategory}');
-            print('   - SubCategory ID: ${_allCoupons.first.applicableSubCategory}');
+            print(
+                '   - SubCategory ID: ${_allCoupons.first.applicableSubCategory}');
             print('   - Product ID: ${_allCoupons.first.applicableProduct}');
 
             // بررسی expand data
             if (_allCoupons.first.expand != null) {
               print('   - Expand Data:');
               if (_allCoupons.first.expand!.applicableCategory != null) {
-                print('     - Category: ${_allCoupons.first.expand!.applicableCategory!.name}');
+                print(
+                    '     - Category: ${_allCoupons.first.expand!.applicableCategory!.name}');
               }
               if (_allCoupons.first.expand!.applicableSubCategory != null) {
-                print('     - SubCategory: ${_allCoupons.first.expand!.applicableSubCategory!.name}');
+                print(
+                    '     - SubCategory: ${_allCoupons.first.expand!.applicableSubCategory!.name}');
               }
               if (_allCoupons.first.expand!.applicableProduct != null) {
-                print('     - Product: ${_allCoupons.first.expand!.applicableProduct!.name}');
+                print(
+                    '     - Product: ${_allCoupons.first.expand!.applicableProduct!.name}');
               }
             }
           }
@@ -1101,7 +1093,4 @@ class DataProvider extends ChangeNotifier {
 
     notifyListeners();
   }
-
-
-
 }

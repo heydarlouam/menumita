@@ -156,17 +156,20 @@ class BrandListSection extends StatelessWidget {
             scrollDirection: Axis.horizontal,
             child: ConstrainedBox(
               constraints: BoxConstraints(minWidth: w), // حداقل = عرض کارت
-              child: DataTable(
-                columnSpacing: defaultPadding,
-                columns: const [
-                  DataColumn(label: Text('نام برند')),
-                  DataColumn(label: Text('زیر‌دسته')),
-                  DataColumn(label: Text('ویرایش')),
-                  DataColumn(label: Text('حذف')),
-                ],
-                rows: List.generate(
-                  data.brands.length,
-                      (index) => _brandRow(context, data.brands[index]),
+              child: Selector<DataProvider, List<Brand>>(
+                selector: (_, dp) => dp.brands,
+                builder: (_, brands, __) => DataTable(
+                  columnSpacing: defaultPadding,
+                  columns: const [
+                    DataColumn(label: Text('نام برند')),
+                    DataColumn(label: Text('زیر‌دسته')),
+                    DataColumn(label: Text('ویرایش')),
+                    DataColumn(label: Text('حذف')),
+                  ],
+                  rows: List.generate(
+                    brands.length,
+                        (index) => _brandRow(context, brands[index]),
+                  ),
                 ),
               ),
             ),

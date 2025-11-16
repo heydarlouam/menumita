@@ -2,19 +2,7 @@ import 'package:admin/screens/profile_card.dart';
 import 'package:admin/utility/User_helper.dart';
 import 'package:admin/utility/dialog_helper.dart';
 import 'package:admin/utility/extensions.dart';
-import 'package:flutter/material.dart';
-import 'package:gap/gap.dart';
-
-import '../../utility/constants.dart';
-
-import 'components/order_header.dart';
-import 'components/order_list_section.dart';
-
-import 'package:admin/screens/profile_card.dart';
-import 'package:admin/utility/User_helper.dart';
-import 'package:admin/utility/dialog_helper.dart';
-import 'package:admin/utility/extensions.dart';
-import 'package:admin/utility/snack_bar_helper.dart'; // 👈 اضافه شد
+import 'package:admin/utility/snack_bar_helper.dart';
 import 'package:flutter/material.dart';
 import 'package:gap/gap.dart';
 
@@ -70,7 +58,8 @@ class _OrderScreenState extends State<OrderScreen>
   Future<void> _resolveOrdersEnabled() async {
     try {
       final info = await UserSaveHelper.getUserInfo(showError: false);
-      final menuType = (info?['menu_type'] ?? '').toString().trim().toLowerCase();
+      final menuType =
+          (info?['menu_type'] ?? '').toString().trim().toLowerCase();
       final enabled = menuType != 'menu_one';
 
       if (mounted) {
@@ -79,7 +68,8 @@ class _OrderScreenState extends State<OrderScreen>
 
       if (!enabled) {
         // پیام دوستانه برای شفافیت UX
-        SnackBarHelper.showErrorSnackBar('ماژول سفارش‌ها برای این نوع منو غیرفعال است');
+        SnackBarHelper.showErrorSnackBar(
+            'ماژول سفارش‌ها برای این نوع منو غیرفعال است');
       }
     } catch (_) {
       // اگر خطا در خواندن تنظیمات رخ دهد، محافظه‌کارانه فعال بماند
@@ -129,13 +119,13 @@ class _OrderScreenState extends State<OrderScreen>
                               onPressed: !_ordersEnabled
                                   ? null // وقتی غیرفعاله، دکمه هم غیرفعال
                                   : () async {
-                                if (await UserSaveHelper.isExpired()) {
-                                  DialogHelper.showExpiredDialog(context);
-                                  return;
-                                }
-                                await context.dataProvider
-                                    .loadInitialOrders(showSnack: true);
-                              },
+                                      if (await UserSaveHelper.isExpired()) {
+                                        DialogHelper.showExpiredDialog(context);
+                                        return;
+                                      }
+                                      await context.dataProvider
+                                          .loadInitialOrders(showSnack: true);
+                                    },
                               icon: const Icon(Icons.refresh),
                             ),
                             const SizedBox(width: 12),

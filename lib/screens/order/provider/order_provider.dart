@@ -6,11 +6,11 @@ import 'package:flutter/cupertino.dart';
 
 import '../../../core/data/data_provider.dart';
 import '../../../models/order.dart';
-import '../../../services/http_services.dart';
+import '../../../core/data/repositories/category_repository.dart';
 import '../../../utility/constants.dart';
 
 class OrderProvider extends ChangeNotifier {
-  final HttpService service = HttpService();
+  final OrderRepository repository = OrderRepository();
   final DataProvider _dataProvider;
 
   final orderFormKey = GlobalKey<FormState>();
@@ -51,10 +51,9 @@ class OrderProvider extends ChangeNotifier {
         'orderStatus': selectedOrderStatus,
       };
 
-      final response = await service.updateItem(
-        endpointUrl: 'api/orders',
-        itemId: orderForUpdate?.sId ?? '',
-        itemData: order,
+      final response = await repository.updateOrder(
+        orderForUpdate?.sId ?? '',
+        order,
       );
 
       if (response.isOk && response.body['success'] == true) {
@@ -80,9 +79,8 @@ class OrderProvider extends ChangeNotifier {
 
   Future<bool> deleteOrder(Order order) async {
     try {
-      final response = await service.deleteItem(
-        endpointUrl: 'api/orders',
-        itemId: order.sId ?? '',
+      final response = await repository.deleteOrder(
+        order.sId ?? '',
       );
 
       if (response.isOk && response.body['success'] == true) {
@@ -104,11 +102,7 @@ class OrderProvider extends ChangeNotifier {
 
   Future<bool> updateOrderStatus(String orderId, String newStatus) async {
     try {
-      final response = await service.updateItem(
-        endpointUrl: 'api/orders',
-        itemId: orderId,
-        itemData: {'orderStatus': newStatus},
-      );
+      final response = await repository.updateStatus(orderId, newStatus);
 
       if (response.isOk && response.body['success'] == true) {
         SnackBarHelper.showSuccessSnackBar('Order status updated to $newStatus');
@@ -130,11 +124,7 @@ class OrderProvider extends ChangeNotifier {
 
   Future<bool> updateTrackingUrl(String orderId, String trackingUrl) async {
     try {
-      final response = await service.updateItem(
-        endpointUrl: 'api/orders',
-        itemId: orderId,
-        itemData: {'trackingUrl': trackingUrl},
-      );
+      final response = await repository.updateTracking(orderId, trackingUrl);
 
       if (response.isOk && response.body['success'] == true) {
         SnackBarHelper.showSuccessSnackBar('Tracking URL updated');

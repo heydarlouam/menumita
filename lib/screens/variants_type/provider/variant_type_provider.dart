@@ -7,7 +7,7 @@ import 'package:get/get.dart';
 import '../../../core/data/data_provider.dart';
 
 import '../../../models/variant_type.dart';
-import '../../../services/http_services.dart';
+import '../../../core/data/repositories/category_repository.dart';
 import '../../../utility/snack_bar_helper.dart';
 
 
@@ -142,13 +142,13 @@ import '../../../utility/snack_bar_helper.dart';
 // import 'package:get/get.dart';
 // import '../../../core/data/data_provider.dart';
 // import '../../../models/variant_type.dart';
-// import '../../../services/http_services.dart';
+// import '../../../core/data/repositories/category_repository.dart';
 // import '../../../utility/snack_bar_helper.dart';
 //
 // class VariantsTypeProvider extends ChangeNotifier {
 //   VariantsTypeProvider(this._dataProvider);
 //
-//   final HttpService service = HttpService();
+//   final VariantTypeRepository repository = VariantTypeRepository();
 //   final DataProvider _dataProvider;
 //
 //   final formKey = GlobalKey<FormState>();
@@ -279,11 +279,11 @@ import 'package:get/get_connect/http/src/response/response.dart';
 
 import '../../../core/data/data_provider.dart';
 import '../../../models/variant_type.dart';
-import '../../../services/http_services.dart';
+
 import '../../../utility/snack_bar_helper.dart';
 
 class VariantsTypeProvider extends ChangeNotifier {
-  final HttpService service = HttpService();
+  final VariantTypeRepository repository = VariantTypeRepository();
   final DataProvider _dataProvider;
 
   VariantsTypeProvider(this._dataProvider);
@@ -384,10 +384,7 @@ class VariantsTypeProvider extends ChangeNotifier {
         'phone_number_code': phone, // ⬅️ به‌جای مقدار ثابت
       };
 
-      final Response res = await service.addItem(
-        endpointUrl: 'api/variant-types',
-        itemData: body,
-      );
+      final Response res = await repository.addVariantType(body);
 
       if (res.isOk && (res.body?['success'] == true)) {
         SnackBarHelper.showSuccessSnackBar(res.body['message'] ?? 'Created');
@@ -428,11 +425,7 @@ class VariantsTypeProvider extends ChangeNotifier {
       final t = typeCtrl.text.trim();
       if (t.isNotEmpty) body['type'] = t;
 
-      final Response res = await service.updateItem(
-        endpointUrl: 'api/variant-types',
-        itemId: id,
-        itemData: body,
-      );
+      final Response res = await repository.updateVariantType(id, body);
 
       if (res.isOk && (res.body?['success'] == true)) {
         SnackBarHelper.showSuccessSnackBar(res.body['message'] ?? 'Updated');
@@ -452,10 +445,7 @@ class VariantsTypeProvider extends ChangeNotifier {
 
   Future<bool> deleteVariantType(VariantType item) async {
     try {
-      final Response res = await service.deleteItem(
-        endpointUrl: 'api/variant-types',
-        itemId: item.sId ?? '',
-      );
+      final Response res = await repository.deleteVariantType(item.sId ?? '');
       if (_ok(res)) {
         SnackBarHelper.showSuccessSnackBar(res.body['message'] ?? 'Deleted');
         await _dataProvider.getAllVariantTypes();

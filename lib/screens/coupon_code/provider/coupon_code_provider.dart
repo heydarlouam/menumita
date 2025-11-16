@@ -10,13 +10,13 @@ import '../../../models/category.dart';
 import '../../../models/coupon.dart';
 import '../../../models/product.dart';
 import '../../../models/sub_category.dart';
-import '../../../services/http_services.dart';
+import '../../../core/data/repositories/category_repository.dart';
 import '../../../utility/snack_bar_helper.dart';
 
 
 
 class CouponCodeProvider extends ChangeNotifier {
-  final HttpService service = HttpService();
+  final CouponRepository repository = CouponRepository();
   final DataProvider _dataProvider;
 
   Coupon? couponForUpdate;
@@ -126,10 +126,7 @@ class CouponCodeProvider extends ChangeNotifier {
 
       log('📤 Sending coupon data: $payload');
 
-      final response = await service.addItem(
-        endpointUrl: 'api/coupons',
-        itemData: payload,
-      );
+      final response = await repository.addCoupon(payload);
 
       if (response.isOk && response.body['success'] == true) {
         clearFields();
@@ -161,10 +158,9 @@ class CouponCodeProvider extends ChangeNotifier {
 
       log('📤 Updating coupon with data: $payload');
 
-      final response = await service.updateItem(
-        endpointUrl: 'api/coupons',
-        itemId: '${couponForUpdate?.sId}',
-        itemData: payload,
+      final response = await repository.updateCoupon(
+        '${couponForUpdate?.sId}',
+        payload,
       );
 
       if (response.isOk && response.body['success'] == true) {
@@ -193,11 +189,7 @@ class CouponCodeProvider extends ChangeNotifier {
     print('remove coupon ');
     print('remove coupon ${coupon.sId}');
     try {
-      final response = await service.deleteItem(
-
-        endpointUrl: 'api/coupons',
-        itemId: coupon.sId ?? '',
-      );
+      final response = await repository.deleteCoupon(coupon.sId ?? '');
 
       if (response.isOk && response.body['success'] == true) {
         SnackBarHelper.showSuccessSnackBar('Coupon deleted successfully!');

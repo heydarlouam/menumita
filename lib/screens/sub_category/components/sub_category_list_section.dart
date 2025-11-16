@@ -73,13 +73,14 @@ class SubCategoryListSection extends StatelessWidget {
         child: LayoutBuilder(
           builder: (_, cons) {
             final w = cons.maxWidth;
-            return Consumer<DataProvider>(
-              builder: (context, dataProvider, child) {
+            return Selector<DataProvider, List<SubCategory>>(
+              selector: (_, dp) => dp.subCategories,
+              builder: (context, subs, child) {
                 return SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,           // 👈 اسکرول افقی در صورت کمبود فضا
+                  scrollDirection: Axis.horizontal,
                   child: ConstrainedBox(
-                    constraints: BoxConstraints(minWidth: w), // 👈 حداقل عرض = کل عرض کارت
-                    child: SingleChildScrollView(             // 👈 اسکرول عمودی مثل قبل
+                    constraints: BoxConstraints(minWidth: w),
+                    child: SingleChildScrollView(
                       child: DataTable(
                         columnSpacing: defaultPadding,
                         columns: const [
@@ -90,20 +91,20 @@ class SubCategoryListSection extends StatelessWidget {
                           DataColumn(label: Text("حذف")),
                         ],
                         rows: List.generate(
-                          dataProvider.subCategories.length,
+                          subs.length,
                               (index) => subCategoryDataRow(
                             context,
-                            dataProvider.subCategories[index],
+                            subs[index],
                             index + 1,
                             edit: () {
                               showAddSubCategoryForm(
                                 context,
-                                dataProvider.subCategories[index],
+                                subs[index],
                               );
                             },
                             delete: () {
                               context.subCategoryProvider
-                                  .deleteSubCategory(dataProvider.subCategories[index]);
+                                  .deleteSubCategory(subs[index]);
                             },
                           ),
                         ),

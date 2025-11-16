@@ -10,6 +10,7 @@ import '../../../models/product.dart';
 import '../../../models/sub_category.dart';
 import '../../../models/variant_type.dart';
 import '../../../utility/constants.dart';
+import '../../../core/data/data_provider.dart';
 import '../../../utility/extensions.dart';
 import '../../../widgets/custom_dropdown.dart';
 import '../../../widgets/custom_text_field.dart';
@@ -265,25 +266,28 @@ class ProductSubmitForm extends StatelessWidget {
   Widget _buildCategoryDropdown(BuildContext context) {
     return Consumer<DashBoardProvider>(
       builder: (context, dashProvider, child) {
-        List<Category> _sortedCategories = List.from(context.dataProvider.categories);
-        _sortedCategories.sort((a, b) => (a.name ?? '').compareTo(b.name ?? ''));
-
-        return CustomDropdown(
-          key: ValueKey(dashProvider.selectedCategory?.sId),
-          initialValue: dashProvider.selectedCategory,
-          hintText: 'انتخاب دسته‌بندی',
-          items: _sortedCategories,
-          displayItem: (Category? category) => category?.name ?? '',
-          onChanged: (newValue) {
-            if (newValue != null) {
-              context.dashBoardProvider.filterSubcategory(newValue);
-            }
-          },
-          validator: (value) {
-            if (value == null) {
-              return 'لطفاً یک دسته‌بندی انتخاب کنید';
-            }
-            return null;
+        return Selector<DataProvider, List<Category>>(
+          selector: (_, dp) => dp.categories,
+          builder: (_, categories, __) {
+            final items = List<Category>.from(categories)..sort((a, b) => (a.name ?? '').compareTo(b.name ?? ''));
+            return CustomDropdown(
+              key: ValueKey(dashProvider.selectedCategory?.sId),
+              initialValue: dashProvider.selectedCategory,
+              hintText: 'انتخاب دسته‌بندی',
+              items: items,
+              displayItem: (Category? category) => category?.name ?? '',
+              onChanged: (newValue) {
+                if (newValue != null) {
+                  context.dashBoardProvider.filterSubcategory(newValue);
+                }
+              },
+              validator: (value) {
+                if (value == null) {
+                  return 'لطفاً یک دسته‌بندی انتخاب کنید';
+                }
+                return null;
+              },
+            );
           },
         );
       },
@@ -352,21 +356,23 @@ class ProductSubmitForm extends StatelessWidget {
   Widget _buildVariantTypeDropdown(BuildContext context) {
     return Consumer<DashBoardProvider>(
       builder: (context, dashProvider, child) {
-        List<VariantType> _sortedVariantTypes = List.from(context.dataProvider.variantTypes);
-        _sortedVariantTypes.sort((a, b) => (a.name ?? '').compareTo(b.name ?? ''));
-
-        return CustomDropdown(
-          key: ValueKey(dashProvider.selectedVariantType?.sId),
-          initialValue: dashProvider.selectedVariantType,
-          items: _sortedVariantTypes,
-          displayItem: (VariantType? variantType) => variantType?.name ?? '',
-          onChanged: (newValue) {
-            if (newValue != null) {
-              context.dashBoardProvider.filterVariant(newValue);
-            }
+        return Selector<DataProvider, List<VariantType>>(
+          selector: (_, dp) => dp.variantTypes,
+          builder: (_, types, __) {
+            final items = List<VariantType>.from(types)..sort((a, b) => (a.name ?? '').compareTo(b.name ?? ''));
+            return CustomDropdown(
+              key: ValueKey(dashProvider.selectedVariantType?.sId),
+              initialValue: dashProvider.selectedVariantType,
+              items: items,
+              displayItem: (VariantType? variantType) => variantType?.name ?? '',
+              onChanged: (newValue) {
+                if (newValue != null) {
+                  context.dashBoardProvider.filterVariant(newValue);
+                }
+              },
+              hintText: 'انتخاب نوع ویژگی',
+            );
           },
-          hintText: 'انتخاب نوع ویژگی',
-
         );
       },
     );

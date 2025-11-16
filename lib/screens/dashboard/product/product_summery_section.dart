@@ -26,45 +26,42 @@ class ProductSummerySection extends StatelessWidget {
     // نسبت ابعاد کارت‌ها؛ می‌تونی کمی تنظیمش کنی
     final double aspect = (w < 594) ? 1.2 : 1.4;
 
-    return Consumer<DataProvider>(
-      builder: (context, dataProvider, _) {
-        final total =
-            context.dataProvider.calculateProductWithQuantity(quantity: null);
-        final out =
-            context.dataProvider.calculateProductWithQuantity(quantity: 0);
-        final lim =
-            context.dataProvider.calculateProductWithQuantity(quantity: 1);
+    return Selector<DataProvider, ({int total, int out, int lim, int other})>(
+      selector: (context, dp) {
+        final total = dp.calculateProductWithQuantity(quantity: null);
+        final out = dp.calculateProductWithQuantity(quantity: 0);
+        final lim = dp.calculateProductWithQuantity(quantity: 1);
         final other = total - out - lim;
-
+        return (total: total, out: out, lim: lim, other: other);
+      },
+      builder: (context, c, _) {
         final items = [
           ProductSummeryInfo(
               title: ALL_PRODUCTS,
-
-              productsCount: total,
+              productsCount: c.total,
               svgSrc: "assets/icons/Product1.svg",
               color: primaryColor,
-              percentage: total != 0 ? 100 : 0),
+              percentage: c.total != 0 ? 100 : 0),
           ProductSummeryInfo(
               title: STOCK_OUT_PRODUCTS,
-              productsCount: out,
+              productsCount: c.out,
               svgSrc: "assets/icons/Product2.svg",
               color: const Color(0xFFEA3829),
-              percentage: total != 0 ? (out / total) * 100 : 0),
+              percentage: c.total != 0 ? (c.out / c.total) * 100 : 0),
           ProductSummeryInfo(
               title: LIMITED_STOCK_PRODUCTS,
-              productsCount: lim,
+              productsCount: c.lim,
               svgSrc: "assets/icons/Product3.svg",
               color: const Color(0xFFECBE23),
-              percentage: total != 0 ? (lim / total) * 100 : 0),
+              percentage: c.total != 0 ? (c.lim / c.total) * 100 : 0),
           ProductSummeryInfo(
               title: OTHER_PRODUCTS,
-              productsCount: other,
+              productsCount: c.other,
               svgSrc: "assets/icons/Product4.svg",
               color: const Color(0xFF47e228),
-              percentage: total != 0 ? (other / total) * 100 : 0),
+              percentage: c.total != 0 ? (c.other / c.total) * 100 : 0),
         ];
 
-        // ⚠️ خودِ ProductSummeryCard تغییر نکرده؛ فقط Grid ریسپانسیو شده.
         return GridView.builder(
           physics: const NeverScrollableScrollPhysics(),
           shrinkWrap: true,
@@ -76,18 +73,14 @@ class ProductSummerySection extends StatelessWidget {
             childAspectRatio: aspect,
           ),
           itemBuilder: (context, i) => ProductSummeryCard(
-
             info: items[i],
-              onTap: (t) async {
+            onTap: (t) async {
               if (await UserSaveHelper.isExpired()) {
                 DialogHelper.showExpiredDialog(context);
                 return;
               }
               context.dataProvider.filterProductsByQuantity(t ?? '');
             },
-
-
-
           ),
         );
       },

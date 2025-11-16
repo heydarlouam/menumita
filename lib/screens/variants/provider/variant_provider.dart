@@ -7,7 +7,7 @@ import '../../../core/data/data_provider.dart';
 
 import '../../../models/variant.dart';
 import '../../../models/variant_type.dart';
-import '../../../services/http_services.dart';
+import '../../../core/data/repositories/category_repository.dart';
 import '../../../utility/snack_bar_helper.dart';
 
 
@@ -15,7 +15,7 @@ import 'package:get/get_connect/http/src/response/response.dart';
 
 
 // class VariantsProvider extends ChangeNotifier {
-//   final HttpService service = HttpService();
+//   final VariantRepository repository = VariantRepository();
 //   final DataProvider _dataProvider;
 //
 //   final addVariantsFormKey = GlobalKey<FormState>();
@@ -175,11 +175,11 @@ import 'package:get/get_connect/http/src/response/response.dart';
 import '../../../core/data/data_provider.dart';
 import '../../../models/variant.dart';
 import '../../../models/variant_type.dart';
-import '../../../services/http_services.dart';
+import '../../../core/data/repositories/category_repository.dart';
 import '../../../utility/snack_bar_helper.dart';
 
 class VariantsProvider extends ChangeNotifier {
-  final HttpService service = HttpService();
+  final VariantRepository repository = VariantRepository();
   final DataProvider _dataProvider;
 
   final addVariantsFormKey = GlobalKey<FormState>();
@@ -274,10 +274,7 @@ class VariantsProvider extends ChangeNotifier {
         'phone_number_code': phone, // ⬅️ جایگزین مقدار ثابت
       };
 
-      final Response res = await service.addItem(
-        endpointUrl: 'api/variants',
-        itemData: body,
-      );
+      final Response res = await repository.addVariant(body);
 
       if (res.isOk && (res.body?['success'] == true)) {
         clearFields();
@@ -319,11 +316,7 @@ class VariantsProvider extends ChangeNotifier {
         body['variant_type'] = selectedVariantType!.sId;
       }
 
-      final Response res = await service.updateItem(
-        endpointUrl: 'api/variants',
-        itemId: id,
-        itemData: body,
-      );
+      final Response res = await repository.updateVariant(id, body);
 
       if (res.isOk && (res.body?['success'] == true)) {
         clearFields();
@@ -364,10 +357,7 @@ class VariantsProvider extends ChangeNotifier {
 
   Future<void> deleteVariant(Variant item) async {
     try {
-      final Response res = await service.deleteItem(
-        endpointUrl: 'api/variants',
-        itemId: item.sId ?? '',
-      );
+      final Response res = await repository.deleteVariant(item.sId ?? '');
       if (res.isOk && (res.body?['success'] == true)) {
         SnackBarHelper.showSuccessSnackBar(res.body['message'] ?? 'Variant deleted successfully!');
         await _dataProvider.getAllVariants();

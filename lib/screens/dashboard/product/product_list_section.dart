@@ -24,9 +24,9 @@ class ProductListSection extends StatelessWidget {
         color: secondaryColor,
         borderRadius: BorderRadius.all(Radius.circular(10)),
       ),
-      child: Consumer<DataProvider>(
-        builder: (context, dataProvider, _) {
-          final items = dataProvider.products;
+      child: Selector<DataProvider, List<Product>>(
+        selector: (_, dp) => dp.products,
+        builder: (context, items, _) {
 
           // ✅ حفظ DataTable (دیزاین قبلی). فقط برای موبایل/تبلت اسکرول افقی می‌دیم.
           // return SingleChildScrollView(

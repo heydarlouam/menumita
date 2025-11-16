@@ -1,16 +1,15 @@
 import 'dart:developer';
 
-
 import 'package:admin/utility/snack_bar_helper.dart';
 import 'package:flutter/cupertino.dart';
 
 import '../../../core/data/data_provider.dart';
 import '../../../models/order.dart';
-import '../../../services/http_services.dart';
+import '../../../core/data/repositories/category_repository.dart';
 import '../../../utility/constants.dart';
 
 class OrderPaidProvider extends ChangeNotifier {
-  final HttpService service = HttpService();
+  final OrderRepository repository = OrderRepository();
   final DataProvider _dataProvider;
 
   final orderFormKey = GlobalKey<FormState>();
@@ -45,10 +44,9 @@ class OrderPaidProvider extends ChangeNotifier {
         'orderStatus': selectedOrderStatus,
       };
 
-      final response = await service.updateItem(
-        endpointUrl: 'api/orders',
-        itemId: orderForUpdate?.sId ?? '',
-        itemData: order,
+      final response = await repository.updateOrder(
+        orderForUpdate?.sId ?? '',
+        order,
       );
 
       if (response.isOk && response.body['success'] == true) {
@@ -74,9 +72,8 @@ class OrderPaidProvider extends ChangeNotifier {
 
   Future<bool> deleteOrder(Order order) async {
     try {
-      final response = await service.deleteItem(
-        endpointUrl: 'api/orders',
-        itemId: order.sId ?? '',
+      final response = await repository.deleteOrder(
+        order.sId ?? '',
       );
 
       if (response.isOk && response.body['success'] == true) {
@@ -91,21 +88,19 @@ class OrderPaidProvider extends ChangeNotifier {
       }
     } catch (e) {
       log('❌ Delete order error: $e');
-      SnackBarHelper.showErrorSnackBar('An error occurred while deleting order: $e');
+      SnackBarHelper.showErrorSnackBar(
+          'An error occurred while deleting order: $e');
       return false;
     }
   }
 
   Future<bool> updateOrderStatus(String orderId, String newStatus) async {
     try {
-      final response = await service.updateItem(
-        endpointUrl: 'api/orders',
-        itemId: orderId,
-        itemData: {'orderStatus': newStatus},
-      );
+      final response = await repository.updateStatus(orderId, newStatus);
 
       if (response.isOk && response.body['success'] == true) {
-        SnackBarHelper.showSuccessSnackBar('Order status updated to $newStatus');
+        SnackBarHelper.showSuccessSnackBar(
+            'Order status updated to $newStatus');
         await _dataProvider.getAllsOrders();
         return true;
       } else {
@@ -122,11 +117,7 @@ class OrderPaidProvider extends ChangeNotifier {
 
   Future<bool> updateTrackingUrl(String orderId, String trackingUrl) async {
     try {
-      final response = await service.updateItem(
-        endpointUrl: 'api/orders',
-        itemId: orderId,
-        itemData: {'trackingUrl': trackingUrl},
-      );
+      final response = await repository.updateTracking(orderId, trackingUrl);
 
       if (response.isOk && response.body['success'] == true) {
         SnackBarHelper.showSuccessSnackBar('Tracking URL updated');

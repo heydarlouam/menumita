@@ -16,7 +16,7 @@ class VariantsListSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final data = context.watch<DataProvider>();
+    // لیست ویژگی‌ها فقط هنگام تغییر خودش ری‌بیلد می‌شود
 
     return Container(
       padding: const EdgeInsets.all(defaultPadding),
@@ -82,49 +82,52 @@ class VariantsListSection extends StatelessWidget {
             child: ConstrainedBox(
               constraints: BoxConstraints(minWidth: w), // 👈 حداقل عرض = کل عرض کارت
               child: SingleChildScrollView(            // 👈 اسکرول عمودی جدول
-                child: DataTable(
-                  columnSpacing: defaultPadding,
-                  columns: const [
-                    DataColumn(label: Text('نام ویژگی')),
-                    DataColumn(label: Text('نوع ویژگی')),
-                    DataColumn(label: Text('ویرایش')),
-                    DataColumn(label: Text('حذف')),
-                  ],
-                  rows: List.generate(
-                    data.variants.length,
-                        (i) {
-                      final Variant item = data.variants[i];
-                      return DataRow(
-                        cells: [
-                          DataCell(Text(item.name ?? '')),
-                          DataCell(Text(item.variantTypeId?.name ?? '')),
-                          DataCell(
-                            IconButton(
-                              onPressed: () async {
-                                if (await UserSaveHelper.isExpired()) {
-                                  DialogHelper.showExpiredDialog(context);
-                                  return;
-                                }
-                                showAddVariantForm(context, item);
-                              },
-                              icon: const Icon(Icons.edit, color: Colors.white),
+                child: Selector<DataProvider, List<Variant>>(
+                  selector: (_, dp) => dp.variants,
+                  builder: (_, items, __) => DataTable(
+                    columnSpacing: defaultPadding,
+                    columns: const [
+                      DataColumn(label: Text('نام ویژگی')),
+                      DataColumn(label: Text('نوع ویژگی')),
+                      DataColumn(label: Text('ویرایش')),
+                      DataColumn(label: Text('حذف')),
+                    ],
+                    rows: List.generate(
+                      items.length,
+                          (i) {
+                        final Variant item = items[i];
+                        return DataRow(
+                          cells: [
+                            DataCell(Text(item.name ?? '')),
+                            DataCell(Text(item.variantTypeId?.name ?? '')),
+                            DataCell(
+                              IconButton(
+                                onPressed: () async {
+                                  if (await UserSaveHelper.isExpired()) {
+                                    DialogHelper.showExpiredDialog(context);
+                                    return;
+                                  }
+                                  showAddVariantForm(context, item);
+                                },
+                                icon: const Icon(Icons.edit, color: Colors.white),
+                              ),
                             ),
-                          ),
-                          DataCell(
-                            IconButton(
-                              onPressed: () async {
-                                if (await UserSaveHelper.isExpired()) {
-                                  DialogHelper.showExpiredDialog(context);
-                                  return;
-                                }
-                                context.variantProvider.deleteVariant(item);
-                              },
-                              icon: const Icon(Icons.delete, color: Colors.red),
+                            DataCell(
+                              IconButton(
+                                onPressed: () async {
+                                  if (await UserSaveHelper.isExpired()) {
+                                    DialogHelper.showExpiredDialog(context);
+                                    return;
+                                  }
+                                  context.variantProvider.deleteVariant(item);
+                                },
+                                icon: const Icon(Icons.delete, color: Colors.red),
+                              ),
                             ),
-                          ),
-                        ],
-                      );
-                    },
+                          ],
+                        );
+                      },
+                    ),
                   ),
                 ),
               ),

@@ -189,8 +189,9 @@ class CategoryListSection extends StatelessWidget {
             scrollDirection: Axis.horizontal,
             child: ConstrainedBox(
               constraints: BoxConstraints(minWidth: w), // حداقل = عرض کارت
-              child: Consumer<DataProvider>(
-                builder: (context, dataProvider, child) {
+              child: Selector<DataProvider, List<Category>>(
+                selector: (_, dp) => dp.categories,
+                builder: (context, categories, child) {
                   return DataTable(
                     columnSpacing: defaultPadding,
                     columns: const [
@@ -200,18 +201,17 @@ class CategoryListSection extends StatelessWidget {
                       DataColumn(label: Text("حذف")),
                     ],
                     rows: List.generate(
-                      dataProvider.categories.length,
+                      categories.length,
                           (index) => categoryDataRow(
                         context,
-                        dataProvider.categories[index],
+                        categories[index],
                         delete: () {
-                          context.categoryProvider
-                              .deleteCategory(dataProvider.categories[index]);
+                          context.categoryProvider.deleteCategory(categories[index]);
                         },
                         edit: () {
                           showAddCategoryForm(
                             context,
-                            dataProvider.categories[index],
+                            categories[index],
                             'ویرایش دسته‌بندی',
                           );
                         },

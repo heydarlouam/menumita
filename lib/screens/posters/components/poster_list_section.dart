@@ -15,8 +15,7 @@ class PosterListSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // watch → با تغییر DataProvider ری‌بیلد می‌شود
-    final data = context.watch<DataProvider>();
+    // لیست پوسترها فقط هنگام تغییر خود لیست، باعث ریبیلد می‌شود
 
     return Container(
       padding: const EdgeInsets.all(defaultPadding),
@@ -46,17 +45,20 @@ class PosterListSection extends StatelessWidget {
             child: ConstrainedBox(
               constraints: BoxConstraints(minWidth: w),        // 👈 جدول حداقل = کل عرض
               child: SingleChildScrollView(                    // 👈 اسکرول عمودی مثل قبل
-                child: DataTable(
-                  columnSpacing: defaultPadding,
-                  columns: const [
-                    DataColumn(label: Text('عنوان پوستر')),
-                    DataColumn(label: Text('تصویر')),
-                    DataColumn(label: Text('ویرایش')),
-                    DataColumn(label: Text('حذف')),
-                  ],
-                  rows: List.generate(
-                    data.posters.length,
-                        (index) => _row(context, data.posters[index]),
+                child: Selector<DataProvider, List<Poster>>(
+                  selector: (_, dp) => dp.posters,
+                  builder: (_, posters, __) => DataTable(
+                    columnSpacing: defaultPadding,
+                    columns: const [
+                      DataColumn(label: Text('عنوان پوستر')),
+                      DataColumn(label: Text('تصویر')),
+                      DataColumn(label: Text('ویرایش')),
+                      DataColumn(label: Text('حذف')),
+                    ],
+                    rows: List.generate(
+                      posters.length,
+                          (index) => _row(context, posters[index]),
+                    ),
                   ),
                 ),
               ),

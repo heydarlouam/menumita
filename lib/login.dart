@@ -1,24 +1,13 @@
-
 import 'dart:convert';
 
+import 'package:admin/screens/dashboard/mainscreen/main_screen.dart';
 import 'package:admin/services/auth_api.dart';
 import 'package:admin/utility/constants.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_login/flutter_login.dart';
 import 'package:get/get.dart';
-import 'package:get/get_connect.dart';
 
-void main() => runApp(
-  GetMaterialApp(
-    home: LoginScreen(),
-    theme: ThemeData(
-      brightness: Brightness.dark,
-      fontFamily: FONTS_STYLE_FAMILY,
-      scaffoldBackgroundColor: bgColor,
-      canvasColor: secondaryColor,
-    ),
-  ),
-);
+import 'utility/extensions.dart';
 
 // class _AuthClient extends GetConnect {
 //   _AuthClient() {
@@ -60,7 +49,7 @@ class LoginScreen extends StatelessWidget {
 
   Future<String?> _onLogin(LoginData data) async {
     final phone = (data.name ?? '').trim();
-    final pass  = data.password ?? '';
+    final pass = data.password ?? '';
 
     if (phone.isEmpty) return 'نام کاربری را وارد کنید';
     if (phone.length < 3) return 'حداقل ۳ کاراکتر';
@@ -92,32 +81,33 @@ class LoginScreen extends StatelessWidget {
       child: FlutterLogin(
         title: 'ورود',
         onLogin: _onLogin,
-        onSubmitAnimationCompleted: () {
-          Navigator.of(context).pushReplacement(
-            MaterialPageRoute(builder: (_) => const AfterLoginPage()),
-          );
+        onSubmitAnimationCompleted: () async {
+          await context.dataProvider.initAfterLogin();
+          Get.offAll(() => MainScreen());
         },
         hideForgotPasswordButton: true,
         userType: LoginUserType.text,
         userValidator: (value) {
-          if (value == null || value.trim().isEmpty) return 'نام کاربری را وارد کنید';
+          if (value == null || value.trim().isEmpty)
+            return 'نام کاربری را وارد کنید';
           if (value.trim().length < 3) return 'حداقل ۳ کاراکتر';
           return null;
         },
         validateUserImmediately: true,
-        messages:  LoginMessages(
+        messages: LoginMessages(
           userHint: 'نام کاربری',
           passwordHint: 'رمز عبور',
           loginButton: 'ورود',
         ),
-        theme:  LoginTheme(
+        theme: LoginTheme(
           primaryColor: Color(0xFF151924),
           accentColor: Color(0xFFE91E63),
           pageColorDark: Color(0xFF151924),
           pageColorLight: Color(0xFF151924),
           cardTheme: CardTheme(
             color: Color(0xFF1E2430),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.all(Radius.circular(16))),
+            shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.all(Radius.circular(16))),
           ),
           textFieldStyle: TextStyle(color: Colors.grey),
           inputTheme: InputDecorationTheme(
@@ -151,7 +141,6 @@ class LoginScreen extends StatelessWidget {
   }
 }
 
-
 class AfterLoginPage extends StatelessWidget {
   const AfterLoginPage({super.key});
 
@@ -162,34 +151,37 @@ class AfterLoginPage extends StatelessWidget {
 
   // برچسب‌های فارسی برای کلیدهای مهم
   static const Map<String, String> _faLabels = {
-    'name'               : 'نام',
-    'family'             : 'نام خانوادگی',
-    'phone_number'       : 'شماره تماس',
-    'name_bizi'          : 'نام کسب‌وکار',
-    'address'            : 'آدرس',
-    'address_neshan'     : 'نشانی نشانه',
-    'address_balad'      : 'نشانی بلد',
-    'address_waze'       : 'نشانی Waze',
-    'address_googlemap'  : 'نشانی گوگل‌مپ',
-    'menu_type'          : 'نوع منو',
-    'expirydate'         : 'تاریخ انقضا',
-    'created'            : 'ایجاد شده',
-    'updated'            : 'به‌روزشده',
-    'id'                 : 'شناسه',
-    'collectionId'       : 'شناسه کالکشن',
-    'collectionName'     : 'نام کالکشن',
-    'icon_logo'          : 'نام فایل لوگو',
-    'icon_logo_url'      : 'آدرس لوگو',
-    'icon_location'      : 'نام فایل لوکیشن',
-    'icon_location_url'  : 'آدرس لوکیشن',
+    'name': 'نام',
+    'family': 'نام خانوادگی',
+    'phone_number': 'شماره تماس',
+    'name_bizi': 'نام کسب‌وکار',
+    'address': 'آدرس',
+    'address_neshan': 'نشانی نشانه',
+    'address_balad': 'نشانی بلد',
+    'address_waze': 'نشانی Waze',
+    'address_googlemap': 'نشانی گوگل‌مپ',
+    'menu_type': 'نوع منو',
+    'expirydate': 'تاریخ انقضا',
+    'created': 'ایجاد شده',
+    'updated': 'به‌روزشده',
+    'id': 'شناسه',
+    'collectionId': 'شناسه کالکشن',
+    'collectionName': 'نام کالکشن',
+    'icon_logo': 'نام فایل لوگو',
+    'icon_logo_url': 'آدرس لوگو',
+    'icon_location': 'نام فایل لوکیشن',
+    'icon_location_url': 'آدرس لوکیشن',
   };
 
   String _labelOf(String key) => _faLabels[key] ?? key;
 
   Widget _valueWidget(dynamic v) {
-    if (v == null) return const SelectableText('—', style: TextStyle(color: Colors.white70));
-    if (v is String) return SelectableText(v, style: const TextStyle(color: Colors.white));
-    return SelectableText(jsonEncode(v), style: const TextStyle(color: Colors.white));
+    if (v == null)
+      return const SelectableText('—', style: TextStyle(color: Colors.white70));
+    if (v is String)
+      return SelectableText(v, style: const TextStyle(color: Colors.white));
+    return SelectableText(jsonEncode(v),
+        style: const TextStyle(color: Colors.white));
   }
 
   @override
@@ -210,25 +202,36 @@ class AfterLoginPage extends StatelessWidget {
           final user = snap.data ?? {};
           if (user.isEmpty) {
             return const Center(
-              child: Text('اطلاعات کاربر یافت نشد', style: TextStyle(color: Colors.white70)),
+              child: Text('اطلاعات کاربر یافت نشد',
+                  style: TextStyle(color: Colors.white70)),
             );
           }
 
-          final name   = (user['name'] ?? '').toString();
+          final name = (user['name'] ?? '').toString();
           final family = (user['family'] ?? '').toString();
-          final phone  = (user['phone_number'] ?? '').toString();
+          final phone = (user['phone_number'] ?? '').toString();
 
-          final logoUrl     = (user['icon_logo_url'] ?? '').toString().trim();
-          final locationUrl = (user['icon_location_url'] ?? '').toString().trim();
+          final logoUrl = (user['icon_logo_url'] ?? '').toString().trim();
+          final locationUrl =
+              (user['icon_location_url'] ?? '').toString().trim();
 
           // اول کلیدهای مهم را بالای لیست نشان بده
           final List<String> primaryKeys = [
-            'name','family','phone_number','name_bizi','address','menu_type','created','updated',
-            'icon_logo_url','icon_location_url'
+            'name',
+            'family',
+            'phone_number',
+            'name_bizi',
+            'address',
+            'menu_type',
+            'created',
+            'updated',
+            'icon_logo_url',
+            'icon_location_url'
           ];
 
           // بقیهٔ کلیدها
-          final Set<String> allKeys = user.keys.map((e) => e.toString()).toSet();
+          final Set<String> allKeys =
+              user.keys.map((e) => e.toString()).toSet();
           final List<String> otherKeys = allKeys
               .where((k) => !primaryKeys.contains(k))
               .toList()
@@ -242,7 +245,8 @@ class AfterLoginPage extends StatelessWidget {
                 // Header card
                 Card(
                   color: const Color(0xFF1E2430),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16)),
                   child: Padding(
                     padding: const EdgeInsets.all(16),
                     child: Row(
@@ -256,9 +260,10 @@ class AfterLoginPage extends StatelessWidget {
                               : null,
                           child: (logoUrl.isEmpty)
                               ? Text(
-                            (name.isNotEmpty ? name[0] : '؟'),
-                            style: const TextStyle(fontSize: 24, color: Colors.white70),
-                          )
+                                  (name.isNotEmpty ? name[0] : '؟'),
+                                  style: const TextStyle(
+                                      fontSize: 24, color: Colors.white70),
+                                )
                               : null,
                         ),
                         const SizedBox(width: 16),
@@ -274,7 +279,8 @@ class AfterLoginPage extends StatelessWidget {
                                   )),
                               const SizedBox(height: 6),
                               Text(phone,
-                                  style: const TextStyle(color: Colors.white70, fontSize: 14)),
+                                  style: const TextStyle(
+                                      color: Colors.white70, fontSize: 14)),
                             ],
                           ),
                         ),
@@ -302,13 +308,16 @@ class AfterLoginPage extends StatelessWidget {
                 if (locationUrl.isNotEmpty)
                   Card(
                     color: const Color(0xFF1E2430),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16)),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
                         ClipRRect(
-                          borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
-                          child: Image.network(locationUrl, fit: BoxFit.cover, height: 160),
+                          borderRadius: const BorderRadius.vertical(
+                              top: Radius.circular(16)),
+                          child: Image.network(locationUrl,
+                              fit: BoxFit.cover, height: 160),
                         ),
                         const Padding(
                           padding: EdgeInsets.all(12),
@@ -326,9 +335,11 @@ class AfterLoginPage extends StatelessWidget {
 
                 // لیست کلیدهای مهم
                 _SectionTitle('اطلاعات اصلی'),
-                ...primaryKeys
-                    .where((k) => user.containsKey(k))
-                    .map((k) => _KVTile(label: _labelOf(k), value: user[k], fullKey: 'user.$k')),
+                ...primaryKeys.where((k) => user.containsKey(k)).map((k) =>
+                    _KVTile(
+                        label: _labelOf(k),
+                        value: user[k],
+                        fullKey: 'user.$k')),
 
                 const SizedBox(height: 16),
 
@@ -337,10 +348,12 @@ class AfterLoginPage extends StatelessWidget {
                 if (otherKeys.isEmpty)
                   const Padding(
                     padding: EdgeInsets.symmetric(vertical: 8),
-                    child: Text('موردی ندارد', style: TextStyle(color: Colors.white54)),
+                    child: Text('موردی ندارد',
+                        style: TextStyle(color: Colors.white54)),
                   ),
                 ...otherKeys.map(
-                      (k) => _KVTile(label: _labelOf(k), value: user[k], fullKey: 'user.$k'),
+                  (k) => _KVTile(
+                      label: _labelOf(k), value: user[k], fullKey: 'user.$k'),
                 ),
               ],
             ),
@@ -385,9 +398,8 @@ class _KVTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final String textValue = value == null
-        ? '—'
-        : (value is String ? value : jsonEncode(value));
+    final String textValue =
+        value == null ? '—' : (value is String ? value : jsonEncode(value));
 
     return Card(
       color: const Color(0xFF1E2430),

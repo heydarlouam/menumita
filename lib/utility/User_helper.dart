@@ -1,7 +1,3 @@
-import 'package:admin/services/auth_api.dart';
-import 'package:admin/utility/snack_bar_helper.dart';
-
-
 // class UserSaveHelper {
 //   static String? _cache;
 //
@@ -49,7 +45,6 @@ import 'package:admin/utility/snack_bar_helper.dart';
 //     return _userCache;
 //   }
 // }
-
 
 import 'package:admin/services/auth_api.dart';
 import 'package:admin/utility/snack_bar_helper.dart';
@@ -138,10 +133,6 @@ import 'package:persian_datetime_picker/persian_datetime_picker.dart';
 //   }
 // }
 
-import 'package:admin/services/auth_api.dart';
-import 'package:admin/utility/snack_bar_helper.dart';
-import 'package:persian_datetime_picker/persian_datetime_picker.dart';
-
 class UserSaveHelper {
   static String? _cache;
   static Map<String, dynamic>? _userCache;
@@ -162,15 +153,18 @@ class UserSaveHelper {
   /// keys: name, family, name_bizi, icon_logo_url, expirydate, menu_type
   ///  - expirydate: مثل "1404-12-29" (جلالی)
   ///  - menu_type: از کلید 'user.menu_type'
-  static Future<Map<String, dynamic>?> getUserInfo({bool showError = true}) async {
+  static Future<Map<String, dynamic>?> getUserInfo(
+      {bool showError = true}) async {
     if (_userCache != null && _userCache!.isNotEmpty) return _userCache;
 
-    final name      = await PrefsService.get<String>('user.name');
-    final family    = await PrefsService.get<String>('user.family');
-    final nameBizi  = await PrefsService.get<String>('user.name_bizi');
-    final iconUrl   = await PrefsService.get<String>('user.icon_logo_url');
-    final expiry    = await PrefsService.get<String>('user.expirydate'); // مثلاً "1404-12-29"
-    final menuType  = await PrefsService.get<String>('user.menu_type');  // 👈 اضافه شد
+    final name = await PrefsService.get<String>('user.name');
+    final family = await PrefsService.get<String>('user.family');
+    final nameBizi = await PrefsService.get<String>('user.name_bizi');
+    final iconUrl = await PrefsService.get<String>('user.icon_logo_url');
+    final expiry =
+        await PrefsService.get<String>('user.expirydate'); // مثلاً "1404-12-29"
+    final menuType =
+        await PrefsService.get<String>('user.menu_type'); // 👈 اضافه شد
 
     final allNullOrEmpty = [name, family, nameBizi, iconUrl, expiry, menuType]
         .every((v) => v == null || (v is String && v.isEmpty));
@@ -181,12 +175,12 @@ class UserSaveHelper {
     }
 
     _userCache = {
-      'name'          : name ?? '',
-      'family'        : family ?? '',
-      'name_bizi'     : nameBizi ?? '',
-      'icon_logo_url' : iconUrl ?? '',
-      'expirydate'    : expiry ?? '',
-      'menu_type'     : menuType ?? '', // 👈 اضافه شد
+      'name': name ?? '',
+      'family': family ?? '',
+      'name_bizi': nameBizi ?? '',
+      'icon_logo_url': iconUrl ?? '',
+      'expirydate': expiry ?? '',
+      'menu_type': menuType ?? '', // 👈 اضافه شد
     };
     return _userCache;
   }
@@ -221,8 +215,8 @@ class UserSaveHelper {
 
   /// 🔹 نرمال‌سازی ارقام فارسی/عربی
   static String _normalizeDigits(String s) {
-    const fa = ['۰','۱','۲','۳','۴','۵','۶','۷','۸','۹'];
-    const ar = ['٠','١','٢','٣','٤','٥','٦','٧','٨','٩'];
+    const fa = ['۰', '۱', '۲', '۳', '۴', '۵', '۶', '۷', '۸', '۹'];
+    const ar = ['٠', '١', '٢', '٣', '٤', '٥', '٦', '٧', '٨', '٩'];
     for (int i = 0; i < 10; i++) {
       s = s.replaceAll(fa[i], i.toString()).replaceAll(ar[i], i.toString());
     }

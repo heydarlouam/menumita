@@ -354,14 +354,15 @@ class VariantSubmitForm extends StatelessWidget {
               Row(
                 children: [
                   Expanded(
-                    child: Consumer<DataProvider>(
-                      builder: (context, dataProvider, child) {
+                    child: Selector<DataProvider, List<VariantType>>(
+                      selector: (_, dp) => dp.variantTypes,
+                      builder: (context, types, child) {
                         final vtId = variant?.variantTypeId?.sId;
-                        if (p.selectedVariantType == null && vtId != null && dataProvider.variantTypes.isNotEmpty) {
+                        if (p.selectedVariantType == null && vtId != null && types.isNotEmpty) {
                           p.hydrateSelectedType(vtId);
                         }
 
-                        final List<VariantType> items = List<VariantType>.from(dataProvider.variantTypes)
+                        final List<VariantType> items = List<VariantType>.from(types)
                           ..sort((a, b) => (a.name ?? '').compareTo(b.name ?? ''));
 
                         return CustomDropdown<VariantType>(

@@ -10,12 +10,12 @@ import 'package:image_picker/image_picker.dart';
 import '../../../core/data/data_provider.dart';
 
 import '../../../models/poster.dart';
-import '../../../services/http_services.dart';
+import '../../../core/data/repositories/category_repository.dart';
 import '../../../utility/snack_bar_helper.dart';
 
 
 class PosterProvider extends ChangeNotifier {
-  final HttpService service = HttpService();
+  final PosterRepository repository = PosterRepository();
   final DataProvider _dataProvider;
 
   final addPosterFormKey = GlobalKey<FormState>();
@@ -92,7 +92,7 @@ class PosterProvider extends ChangeNotifier {
       }
       final form = await _buildFormData();
 
-      final res = await service.addItem(endpointUrl: 'api/posters', itemData: form);
+      final res = await repository.addPoster(form);
 
       if (res.isOk && (res.body is Map && ((res.body['success']==true) || (res.body['ok']==true)))) {
         SnackBarHelper.showSuccessSnackBar(res.body['message'] ?? 'Poster created successfully');
@@ -117,7 +117,7 @@ class PosterProvider extends ChangeNotifier {
         return false;
       }
       final form = await _buildFormData();
-      final res = await service.updateItem(endpointUrl: 'api/posters', itemId: id, itemData: form);
+      final res = await repository.updatePoster(id, form);
 
       if (res.isOk && (res.body is Map && ((res.body['success']==true) || (res.body['ok']==true)))) {
         SnackBarHelper.showSuccessSnackBar(res.body['message'] ?? 'Poster updated successfully');
@@ -161,7 +161,7 @@ class PosterProvider extends ChangeNotifier {
       final id = poster.sId ?? '';
       if (id.isEmpty) return false;
 
-      final res = await service.deleteItem(endpointUrl: 'api/posters', itemId: id);
+      final res = await repository.deletePoster(id);
       if (res.isOk && (res.body is Map && ((res.body['success']==true) || (res.body['ok']==true)))) {
         SnackBarHelper.showSuccessSnackBar(res.body['message'] ?? 'Poster deleted successfully!');
         await _dataProvider.getAllPosters();

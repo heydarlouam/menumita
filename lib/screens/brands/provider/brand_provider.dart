@@ -8,13 +8,13 @@ import '../../../core/data/data_provider.dart';
 
 import '../../../models/brand.dart';
 import '../../../models/sub_category.dart';
-import '../../../services/http_services.dart';
+import '../../../core/data/repositories/category_repository.dart';
 import '../../../utility/snack_bar_helper.dart';
 
 import 'dart:convert';
 
 class BrandProvider extends ChangeNotifier {
-  final HttpService service = HttpService();
+  final BrandRepository repository = BrandRepository();
   final DataProvider _dataProvider;
 
   final addBrandFormKey = GlobalKey<FormState>();
@@ -67,10 +67,7 @@ class BrandProvider extends ChangeNotifier {
         'phone_number_code': phone, // ← جایگزین عدد ثابت
       };
 
-      final response = await service.addItem(
-        endpointUrl: 'api/brands',
-        itemData: brand,
-      );
+      final response = await repository.addBrand(brand);
 
       if (response.isOk) {
         final m = _parseBody(response.body);
@@ -112,10 +109,9 @@ class BrandProvider extends ChangeNotifier {
         'phone_number_code': phone, // ← جایگزین عدد ثابت
       };
 
-      final response = await service.updateItem(
-        endpointUrl: 'api/brands',
-        itemId: brandForUpdate?.sId ?? '',
-        itemData: brand,
+      final response = await repository.updateBrand(
+        brandForUpdate?.sId ?? '',
+        brand,
       );
 
       if (response.isOk) {
@@ -141,83 +137,6 @@ class BrandProvider extends ChangeNotifier {
       return false;
     }
   }
-
-  // // ---------- Create ----------
-  // Future<bool> addBrand() async {
-  //   try {
-  //     final Map<String, dynamic> brand = {
-  //       'name': brandNameCtrl.text,
-  //       'subcategory': selectedSubCategory?.sId,
-  //       'phone_number_code':'12345'
-  //     };
-  //
-  //     final response = await service.addItem(
-  //       endpointUrl: 'api/brands',
-  //       itemData: brand,
-  //     );
-  //
-  //     if (response.isOk) {
-  //       final m = _parseBody(response.body);
-  //       if (_okFlag(m)) {
-  //         clearFields();
-  //         SnackBarHelper.showSuccessSnackBar(
-  //             _msg(m, 'Brand added successfully'));
-  //         log('brand added');
-  //         await _dataProvider.getAllBrands();
-  //         return true;
-  //       } else {
-  //         SnackBarHelper.showErrorSnackBar(
-  //             'Failed to add brand: ${m?['error'] ?? m?['message'] ?? 'Unknown error'}');
-  //         return false;
-  //       }
-  //     } else {
-  //       SnackBarHelper.showErrorSnackBar('Error: ${response.statusText}');
-  //       return false;
-  //     }
-  //   } catch (e) {
-  //     SnackBarHelper.showErrorSnackBar('An error occurred: $e');
-  //     return false;
-  //   }
-  // }
-  //
-  // // ---------- Update ----------
-  // Future<bool> updateBrand() async {
-  //   try {
-  //     final Map<String, dynamic> brand = {
-  //       'name': brandNameCtrl.text,
-  //       'subcategory': selectedSubCategory?.sId,
-  //       'phone_number_code':'12345'
-  //     };
-  //
-  //     final response = await service.updateItem(
-  //       endpointUrl: 'api/brands',
-  //       itemId: brandForUpdate?.sId ?? '',
-  //       itemData: brand,
-  //     );
-  //
-  //     if (response.isOk) {
-  //       final m = _parseBody(response.body);
-  //       if (_okFlag(m)) {
-  //         clearFields();
-  //         SnackBarHelper.showSuccessSnackBar(
-  //             _msg(m, 'Brand updated successfully'));
-  //         log('brand updated');
-  //         await _dataProvider.getAllBrands();
-  //         return true;
-  //       } else {
-  //         SnackBarHelper.showErrorSnackBar(
-  //             'Failed to update brand: ${m?['error'] ?? m?['message'] ?? 'Unknown error'}');
-  //         return false;
-  //       }
-  //     } else {
-  //       SnackBarHelper.showErrorSnackBar('Error: ${response.statusText}');
-  //       return false;
-  //     }
-  //   } catch (e) {
-  //     SnackBarHelper.showErrorSnackBar('An error occurred: $e');
-  //     return false;
-  //   }
-  // }
 
   // ---------- Unified Submit ----------
   Future<bool> submitBrand() async {
@@ -248,9 +167,8 @@ class BrandProvider extends ChangeNotifier {
   // ---------- Delete ----------
   Future<bool> deleteBrand(Brand brand) async {
     try {
-      final response = await service.deleteItem(
-        endpointUrl: 'api/brands',
-        itemId: brand.sId ?? '',
+      final response = await repository.deleteBrand(
+        brand.sId ?? '',
       );
 
       if (response.isOk) {
