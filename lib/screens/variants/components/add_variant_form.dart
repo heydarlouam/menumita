@@ -11,6 +11,7 @@ import '../../../widgets/custom_text_field.dart';
 import '../../../core/data/data_provider.dart';
 
 import '../provider/variant_provider.dart';
+import '../../../widgets/submission_spinner.dart';
 
 class VariantSubmitForm extends StatelessWidget {
   final Variant? variant;
@@ -102,16 +103,24 @@ class VariantSubmitForm extends StatelessWidget {
                         foregroundColor: Colors.white,
                         backgroundColor: primaryColor,
                       ),
-                      onPressed: vp.isSubmitting
-                          ? null
-                          : () async {
+                      onPressed: () async {
+                        if (vp.isSubmitting) return;
                         await p.submitVariant();
                         if (!context.mounted) return;
                         Navigator.of(context).pop();
                       },
-                      child: vp.isSubmitting
-                          ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
-                          : const Text('ثبت'),
+                      child: AnimatedSwitcher(
+                        duration: const Duration(milliseconds: 200),
+                        transitionBuilder: (child, anim) => FadeTransition(opacity: anim, child: child),
+                        child: vp.isSubmitting
+                            ? const SubmissionSpinner(
+                                key: ValueKey('variant_loading'),
+                              )
+                            : const Text(
+                                'ثبت',
+                                key: ValueKey('variant_submit_text'),
+                              ),
+                      ),
                     ),
                   ),
                 ],

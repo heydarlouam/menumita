@@ -7,6 +7,7 @@ import '../../../utility/constants.dart';
 import '../../../utility/extensions.dart';
 import '../../../widgets/custom_text_field.dart';
 import '../provider/variant_type_provider.dart';
+import '../../../widgets/submission_spinner.dart';
 
 class VariantTypeSubmitForm extends StatelessWidget {
   final VariantType? item;
@@ -60,15 +61,25 @@ class VariantTypeSubmitForm extends StatelessWidget {
                 const SizedBox(width: defaultPadding),
                 Consumer<VariantsTypeProvider>(
                   builder: (_, prov, __) => ElevatedButton(
-                    onPressed: prov.isSubmitting ? null : () async {
+                    onPressed: () async {
+                      if (prov.isSubmitting) return;
                       final ok = await prov.submit();
                       if (!context.mounted) return;
                       if (ok) Navigator.pop(context);
                     },
                     style: ElevatedButton.styleFrom(backgroundColor: primaryColor, foregroundColor: Colors.white),
-                    child: prov.isSubmitting
-                        ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
-                        : const Text('ثبت'),
+                    child: AnimatedSwitcher(
+                      duration: const Duration(milliseconds: 200),
+                      transitionBuilder: (child, anim) => FadeTransition(opacity: anim, child: child),
+                      child: prov.isSubmitting
+                          ? const SubmissionSpinner(
+                              key: ValueKey('variant_type_loading'),
+                            )
+                          : const Text(
+                              'ثبت',
+                              key: ValueKey('variant_type_submit_text'),
+                            ),
+                    ),
                   ),
                 ),
               ]),

@@ -10,6 +10,7 @@ import '../../../utility/constants.dart';
 import '../../../utility/extensions.dart';
 import '../../../widgets/custom_dropdown.dart';
 import '../../../widgets/custom_text_field.dart';
+import '../../../widgets/submission_spinner.dart';
 import '../provider/brand_provider.dart';
 
 class BrandSubmitForm extends StatefulWidget {
@@ -123,9 +124,8 @@ class _BrandSubmitFormState extends State<BrandSubmitForm> {
                 foregroundColor: Colors.white,
                 backgroundColor: primaryColor,
               ),
-              onPressed: provider.isSubmitting
-                  ? null
-                  : () async {
+              onPressed: () async {
+                if (provider.isSubmitting) return;
                 final form = provider.addBrandFormKey.currentState;
                 if (form == null) return;
                 if (!form.validate()) return;
@@ -135,13 +135,18 @@ class _BrandSubmitFormState extends State<BrandSubmitForm> {
                 if (!mounted) return;
                 if (ok) Navigator.of(context).pop();
               },
-              child: provider.isSubmitting
-                  ? const SizedBox(
-                width: 20,
-                height: 20,
-                child: CircularProgressIndicator(strokeWidth: 2),
-              )
-                  : const Text('ثبت'),
+              child: AnimatedSwitcher(
+                duration: const Duration(milliseconds: 200),
+                transitionBuilder: (child, anim) => FadeTransition(opacity: anim, child: child),
+                child: provider.isSubmitting
+                    ? const SubmissionSpinner(
+                        key: ValueKey('brand_loading'),
+                      )
+                    : const Text(
+                        'ثبت',
+                        key: ValueKey('brand_submit_text'),
+                      ),
+              ),
             );
           },
         ),

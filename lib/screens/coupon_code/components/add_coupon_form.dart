@@ -11,6 +11,7 @@ import '../../../utility/extensions.dart';
 import '../../../widgets/custom_date_picker.dart';
 import '../../../widgets/custom_dropdown.dart';
 import '../../../widgets/custom_text_field.dart';
+import '../../../widgets/submission_spinner.dart';
 import '../provider/coupon_code_provider.dart';
 
 
@@ -209,9 +210,8 @@ class _CouponSubmitFormState extends State<CouponSubmitForm> {
                           backgroundColor: primaryColor,
                           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
                         ),
-                        onPressed: p.isSubmitting
-                            ? null
-                            : () async {
+                        onPressed: () async {
+                          if (p.isSubmitting) return;
                           final form = p.addCouponFormKey.currentState;
                           if (form == null) return;
                           if (!form.validate()) return;
@@ -221,14 +221,19 @@ class _CouponSubmitFormState extends State<CouponSubmitForm> {
                           if (!context.mounted) return;
                           if (ok) Navigator.of(context).pop();
                         },
-                        child: p.isSubmitting
-                            ? const SizedBox(
-                          height: 20, width: 20,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                            : Text(
-                          widget.coupon != null ? 'بروزرسانی کوپن' : 'ایجاد کوپن',
-                          style: const TextStyle(fontWeight: FontWeight.bold),
+                        child: AnimatedSwitcher(
+                          duration: const Duration(milliseconds: 200),
+                          transitionBuilder: (child, anim) =>
+                              FadeTransition(opacity: anim, child: child),
+                          child: p.isSubmitting
+                              ? const SubmissionSpinner(
+                                  key: ValueKey('coupon_loading'),
+                                )
+                              : Text(
+                                  widget.coupon != null ? 'بروزرسانی کوپن' : 'ایجاد کوپن',
+                                  key: const ValueKey('coupon_submit_text'),
+                                  style: const TextStyle(fontWeight: FontWeight.bold),
+                                ),
                         ),
                       ),
                     ],
@@ -250,7 +255,7 @@ class _CouponSubmitFormState extends State<CouponSubmitForm> {
       initialValue: p.selectedCategory,
       hintText: 'انتخاب دسته‌بندی',
       items: list,
-      displayItem: (c) => c?.name ?? 'بدون دسته‌بندی',
+      displayItem: (c) => c.name ?? 'بدون دسته‌بندی',
       onChanged: (val) {
         p.selectedCategory = val;
         p.selectedSubCategory = null;
@@ -268,7 +273,7 @@ class _CouponSubmitFormState extends State<CouponSubmitForm> {
       initialValue: p.selectedSubCategory,
       hintText: 'انتخاب زیر‌دسته',
       items: list,
-      displayItem: (s) => s?.name ?? 'بدون زیر‌دسته',
+      displayItem: (s) => s.name ?? 'بدون زیر‌دسته',
       onChanged: (val) {
         p.selectedSubCategory = val;
         p.selectedCategory = null;
@@ -286,7 +291,7 @@ class _CouponSubmitFormState extends State<CouponSubmitForm> {
       initialValue: p.selectedProduct,
       hintText: 'انتخاب محصول',
       items: list,
-      displayItem: (pr) => pr?.name ?? 'بدون محصول',
+      displayItem: (pr) => pr.name ?? 'بدون محصول',
       onChanged: (val) {
         p.selectedProduct = val;
         p.selectedCategory = null;

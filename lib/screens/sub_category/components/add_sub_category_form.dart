@@ -10,6 +10,7 @@ import '../../../utility/constants.dart';
 import '../../../utility/extensions.dart';
 import '../../../widgets/custom_dropdown.dart';
 import '../../../widgets/custom_text_field.dart';
+import '../../../widgets/submission_spinner.dart';
 import '../provider/sub_category_provider.dart';
 
 class SubCategorySubmitForm extends StatefulWidget {
@@ -128,9 +129,8 @@ class _SubCategorySubmitFormState extends State<SubCategorySubmitForm> {
                 foregroundColor: Colors.white,
                 backgroundColor: primaryColor,
               ),
-              onPressed: isBusy
-                  ? null
-                  : () async {
+              onPressed: () async {
+                if (isBusy) return;
                 final form = p.addSubCategoryFormKey.currentState;
                 if (form == null) return;
                 if (!form.validate()) return;
@@ -140,13 +140,18 @@ class _SubCategorySubmitFormState extends State<SubCategorySubmitForm> {
                 if (!context.mounted) return;
                 if (ok) Navigator.of(context).pop();
               },
-              child: isBusy
-                  ? const SizedBox(
-                height: 20,
-                width: 20,
-                child: CircularProgressIndicator(strokeWidth: 2),
-              )
-                  : const Text('ثبت'),                                   // ← ترجمه شد
+              child: AnimatedSwitcher(
+                duration: const Duration(milliseconds: 200),
+                transitionBuilder: (child, anim) => FadeTransition(opacity: anim, child: child),
+                child: isBusy
+                    ? const SubmissionSpinner(
+                        key: ValueKey('sub_category_loading'),
+                      )
+                    : const Text(
+                        'ثبت',
+                        key: ValueKey('sub_category_submit_text'),
+                      ),
+              ),                                   // ← ترجمه شد
             );
           },
         ),

@@ -9,6 +9,7 @@ import '../../../utility/extensions.dart';
 import '../../../widgets/category_image_card.dart';
 import '../../../widgets/custom_text_field.dart';
 import '../provider/poster_provider.dart';
+import '../../../widgets/submission_spinner.dart';
 
 class PosterSubmitForm extends StatelessWidget {
   final Poster? poster;
@@ -81,16 +82,24 @@ class PosterSubmitForm extends StatelessWidget {
                           foregroundColor: Colors.white,
                           backgroundColor: primaryColor,
                         ),
-                        onPressed: p.isSubmitting
-                            ? null
-                            : () async {
+                        onPressed: () async {
+                          if (p.isSubmitting) return;
                           final ok = await p.submitPoster();
                           if (!context.mounted) return;
                           if (ok) Navigator.of(context).pop();
                         },
-                        child: p.isSubmitting
-                            ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
-                            : const Text('ثبت'),
+                        child: AnimatedSwitcher(
+                          duration: const Duration(milliseconds: 200),
+                          transitionBuilder: (child, anim) => FadeTransition(opacity: anim, child: child),
+                          child: p.isSubmitting
+                              ? const SubmissionSpinner(
+                                  key: ValueKey('poster_loading'),
+                                )
+                              : const Text(
+                                  'ثبت',
+                                  key: ValueKey('poster_submit_text'),
+                                ),
+                        ),
                       );
                     },
                   ),

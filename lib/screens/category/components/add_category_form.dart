@@ -8,6 +8,7 @@ import '../../../utility/constants.dart';
 import '../../../utility/extensions.dart';
 import '../../../widgets/category_image_card.dart';
 import '../../../widgets/custom_text_field.dart';
+import '../../../widgets/submission_spinner.dart';
 import '../provider/category_provider.dart';
 
 class CategorySubmitForm extends StatelessWidget {
@@ -111,9 +112,8 @@ class CategorySubmitForm extends StatelessWidget {
                 foregroundColor: Colors.white,
                 backgroundColor: primaryColor,
               ),
-              onPressed: isBusy
-                  ? null
-                  : () async {
+              onPressed: () async {
+                if (isBusy) return;
                 // اعتبارسنجی فرم
                 final form = provider.addCategoryFormKey.currentState;
                 if (form == null) return;
@@ -124,10 +124,18 @@ class CategorySubmitForm extends StatelessWidget {
                 if (!context.mounted) return;
                 if (ok) Navigator.of(context).pop(); // ✅ بستن دیالوگ روی موفقیت
               },
-              child: isBusy
-                  ? const SizedBox(
-                  height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2))
-                  : const Text('ثبت'),
+              child: AnimatedSwitcher(
+                duration: const Duration(milliseconds: 200),
+                transitionBuilder: (child, anim) => FadeTransition(opacity: anim, child: child),
+                child: isBusy
+                    ? const SubmissionSpinner(
+                        key: ValueKey('category_loading'),
+                      )
+                    : const Text(
+                        'ثبت',
+                        key: ValueKey('category_submit_text'),
+                      ),
+              ),
             );
           },
         ),

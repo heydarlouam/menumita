@@ -9,6 +9,7 @@ import '../../../utility/extensions.dart';
 import '../../../widgets/custom_dropdown.dart';
 import '../../../widgets/custom_text_field.dart';
 import '../provider/order_provider.dart';
+import '../../../widgets/submission_spinner.dart';
 
 class OrderSubmitForm extends StatefulWidget {
   final Order? order;
@@ -246,9 +247,8 @@ class _OrderSubmitFormState extends State<OrderSubmitForm> {
         const Gap(defaultPadding),
         ElevatedButton(
           style: ElevatedButton.styleFrom(backgroundColor: Colors.blue),
-          onPressed: op.isSubmitting
-              ? null
-              : () async {
+          onPressed: () async {
+            if (op.isSubmitting) return;
             final form = op.orderFormKey.currentState;
             if (form == null) return;
             if (!form.validate()) return;
@@ -256,9 +256,19 @@ class _OrderSubmitFormState extends State<OrderSubmitForm> {
             if (!mounted) return;
             if (ok) Navigator.of(context).pop();
           },
-          child: op.isSubmitting
-              ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2))
-              : const Text('بروزرسانی سفارش'),
+          child: AnimatedSwitcher(
+            duration: const Duration(milliseconds: 200),
+            transitionBuilder: (child, anim) => FadeTransition(opacity: anim, child: child),
+            child: op.isSubmitting
+                ? const SubmissionSpinner(
+                    key: ValueKey('order_loading'),
+                    strokeWidth: 2,
+                  )
+                : const Text(
+                    'بروزرسانی سفارش',
+                    key: ValueKey('order_submit_text'),
+                  ),
+          ),
         ),
       ],
     );

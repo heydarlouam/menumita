@@ -16,6 +16,7 @@ import '../../../widgets/custom_dropdown.dart';
 import '../../../widgets/custom_text_field.dart';
 import '../../../widgets/multi_select_drop_down.dart';
 import '../../../widgets/product_image_card.dart';
+import '../../../widgets/submission_spinner.dart';
 import '../provider/dash_board_provider.dart';
 
 class ProductSubmitForm extends StatelessWidget {
@@ -155,9 +156,8 @@ class ProductSubmitForm extends StatelessWidget {
                           foregroundColor: Colors.white,
                           backgroundColor: primaryColor,
                         ),
-                        onPressed: isBusy
-                            ? null
-                            : () async {
+                        onPressed: () async {
+                          if (isBusy) return;
                           final form = context.dashBoardProvider.addProductFormKey.currentState;
                           if (form == null) return;
                           if (!form.validate()) return;
@@ -167,10 +167,19 @@ class ProductSubmitForm extends StatelessWidget {
                           if (!context.mounted) return;
                           if (ok) Navigator.of(context).pop();
                         },
-                        child: isBusy
-                            ? const SizedBox(
-                            height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2))
-                            : const Text('ثبت',              style: TextStyle(fontFamily: FONTS_STYLE_FAMILY),),
+                        child: AnimatedSwitcher(
+                          duration: const Duration(milliseconds: 200),
+                          transitionBuilder: (child, anim) => FadeTransition(opacity: anim, child: child),
+                          child: isBusy
+                              ? const SubmissionSpinner(
+                                  key: ValueKey('product_loading'),
+                                )
+                              : const Text(
+                                  'ثبت',
+                                  key: ValueKey('product_submit_text'),
+                                  style: TextStyle(fontFamily: FONTS_STYLE_FAMILY),
+                                ),
+                        ),
                       );
                     },
                   ),

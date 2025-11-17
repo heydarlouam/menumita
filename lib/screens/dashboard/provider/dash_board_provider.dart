@@ -1,6 +1,6 @@
 import 'dart:convert';
-
 import 'dart:io';
+import 'package:flutter/foundation.dart' show debugPrint, kDebugMode;
 
 import 'package:admin/utility/User_helper.dart';
 import 'package:flutter/foundation.dart' hide Category;
@@ -73,12 +73,19 @@ class DashBoardProvider extends ChangeNotifier {
   bool _isOk(Response res) => res.isOk;
   bool _okFlag(Map<String, dynamic>? m) =>
       m != null && (m['success'] == true || m['ok'] == true);
-  String _msg(Map<String, dynamic>? m, String fallback) =>
-      (m != null && m['message'] is String && (m['message'] as String).isNotEmpty)
-          ? m!['message'] as String
-          : fallback;
+  String _msg(Map<String, dynamic>? m, String fallback) {
+    if (m != null && m['message'] is String) {
+      final msg = (m['message'] as String).trim();
+      if (msg.isNotEmpty) return msg;
+    }
+    return fallback;
+  }
 
-
+  void _logProgress(String step, [Object? detail]) {
+    if (!kDebugMode) return;
+    final msg = detail == null ? step : '$step | $detail';
+    debugPrint('🟦 ProductSubmit → $msg');
+  }
 
   Future<bool> submitProduct() async {
     if (_isSubmitting) return false;
@@ -86,11 +93,14 @@ class DashBoardProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
+      _logProgress('started');
       final phone = await UserSaveHelper.getPhoneNumber();
       if (phone == null || phone.isEmpty) {
         SnackBarHelper.showErrorSnackBar('شماره تلفن در حافظه یافت نشد!');
+        _logProgress('failed', 'phone number missing');
         return false;
       }
+      _logProgress('phone loaded', phone);
 
       // variant names -> ids
       List<String> variantIds = [];
@@ -106,11 +116,28 @@ class DashBoardProvider extends ChangeNotifier {
       final List<Map<String, XFile?>> imageEntries = [];
       final List<int> imageSlots = [];
 
-      if (imgXFile1 != null) { imageEntries.add({'images': imgXFile1}); imageSlots.add(1); }
-      if (imgXFile2 != null) { imageEntries.add({'images': imgXFile2}); imageSlots.add(2); }
-      if (imgXFile3 != null) { imageEntries.add({'images': imgXFile3}); imageSlots.add(3); }
-      if (imgXFile4 != null) { imageEntries.add({'images': imgXFile4}); imageSlots.add(4); }
-      if (imgXFile5 != null) { imageEntries.add({'images': imgXFile5}); imageSlots.add(5); }
+      if (imgXFile1 != null) {
+        imageEntries.add({'images': imgXFile1});
+        imageSlots.add(1);
+      }
+      if (imgXFile2 != null) {
+        imageEntries.add({'images': imgXFile2});
+        imageSlots.add(2);
+      }
+      if (imgXFile3 != null) {
+        imageEntries.add({'images': imgXFile3});
+        imageSlots.add(3);
+      }
+      if (imgXFile4 != null) {
+        imageEntries.add({'images': imgXFile4});
+        imageSlots.add(4);
+      }
+      if (imgXFile5 != null) {
+        imageEntries.add({'images': imgXFile5});
+        imageSlots.add(5);
+      }
+      _logProgress(
+          'images prepared', 'count=${imageEntries.length}, slots=$imageSlots');
 
       final Map<String, dynamic> formDataMap = {
         'name': productNameCtrl.text,
@@ -132,27 +159,47 @@ class DashBoardProvider extends ChangeNotifier {
       };
 
       // ✅ ساخت FormData با فایل‌ها + الصاق image_slots
+      _logProgress('building form data');
       final FormData form = await createFormDataForMultipleImage(
         imgXFiles: imageEntries,
         formData: formDataMap,
         imageSlots: imageSlots, // ← جدید
       );
+      _logProgress('form data ready',
+          'fields=${form.fields.length}, files=${form.files.length}');
 
       final String? targetId = productForUpdate?.sId;
-      final bool isUpdate = (targetId != null && targetId.isNotEmpty);
+      if (productForUpdate != null && (targetId == null || targetId.isEmpty)) {
+        SnackBarHelper.showErrorSnackBar(
+            'شناسه محصول برای بروزرسانی نامعتبر است');
+        _logProgress('abort', 'empty product id while editing');
+        return false;
+      }
 
-      final Response res = isUpdate
-          ? await repository.updateProduct(targetId!, form)
-          : await repository.addProduct(form);
+      late final Response res;
+      late final bool isUpdate;
+      if (targetId != null && targetId.isNotEmpty) {
+        isUpdate = true;
+        _logProgress('updating product', targetId);
+        res = await repository.updateProduct(targetId, form);
+      } else {
+        isUpdate = false;
+        _logProgress('creating product', 'new');
+        res = await repository.addProduct(form);
+      }
+      _logProgress('response received', 'status=${res.statusCode}');
 
       final Map<String, dynamic>? body = _parseBody(res.body);
       final bool ok = _isOk(res) && _okFlag(body);
 
       if (ok) {
+        _logProgress('success', body?['message'] ?? 'ok');
         await _dataProvider.getAllProducts(showSnack: true);
         final msg = _msg(
           body,
-          isUpdate ? 'Product updated successfully' : 'Product created successfully',
+          isUpdate
+              ? 'Product updated successfully'
+              : 'Product created successfully',
         );
         SnackBarHelper.showSuccessSnackBar(msg);
         clearFields();
@@ -160,14 +207,17 @@ class DashBoardProvider extends ChangeNotifier {
       } else {
         final err = body?['message'] ?? body?['error'] ?? 'Operation failed';
         SnackBarHelper.showErrorSnackBar(err.toString());
+        _logProgress('server error', err);
         return false;
       }
     } catch (e) {
       SnackBarHelper.showErrorSnackBar('An error occurred: $e');
+      _logProgress('exception', e);
       return false;
     } finally {
       _isSubmitting = false;
       notifyListeners();
+      _logProgress('finished');
     }
   }
 
@@ -181,7 +231,8 @@ class DashBoardProvider extends ChangeNotifier {
       if (response.isOk) {
         final body = _parseBody(response.body);
         if (_okFlag(body)) {
-          SnackBarHelper.showSuccessSnackBar(_msg(body, 'محصول با موفقیت حذف شد!'));
+          SnackBarHelper.showSuccessSnackBar(
+              _msg(body, 'محصول با موفقیت حذف شد!'));
           await _dataProvider.getAllProducts(showSnack: true);
         } else {
           SnackBarHelper.showErrorSnackBar(
@@ -197,7 +248,6 @@ class DashBoardProvider extends ChangeNotifier {
       rethrow;
     }
   }
-
 
   void pickImage({required int imageCardNumber}) async {
     final ImagePicker picker = ImagePicker();
@@ -227,7 +277,6 @@ class DashBoardProvider extends ChangeNotifier {
     }
   }
 
-
   Future<FormData> createFormDataForMultipleImage({
     required List<Map<String, XFile?>>? imgXFiles,
     required Map<String, dynamic> formData,
@@ -239,14 +288,18 @@ class DashBoardProvider extends ChangeNotifier {
       for (int i = 0; i < imgXFiles.length; i++) {
         final XFile? imgXFile = imgXFiles[i]['images'];
         if (imgXFile != null) {
+          _logProgress('attach image',
+              'slot=${imageSlots != null && i < imageSlots.length ? imageSlots[i] : '?'} name=${imgXFile.name}');
           if (kIsWeb) {
             final String fileName = imgXFile.name;
             final Uint8List byteImg = await imgXFile.readAsBytes();
-            form.files.add(MapEntry('images', MultipartFile(byteImg, filename: fileName)));
+            form.files.add(
+                MapEntry('images', MultipartFile(byteImg, filename: fileName)));
           } else {
             final String filePath = imgXFile.path;
             final String fileName = filePath.split('/').last;
-            form.files.add(MapEntry('images', await MultipartFile(filePath, filename: fileName)));
+            form.files.add(MapEntry(
+                'images', await MultipartFile(filePath, filename: fileName)));
           }
 
           // ✅ الصاق شماره اسلات متناظر با همین فایل
@@ -259,6 +312,7 @@ class DashBoardProvider extends ChangeNotifier {
 
     return form;
   }
+
   void markImageRemoved(int slot) {
     switch (slot) {
       case 1:
@@ -337,36 +391,39 @@ class DashBoardProvider extends ChangeNotifier {
       productQntCtrl.text = product.quantity?.toString() ?? '';
 
       selectedCategory = _dataProvider.categories.firstWhereOrNull(
-            (element) => element.sId == product.proCategoryId?.sId,
+        (element) => element.sId == product.proCategoryId?.sId,
       );
 
       if (selectedCategory != null) {
         subCategoriesByCategory = _dataProvider.subCategories
-            .where((subCategory) => subCategory.categoryId?.sId == selectedCategory?.sId)
+            .where((subCategory) =>
+                subCategory.categoryId?.sId == selectedCategory?.sId)
             .toList();
       }
 
       selectedSubCategory = _dataProvider.subCategories.firstWhereOrNull(
-            (element) => element.sId == product.proSubCategoryId?.sId,
+        (element) => element.sId == product.proSubCategoryId?.sId,
       );
 
       if (selectedSubCategory != null) {
         brandsBySubCategory = _dataProvider.brands
-            .where((brand) => brand.subCategoryId?.sId == selectedSubCategory?.sId)
+            .where(
+                (brand) => brand.subCategoryId?.sId == selectedSubCategory?.sId)
             .toList();
       }
 
       selectedBrand = _dataProvider.brands.firstWhereOrNull(
-            (element) => element.sId == product.proBrandId?.sId,
+        (element) => element.sId == product.proBrandId?.sId,
       );
 
       selectedVariantType = _dataProvider.variantTypes.firstWhereOrNull(
-            (element) => element.sId == product.proVariantTypeId?.sId,
+        (element) => element.sId == product.proVariantTypeId?.sId,
       );
 
       if (selectedVariantType != null) {
         variantsByVariantType = _dataProvider.variants
-            .where((variant) => variant.variantTypeId?.sId == selectedVariantType?.sId)
+            .where((variant) =>
+                variant.variantTypeId?.sId == selectedVariantType?.sId)
             .toList()
             .map((variant) => variant.name ?? '')
             .toList();
@@ -374,7 +431,8 @@ class DashBoardProvider extends ChangeNotifier {
 
       // نمایش نام ویژگی‌ها
       selectedVariants = _dataProvider.variants
-          .where((variant) => product.proVariantId?.contains(variant.sId) ?? false)
+          .where(
+              (variant) => product.proVariantId?.contains(variant.sId) ?? false)
           .map((variant) => variant.name ?? '')
           .toList();
     } else {
