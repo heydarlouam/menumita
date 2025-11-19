@@ -175,7 +175,7 @@ class OrderListSection extends StatelessWidget {
         title: Center(
           child: Text(
             'جزئیات سفارش'.toUpperCase(),
-            style: TextStyle(color: Theme.of(ctx).primaryColor),
+            style: TextStyle(color: Colors.white),
           ),
         ),
         content: OrderSubmitForm(order: order),

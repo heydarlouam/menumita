@@ -100,14 +100,14 @@ class _OrderSubmitFormState extends State<OrderSubmitForm> {
                   ),
                 ),
               ),
-              formRow(
-                'لینک پیگیری:',
-                CustomTextField(
-                  labelText: 'لینک پیگیری',
-                  onSave: (_) {},
-                  controller: provider.trackingUrlCtrl,
-                ),
-              ),
+              // formRow(
+              //   'لینک پیگیری:',
+              //   CustomTextField(
+              //     labelText: 'لینک پیگیری',
+              //     onSave: (_) {},
+              //     controller: provider.trackingUrlCtrl,
+              //   ),
+              // ),
               const Gap(defaultPadding * 2),
               Consumer<OrderProvider>(
                 builder: (_, op, __) => actionButtons(context, op),
@@ -149,9 +149,9 @@ class _OrderSubmitFormState extends State<OrderSubmitForm> {
           ),
           formRow('تلفن:', Text(order?.shippingAddress?.phone ?? 'N/A', style: const TextStyle(fontSize: 16))),
           formRow('خیابان:', Text(order?.shippingAddress?.street ?? 'N/A', style: const TextStyle(fontSize: 16))),
-          formRow('شهر:', Text(order?.shippingAddress?.city ?? 'N/A', style: const TextStyle(fontSize: 16))),
-          formRow('کد پستی:', Text(order?.shippingAddress?.postalCode ?? 'N/A', style: const TextStyle(fontSize: 16))),
-          formRow('کشور:', Text(order?.shippingAddress?.country ?? 'N/A', style: const TextStyle(fontSize: 16))),
+          // formRow('شهر:', Text(order?.shippingAddress?.city ?? 'N/A', style: const TextStyle(fontSize: 16))),
+          // formRow('کد پستی:', Text(order?.shippingAddress?.postalCode ?? 'N/A', style: const TextStyle(fontSize: 16))),
+          // formRow('کشور:', Text(order?.shippingAddress?.country ?? 'N/A', style: const TextStyle(fontSize: 16))),
         ],
       ),
     );
@@ -242,7 +242,7 @@ class _OrderSubmitFormState extends State<OrderSubmitForm> {
             op.resetForm();
             Navigator.of(context).pop();
           },
-          child: const Text('انصراف'),
+          child: const Text('انصراف', style: TextStyle(color: Colors.white)),
         ),
         const Gap(defaultPadding),
         ElevatedButton(
@@ -266,7 +266,9 @@ class _OrderSubmitFormState extends State<OrderSubmitForm> {
                   )
                 : const Text(
                     'بروزرسانی سفارش',
+
                     key: ValueKey('order_submit_text'),
+                style: TextStyle(color: Colors.white),
                   ),
           ),
         ),
@@ -283,7 +285,7 @@ void showOrderForm(BuildContext context, Order? order) {
       return AlertDialog(
         backgroundColor: bgColor,
         title: Center(
-          child: Text('جزئیات سفارش'.toUpperCase(), style: const TextStyle(color: primaryColor)),
+          child: Text('جزئیات سفارش'.toUpperCase(), style: const TextStyle(color:  Colors.white  )),
         ),
         content: OrderSubmitForm(order: order),
       );

@@ -1,5 +1,6 @@
 
 
+
 class Order {
   ShippingAddress? shippingAddress;
   OrderTotal? orderTotal;
@@ -14,7 +15,8 @@ class Order {
   String? orderDate;
   Map<String, dynamic>? user;
   Map<String, dynamic>? coupon;
-
+  String? orderMode;
+  String? tableNumber;
   Order({
     this.shippingAddress,
     this.orderTotal,
@@ -23,6 +25,8 @@ class Order {
     this.orderStatus,
     this.items,
     this.totalPrice,
+    this.orderMode,
+    this.tableNumber,
     this.paymentMethod,
     this.couponCode,
     this.trackingUrl,
@@ -30,13 +34,31 @@ class Order {
     this.user,
     this.coupon,
   });
+  bool get isInPersonOrder => orderMode == 'in_person';
+  bool get isOnlineOrder => orderMode == 'online';
+
+
+
+  double get orderTotalValue {
+    if (orderTotal is num) {
+      return double.parse(orderTotal.toString());
+    } else if (orderTotal is OrderTotal) {
+      return (orderTotal as OrderTotal).total ?? 0.0;
+    }
+    return 0.0;
+  }
 
   Order.fromJson(Map<String, dynamic> json) {
     shippingAddress = json['shippingAddress'] != null
         ? ShippingAddress.fromJson(json['shippingAddress'])
         : null;
 
-    // پردازش orderTotal
+    orderMode = (json['orderMode']?.toString().trim().toLowerCase());
+    tableNumber = (json['tableNumber']?.toString().trim().toLowerCase());
+
+
+
+    // 🔽 بهبود پردازش orderTotal
     if (json['orderTotal'] != null) {
       if (json['orderTotal'] is Map) {
         orderTotal = OrderTotal.fromJson(json['orderTotal']);
@@ -48,12 +70,35 @@ class Order {
         );
       }
     } else {
+      // 🔽 منطق fallback بهتر
       orderTotal = OrderTotal(
-        total: json['totalPrice']?.toDouble(),
-        subTotal: json['totalPrice']?.toDouble(),
+        total: json['totalPrice']?.toDouble() ?? 0.0,
+        subTotal: json['totalPrice']?.toDouble() ?? 0.0,
         discount: 0.0,
       );
     }
+
+
+    // پردازش orderTotal
+    // if (json['orderTotal'] != null) {
+    //   if (json['orderTotal'] is Map) {
+    //     orderTotal = OrderTotal.fromJson(json['orderTotal']);
+    //   } else if (json['orderTotal'] is num) {
+    //     orderTotal = OrderTotal(
+    //       total: json['orderTotal']?.toDouble(),
+    //       subTotal: json['totalPrice']?.toDouble() ?? json['orderTotal']?.toDouble(),
+    //       discount: 0.0,
+    //     );
+    //   }
+    // } else {
+    //   orderTotal = OrderTotal(
+    //     total: json['totalPrice']?.toDouble(),
+    //     subTotal: json['totalPrice']?.toDouble(),
+    //     discount: 0.0,
+    //   );
+    // }
+    // orderMode = (json['orderMode']?.toString().trim().toLowerCase());
+    // tableNumber = (json['tableNumber']?.toString().trim().toLowerCase());
 
     sId = json['id'];
 
@@ -210,7 +255,7 @@ class Items {
   double? price;
   String? variant;
   String? sId;
-
+  String? note;
   Items({
     this.productID,
     this.productName,
@@ -218,6 +263,7 @@ class Items {
     this.price,
     this.variant,
     this.sId,
+    this.note,
   });
 
   Items.fromJson(Map<String, dynamic> json) {
@@ -227,6 +273,7 @@ class Items {
     price = json['price']?.toDouble();
     variant = json['variant'];
     sId = json['id'] ?? json['_id']; // پشتیبانی از هر دو
+    note = json['note'];
   }
 
   Map<String, dynamic> toJson() {
@@ -237,6 +284,7 @@ class Items {
     data['price'] = price;
     data['variant'] = variant;
     data['id'] = sId;
+    data['note'] = note;
     return data;
   }
 }
@@ -277,36 +325,37 @@ class CouponCode {
 class ShippingAddress {
   String? phone;
   String? street;
-  String? city;
-  String? state;
-  String? postalCode;
-  String? country;
+
+   String? state;
+
+  String? tableNumber;
 
   ShippingAddress(
       {this.phone,
         this.street,
-        this.city,
-        this.state,
-        this.postalCode,
-        this.country});
+        this.tableNumber,
+
+         this.state,
+
+      });
 
   ShippingAddress.fromJson(Map<String, dynamic> json) {
     phone = json['phone'];
     street = json['street'];
-    city = json['city'];
+    tableNumber = json['tableNumber'];
+
     state = json['state'];
-    postalCode = json['postalCode'];
-    country = json['country'];
+
   }
 
   Map<String, dynamic> toJson() {
     final Map<String, dynamic> data = new Map<String, dynamic>();
     data['phone'] = this.phone;
     data['street'] = this.street;
-    data['city'] = this.city;
+
     data['state'] = this.state;
-    data['postalCode'] = this.postalCode;
-    data['country'] = this.country;
+    data['tableNumber'] = this.tableNumber;
+
     return data;
   }
 }
@@ -331,5 +380,27 @@ class OrderTotal {
     data['discount'] = this.discount;
     data['total'] = this.total;
     return data;
+  }
+}
+
+
+
+extension OrderTotalsExt on Order {
+  bool get hasBreakdown => orderTotal is OrderTotal;
+
+  double? get subTotalValueOrNull {
+    if (orderTotal is OrderTotal) return (orderTotal as OrderTotal).subTotal;
+    return null;
+  }
+
+  double? get discountValueOrNull {
+    if (orderTotal is OrderTotal) return (orderTotal as OrderTotal).discount;
+    return null;
+  }
+
+  double? get totalValueOrNull {
+    if (orderTotal is OrderTotal) return (orderTotal as OrderTotal).total;
+    if (orderTotal is num) return (orderTotal as num).toDouble();
+    return totalPrice; // fallback
   }
 }

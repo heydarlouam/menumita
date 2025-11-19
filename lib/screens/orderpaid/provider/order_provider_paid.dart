@@ -14,7 +14,7 @@ class OrderPaidProvider extends ChangeNotifier {
   final DataProvider _dataProvider;
 
   final orderFormKey = GlobalKey<FormState>();
-  final TextEditingController trackingUrlCtrl = TextEditingController();
+  // final TextEditingController trackingUrlCtrl = TextEditingController();
   String selectedOrderStatus = ORDER_STATUS_PENDING;
   Order? orderForUpdate;
 
@@ -25,7 +25,7 @@ class OrderPaidProvider extends ChangeNotifier {
 
   @override
   void dispose() {
-    trackingUrlCtrl.dispose();
+    // trackingUrlCtrl.dispose();
     super.dispose();
   }
 
@@ -47,7 +47,7 @@ class OrderPaidProvider extends ChangeNotifier {
       }
 
       final order = {
-        'trackingUrl': trackingUrlCtrl.text,
+        // 'trackingUrl': trackingUrlCtrl.text,
         'orderStatus': selectedOrderStatus,
         'phone_number_code': phone,
       };
@@ -163,14 +163,14 @@ class OrderPaidProvider extends ChangeNotifier {
 
   void loadOrderForUpdate(Order order) {
     orderForUpdate = order;
-    trackingUrlCtrl.text = order.trackingUrl ?? '';
+    // trackingUrlCtrl.text = order.trackingUrl ?? '';
     selectedOrderStatus = order.orderStatus ?? ORDER_STATUS_PENDING;
     notifyListeners();
   }
 
   void resetForm() {
     orderForUpdate = null;
-    trackingUrlCtrl.clear();
+    // trackingUrlCtrl.clear();
     selectedOrderStatus = ORDER_STATUS_PENDING;
     notifyListeners();
   }

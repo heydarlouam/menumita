@@ -20,6 +20,10 @@ import '../../utility/constants.dart';
 import 'dart:async';
 import 'package:socket_io_client/socket_io_client.dart' as IO;
 
+
+
+
+
 class DataProvider extends ChangeNotifier {
   final CategoryRepository categoryRepo = CategoryRepository();
   final BrandRepository brandRepo = BrandRepository();
@@ -129,6 +133,9 @@ class DataProvider extends ChangeNotifier {
       // یکدست‌سازی id با مدل تو (Order.fromJson معمولاً sId می‌خواد)
       final json = Map<String, dynamic>.from(rec);
       json['sId'] ??= json['id'];
+// 🔽 این خط را اضافه کنید - پردازش orderMode و tableNumber
+      json['orderMode'] = (json['orderMode']?.toString().trim().toLowerCase()) ?? '';
+      json['tableNumber'] = (json['tableNumber']?.toString().trim()) ?? '';
 
       // فیلتر tenant
       if (phoneNumberCode != null && phoneNumberCode.isNotEmpty) {
@@ -402,6 +409,7 @@ class DataProvider extends ChangeNotifier {
 
           // فیلتر اولیه: همه سفارش‌ها
           _filteredOrdersall = List.unmodifiable(_allsOrders);
+
 
           print('✅ Orders loaded: ${_allsOrders.length}');
           if (_allsOrders.isNotEmpty) {

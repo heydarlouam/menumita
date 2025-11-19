@@ -1,3 +1,4 @@
+import 'package:admin/utility/functions.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../core/data/data_provider.dart';
@@ -169,19 +170,103 @@ class _DraggableOrderCard extends StatelessWidget {
 }
 
 
-class _OrderCard extends StatelessWidget {
+// class _OrderCard extends StatelessWidget {
+//   final Order order;
+//   final bool dimmed;
+//   const _OrderCard({Key? key, required this.order, this.dimmed = false}) : super(key: key);
+//
+//   @override
+//   Widget build(BuildContext context) {
+//     final Color surface = Theme.of(context).colorScheme.surface;
+//     final Color labelColor = statusColor(order.orderStatus);
+//
+//     return TweenAnimationBuilder<double>(
+//       tween: Tween(begin: 0.96, end: 1.0),
+//       duration: const Duration(milliseconds: 450), // ⬅️ اگر خواستی واضح‌تر: 320–360ms
+//       curve: Curves.easeInSine,
+//       builder: (context, scale, child) {
+//         return Opacity(
+//           opacity: 1 - (1 - scale) * 3,
+//           child: Transform.scale(scale: scale, child: child),
+//         );
+//       },
+//       child: Card(
+//         color: surface,
+//         elevation: dimmed ? 1.5 : 3,
+//         shadowColor: labelColor.withOpacity(.2),
+//         margin: const EdgeInsets.symmetric(horizontal: 2, vertical: 6),
+//         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+//         child: Padding(
+//           padding: const EdgeInsets.all(12.0),
+//           child: ListTile(
+//             dense: true,
+//             contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+//             title: Text(
+//               order.userName ?? 'کاربر نامشخص',
+//               maxLines: 1, overflow: TextOverflow.ellipsis,
+//               style: const TextStyle(fontWeight: FontWeight.w700),
+//             ),
+//             subtitle: Padding(
+//               padding: const EdgeInsets.only(top: 6.0),
+//               child: Column(
+//                 crossAxisAlignment: CrossAxisAlignment.start,
+//                 children: [
+//                   if (order.totalPrice != null) ...[
+//                     Text('مبلغ: ${money(context, order.totalPrice!)}'),
+//
+//                     const SizedBox(height: 4),
+//                   ],
+//                   if (order.orderDate != null) ...[
+//                     Text(
+//       '${formatToJalali(order.orderDate!.toString())}\n${getTimeAgo(order.orderDate! ?? '')}',
+//
+//                     ),
+//                     const SizedBox(height: 4),
+//                   ],
+//                   if (order.trackingUrl?.isNotEmpty == true)
+//                     Text('پیگیری: ${order.trackingUrl!}', maxLines: 1, overflow: TextOverflow.ellipsis),
+//                 ],
+//               ),
+//             ),
+//             trailing: Container(
+//               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+//               decoration: BoxDecoration(
+//                 color: labelColor.withOpacity(.12),
+//                 borderRadius: BorderRadius.circular(6),
+//               ),
+//               child: Text(
+//                 statusFa(order.orderStatus ?? ''),
+//                 style: TextStyle(color: labelColor, fontSize: 11, fontWeight: FontWeight.bold),
+//               ),
+//             ),
+//           ),
+//         ),
+//       ),
+//     );
+//   }
+// }
+
+
+class _OrderCard extends StatefulWidget {
   final Order order;
   final bool dimmed;
   const _OrderCard({Key? key, required this.order, this.dimmed = false}) : super(key: key);
 
   @override
+  State<_OrderCard> createState() => __OrderCardState();
+}
+
+class __OrderCardState extends State<_OrderCard> {
+  bool _open = false;
+
+  @override
   Widget build(BuildContext context) {
     final Color surface = Theme.of(context).colorScheme.surface;
-    final Color labelColor = statusColor(order.orderStatus);
+    final Color labelColor = statusColor(widget.order.orderStatus);
 
     return TweenAnimationBuilder<double>(
       tween: Tween(begin: 0.96, end: 1.0),
-      duration: const Duration(milliseconds: 450), // ⬅️ اگر خواستی واضح‌تر: 320–360ms
+      duration: const Duration(milliseconds: 450),
       curve: Curves.easeInSine,
       builder: (context, scale, child) {
         return Opacity(
@@ -191,58 +276,228 @@ class _OrderCard extends StatelessWidget {
       },
       child: Card(
         color: surface,
-        elevation: dimmed ? 1.5 : 3,
+        elevation: widget.dimmed ? 1.5 : 3,
         shadowColor: labelColor.withOpacity(.2),
         margin: const EdgeInsets.symmetric(horizontal: 2, vertical: 6),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        child: Padding(
-          padding: const EdgeInsets.all(12.0),
-          child: ListTile(
-            dense: true,
-            contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-            title: Text(
-              order.userName ?? 'کاربر نامشخص',
-              maxLines: 1, overflow: TextOverflow.ellipsis,
-              style: const TextStyle(fontWeight: FontWeight.w700),
-            ),
-            subtitle: Padding(
-              padding: const EdgeInsets.only(top: 6.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  if (order.totalPrice != null) ...[
-                    Text('مبلغ: ${order.totalPrice!.toStringAsFixed(0)}'),
-                    const SizedBox(height: 4),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(12),
+          onTap: () => setState(() => _open = !_open),
+          child: Padding(
+            padding: const EdgeInsets.all(12.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // ردیف اول: اطلاعات اصلی
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        widget.order.userName ?? 'کاربر نامشخص',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(fontWeight: FontWeight.w700),
+                      ),
+                    ),
+                    // 🔽 بج نوع سفارش و وضعیت در یک ردیف
+                    _buildOrderTypeBadge(widget.order),
+                    const SizedBox(width: 4),
+                    _buildStatusBadge(widget.order, labelColor),
+                    const SizedBox(width: 4),
+                    AnimatedRotation(
+                      turns: _open ? 0.5 : 0.0,
+                      duration: const Duration(milliseconds: 200),
+                      child: const Icon(Icons.keyboard_arrow_down, size: 16),
+                    ),
                   ],
-                  if (order.orderDate != null) ...[
-                    Text(order.orderDate!),
-                    const SizedBox(height: 4),
+                ),
+
+                const SizedBox(height: 8),
+
+                // اطلاعات سفارش
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+
+                    if (widget.order.orderDate != null) ...[
+                     Row(children: [ Text(
+                       '${formatToJalali(widget.order.orderDate!.toString())}',
+                     ),
+                      Text(' && '),
+                       Text(
+                       '${getTimeAgo(widget.order.orderDate! ?? '')}',
+                     ),],),
+                      const SizedBox(height: 4),
+                    ],
+                    if (widget.order.totalPrice != null) ...[
+                      Text('مبلغ: ${money(context, widget.order.totalPrice!)}'),
+                      const SizedBox(height: 4),
+                    ],
                   ],
-                  if (order.trackingUrl?.isNotEmpty == true)
-                    Text('پیگیری: ${order.trackingUrl!}', maxLines: 1, overflow: TextOverflow.ellipsis),
-                ],
-              ),
-            ),
-            trailing: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-              decoration: BoxDecoration(
-                color: labelColor.withOpacity(.12),
-                borderRadius: BorderRadius.circular(6),
-              ),
-              child: Text(
-                statusFa(order.orderStatus ?? ''),
-                style: TextStyle(color: labelColor, fontSize: 11, fontWeight: FontWeight.bold),
-              ),
+                ),
+
+                // === ناحیه‌ی کشوییِ آیتم‌ها ===
+                AnimatedSize(
+                  duration: const Duration(milliseconds: 220),
+                  curve: Curves.easeInOut,
+                  alignment: Alignment.topCenter,
+                  child: _open
+                      ? Padding(
+                    padding: const EdgeInsets.only(top: 14),
+                    child: Column(
+                      children: [
+                        const Divider(),
+                        const Align(
+                          alignment: Alignment.center,
+                          child: Text('جزئیات محصولات',
+                              style: TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.bold)),
+                        ),
+                        const SizedBox(height: 8),
+
+                        // لیست آیتم‌ها
+                        ..._buildItemsList(widget.order, context),
+                      ],
+                    ),
+                  )
+                      : const SizedBox.shrink(),
+                ),
+              ],
             ),
           ),
         ),
       ),
     );
   }
+
+  // 🔽 تابع برای نمایش نوع سفارش
+  Widget _buildOrderTypeBadge(Order order) {
+    final orderMode = order.orderMode?.toLowerCase().trim() ?? '';
+    final tableNumber = order.tableNumber?.toString().trim() ?? '';
+
+    Color badgeColor;
+    String badgeText;
+
+    if (orderMode == 'in_person') {
+      badgeColor = Colors.blue;
+      badgeText = tableNumber.isNotEmpty ? 'میز: $tableNumber' : 'حضوری';
+    } else if (orderMode == 'online') {
+      badgeColor = Colors.green;
+      badgeText = 'آنلاین';
+    } else {
+      badgeColor = Colors.grey;
+      badgeText = orderMode.isNotEmpty ? orderMode : 'نامشخص';
+    }
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+      decoration: BoxDecoration(
+        color: badgeColor.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(4),
+        border: Border.all(color: badgeColor.withOpacity(0.3), width: 1),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            orderMode == 'in_person' ? Icons.table_restaurant : Icons.shopping_cart,
+            size: 10,
+            color: badgeColor,
+          ),
+          const SizedBox(width: 2),
+          Text(
+            badgeText,
+            style: TextStyle(
+              fontSize: 9,
+              fontWeight: FontWeight.bold,
+              color: badgeColor,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // 🔽 تابع برای نمایش وضعیت
+  Widget _buildStatusBadge(Order order, Color labelColor) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+      decoration: BoxDecoration(
+        color: labelColor.withOpacity(.12),
+        borderRadius: BorderRadius.circular(4),
+      ),
+      child: Text(
+        statusFa(order.orderStatus ?? ''),
+        style: TextStyle(
+            color: labelColor, fontSize: 9, fontWeight: FontWeight.bold),
+      ),
+    );
+  }
+
+  // 🔽 تابع برای ساخت لیست آیتم‌ها
+  List<Widget> _buildItemsList(Order order, BuildContext ctx) {
+    if (order.items == null || order.items!.isEmpty) {
+      return [
+        const Text('آیتمی موجود نیست',
+            style: TextStyle(fontSize: 12, color: Colors.grey))
+      ];
+    }
+
+    return order.items!.map((item) => _buildItemRow(item, ctx)).toList();
+  }
+
+  // 🔽 تابع برای نمایش هر آیتم
+  Widget _buildItemRow(Items item, BuildContext ctx) {
+    final lineTotal = (item.quantity ?? 0) * (item.price ?? 0);
+
+    return Container(
+      margin: const EdgeInsets.symmetric(vertical: 4),
+      padding: const EdgeInsets.all(8),
+      decoration: BoxDecoration(
+        color: Colors.grey.withOpacity(0.05),
+        borderRadius: BorderRadius.circular(6),
+        border: Border.all(color: Colors.black12, width: 0.5),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // نام محصول و مجموع خط
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  item.productName ?? '—',
+                  style: const TextStyle(
+                      fontSize: 12, fontWeight: FontWeight.w600),
+                ),
+              ),
+              Text(
+                money(ctx, lineTotal as double?),
+                style: const TextStyle(
+                    fontSize: 11, fontWeight: FontWeight.w700),
+              ),
+            ],
+          ),
+          const SizedBox(height: 2),
+          // تعداد × قیمت واحد
+          Text(
+            'تعداد : ${item.quantity ?? 0}  ×  ${money(ctx, item.price)}',
+            style: const TextStyle(fontSize: 10, color: Colors.white),
+          ),
+          if ((item.note ?? '').trim().isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.only(top: 2),
+              child: Text(
+                'یادداشت : ${item.note!.trim()}',
+                style: const TextStyle(fontSize: 9, color: Colors.white),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
 }
-
-
-
 
 const List<String> kOrderedStatuses = [
   ORDER_STATUS_PENDING,
