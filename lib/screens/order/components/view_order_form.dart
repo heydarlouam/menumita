@@ -1,4 +1,5 @@
 
+import 'package:admin/utility/functions.dart';
 import 'package:flutter/material.dart';
 import 'package:gap/gap.dart';
 import 'package:provider/provider.dart';
@@ -7,7 +8,7 @@ import '../../../models/order.dart';
 import '../../../utility/constants.dart';
 import '../../../utility/extensions.dart';
 import '../../../widgets/custom_dropdown.dart';
-import '../../../widgets/custom_text_field.dart';
+
 import '../provider/order_provider.dart';
 import '../../../widgets/submission_spinner.dart';
 
@@ -64,7 +65,7 @@ class _OrderSubmitFormState extends State<OrderSubmitForm> {
                   Expanded(child: formRow('شناسه سفارش:', Text(widget.order?.sId ?? 'N/A', style: const TextStyle(fontSize: 12)))),
                 ],
               ),
-              itemsSection(widget.order),
+              itemsSection(widget.order,context),
               addressSection(widget.order),
               const Gap(10),
               paymentDetailsSection(widget.order),
@@ -147,15 +148,18 @@ class _OrderSubmitFormState extends State<OrderSubmitForm> {
             padding: EdgeInsets.symmetric(vertical: 8.0),
             child: Text('آدرس ارسال', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.blueAccent)),
           ),
-          formRow('تلفن:', Text(order?.shippingAddress?.phone ?? 'N/A', style: const TextStyle(fontSize: 16))),
-          formRow('خیابان:', Text(order?.shippingAddress?.street ?? 'N/A', style: const TextStyle(fontSize: 16))),
-          // formRow('شهر:', Text(order?.shippingAddress?.city ?? 'N/A', style: const TextStyle(fontSize: 16))),
-          // formRow('کد پستی:', Text(order?.shippingAddress?.postalCode ?? 'N/A', style: const TextStyle(fontSize: 16))),
-          // formRow('کشور:', Text(order?.shippingAddress?.country ?? 'N/A', style: const TextStyle(fontSize: 16))),
+          formRow('تلفن :', Text(order?.shippingAddress?.phone ?? 'N/A', style: const TextStyle(fontSize: 16))),
+          formRow('نام مشتری :', Text(order?.shippingAddress?.street ?? 'N/A', style: const TextStyle(fontSize: 16))),
+          if(order?.shippingAddress?.tableNumber==null)
+            formRow('آدرس دریافت :', Text(order?.shippingAddress?.state ?? 'N/A', style: const TextStyle(fontSize: 16))),
+          if(order?.shippingAddress?.state==null)
+            formRow('شماره میز :', Text(order?.shippingAddress?.tableNumber ?? 'N/A', style: const TextStyle(fontSize: 16))),
+
         ],
       ),
     );
   }
+
 
   Widget paymentDetailsSection(Order? order) {
     return Container(
@@ -176,17 +180,18 @@ class _OrderSubmitFormState extends State<OrderSubmitForm> {
             padding: EdgeInsets.symmetric(vertical: 8.0),
             child: Text('جزئیات پرداخت', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: primaryColor)),
           ),
-          formRow('روش پرداخت:', Text(order?.paymentMethod ?? 'N/A', style: const TextStyle(fontSize: 16))),
+
           formRow('کد کوپن:', Text(order?.couponName ?? 'N/A', style: const TextStyle(fontSize: 16))),
-          formRow('جمع جزء سفارش:', Text('\$${order?.orderTotal?.subTotal?.toStringAsFixed(2) ?? 'N/A'}', style: const TextStyle(fontSize: 16))),
-          formRow('تخفیف:', Text('\$${order?.orderTotal?.discount?.toStringAsFixed(2) ?? 'N/A'}', style: const TextStyle(fontSize: 16, color: Colors.red))),
-          formRow('جمع کل:', Text('\$${order?.orderTotal?.total?.toStringAsFixed(2) ?? 'N/A'}', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold))),
+          // 🔽 این سه خط را تغییر دهید
+          formRow('جمع جزء سفارش:', Text(money(context, order?.orderTotal?.subTotal), style: const TextStyle(fontSize: 16))),
+          formRow('تخفیف:', Text(money(context, order?.orderTotal?.discount), style: const TextStyle(fontSize: 16, color: Colors.red))),
+          formRow('جمع کل:', Text(money(context, order?.orderTotal?.total), style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold))),
         ],
       ),
     );
   }
 
-  Widget itemsSection(Order? order) {
+  Widget itemsSection(Order? order, BuildContext context) {
     return Container(
       margin: const EdgeInsets.only(top: 20),
       padding: const EdgeInsets.all(defaultPadding),
@@ -205,15 +210,16 @@ class _OrderSubmitFormState extends State<OrderSubmitForm> {
             padding: EdgeInsets.symmetric(vertical: 8.0),
             child: Text('آیتم‌ها', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: primaryColor)),
           ),
-          _buildItemsList(order),
+          _buildItemsList(order, context),
           const SizedBox(height: defaultPadding),
-          formRow('قیمت کل:', Text('\$${order?.totalPrice?.toStringAsFixed(2) ?? 'N/A'}', style: const TextStyle(fontSize: 16, color: Colors.green))),
+          // 🔽 این خط را تغییر دهید
+          formRow('قیمت کل:', Text(money(context, order?.totalPrice), style: const TextStyle(fontSize: 16, color: Colors.green))),
         ],
       ),
     );
   }
 
-  Widget _buildItemsList(Order? order) {
+  Widget _buildItemsList(Order? order, BuildContext ctx) {
     if (order?.items == null || order!.items!.isEmpty) {
       return const Text('آیتمی موجود نیست', style: TextStyle(fontSize: 16));
     }
@@ -225,8 +231,15 @@ class _OrderSubmitFormState extends State<OrderSubmitForm> {
         final item = order.items![i];
         return Padding(
           padding: const EdgeInsets.only(bottom: 4.0),
-          child: Text('${item.productName}: ${item.quantity} x \$${item.price?.toStringAsFixed(2)}',
-              style: const TextStyle(fontSize: 16)),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [Text('${item.productName} : ${item.quantity} x ${   money(ctx, item.price)   }',
+                style: const TextStyle(fontSize: 16))
+              ,
+              Row(children: [
+                Text('توضیح سفارش: '),
+                Text(' ${item.note} ')
+              ],)],),
         );
       },
     );

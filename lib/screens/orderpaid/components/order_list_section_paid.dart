@@ -49,7 +49,9 @@ class OrderListSectionPaid extends StatelessWidget {
       //   ],
       // ),
       // ✅ ردیف انتهایی فقط پیام ساده، بدون لودینگ یا hasMore
-      const DataRow(
+      const
+
+      DataRow(
         cells: [
           DataCell(
             Center( // 🔽 اضافه شود
@@ -167,85 +169,7 @@ class OrderListSectionPaid extends StatelessWidget {
     );
   }
 
-  // DataRow _orderDataRow(BuildContext context, Order orderInfo, int index) {
-  //   return DataRow(
-  //     cells: [
-  //       DataCell(
-  //         Row(
-  //
-  //           children: [
-  //             Container(
-  //               height: 24,
-  //               width: 24,
-  //               alignment: Alignment.center,
-  //               decoration: BoxDecoration(
-  //                 color: colors[index % colors.length],
-  //                 shape: BoxShape.circle,
-  //               ),
-  //               child: Text(
-  //                 index.toString(),
-  //                 textAlign: TextAlign.center,
-  //                 style: const TextStyle(fontSize: 12),
-  //               ),
-  //             ),
-  //             const SizedBox(width: defaultPadding),
-  //             Text(orderInfo.userName ?? 'کاربر نامشخص'),
-  //           ],
-  //         ),
-  //       ),
-  //       DataCell(Text(_money(context, orderInfo.orderTotal?.total) ?? '0.00')),
-  //       DataCell(
-  //         _buildOrderModeCell(orderInfo),
-  //       ),
-  //       DataCell(Container(
-  //         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-  //         decoration: BoxDecoration(
-  //           color: _statusColor(orderInfo.orderStatus),
-  //           borderRadius: BorderRadius.circular(4),
-  //         ),
-  //         child: Text(
-  //           _statusFa(orderInfo.orderStatus ?? ''),
-  //           style: const TextStyle(
-  //             color: Colors.white,
-  //             fontSize: 12,
-  //             fontWeight: FontWeight.bold,
-  //           ),
-  //         ),
-  //       )),
-  //       // DataCell(Text(formatTimestamp(context, orderInfo.orderDate))),
-  //       DataCell(
-  //         Center(
-  //           child: Text(
-  //   style: const TextStyle(
-  //   fontSize: 12,
-  //   color: Colors.grey,
-  //   fontStyle: FontStyle.italic),
-  //               '${_formatToJalali(
-  //
-  //             orderInfo.orderDate.toString(),
-  //           )}\n${_getTimeAgo(orderInfo.orderDate ?? '')} '),
-  //         ),
-  //       ),
-  //       DataCell(
-  //         IconButton(
-  //           tooltip: 'ویرایش سفارش',
-  //           onPressed: () {
-  //             context.orderPaidProvider.loadOrderForUpdate(orderInfo);
-  //             _showOrderDialog(context, orderInfo);
-  //           },
-  //           icon: const Icon(Icons.edit, color: Colors.blue),
-  //         ),
-  //       ),
-  //       DataCell(
-  //         IconButton(
-  //           tooltip: 'حذف سفارش',
-  //           onPressed: () => _confirmDelete(context, orderInfo),
-  //           icon: const Icon(Icons.delete, color: Colors.red),
-  //         ),
-  //       ),
-  //     ],
-  //   );
-  // }
+
   DataRow _orderDataRow(BuildContext context, Order orderInfo, int index) {
     return DataRow(
       cells: [
