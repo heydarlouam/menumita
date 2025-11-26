@@ -7,8 +7,10 @@ const defaultPadding = 16.0;
 
 // TODO: change according to yours
 //const MAIN_URL = 'http://localhost:5000';
-const MAIN_URL = 'http://127.0.0.1:5050';
-
+// const MAIN_URL = 'http://87.248.155.214:5050';
+// String MAIN_URL = "https://backend.frozencoffee.ir";
+String MAIN_URL = "https://backend.frozencoffee.ir";
+// String MAIN_URL = "http://localhost:5050";
 const currency_symbol = "ریال";
 
 // product summary info

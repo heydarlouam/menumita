@@ -478,7 +478,6 @@ class DataProvider extends ChangeNotifier {
 
   Future<List<Category>> getAllCategories({bool showSnack = false}) async {
     try {
-      // ✅ گرفتن phone_number از SharedPreferences
       final phone = await UserSaveHelper.getPhoneNumber();
       if (phone == null || phone.isEmpty) {
         SnackBarHelper.showErrorSnackBar('شماره تلفن در حافظه یافت نشد!');
@@ -489,25 +488,24 @@ class DataProvider extends ChangeNotifier {
 
       if (response.isOk) {
         if (response.body['success'] == true) {
-          List<dynamic> data = response.body['data'];
+          // 🔽 این قسمت را اصلاح کنید - استفاده از 'categories' به جای 'data'
+          List<dynamic> data = response.body['data'] ?? []; // 🔄 تغییر داده شد
 
-          // استفاده مستقیم از fromJson
+          print('🔍 Categories data received: ${data.length} items');
+
+          if (data.isNotEmpty) {
+            print('🔍 First category item: ${data[0]}');
+          }
+
           _allCategories = data.map((item) => Category.fromJson(item)).toList();
           _filteredCategories = List.from(_allCategories);
 
           print('✅ Categories loaded: ${_allCategories.length} items');
 
-          // دیباگ - بررسی اولین آیتم
-          if (_allCategories.isNotEmpty) {
-            print('🔍 First category: ${_allCategories.first.name}');
-            print('🔍 Image URL: ${_allCategories.first.image}');
-          }
-
           notifyListeners();
 
           if (showSnack) {
-            SnackBarHelper.showSuccessSnackBar(
-                'Categories loaded successfully');
+            SnackBarHelper.showSuccessSnackBar('Categories loaded successfully');
           }
 
           return _filteredCategories;
@@ -525,7 +523,6 @@ class DataProvider extends ChangeNotifier {
       rethrow;
     }
   }
-
   void filterCategories(String keyword) {
     keyword = keyword.trim();
 

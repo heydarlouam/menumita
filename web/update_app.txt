@@ -1,0 +1,25 @@
+
+# مرحله ۱: حذف تمام فایل‌های قدیمی در var/www
+echo "📝 مرحله ۱: حذف فایل‌های قدیمی از /var/www/menumita_admin/"
+sudo rm -rf /var/www/menumita_admin/*
+echo "✅ مرحله ۱ کامل: تمام فایل‌های قدیمی حذف شدند"
+
+# مرحله ۲: کپی فایل‌های جدید از menumita_admin
+echo "📝 مرحله ۲: کپی فایل‌های جدید به /var/www/menumita_admin/"
+cd ~/menumita_admin
+sudo cp -r ./* /var/www/menumita_admin/
+echo "✅ مرحله ۲ کامل: فایل‌های جدید کپی شدند"
+
+# مرحله ۳: تنظیم مالکیت
+echo "📝 مرحله ۳: تنظیم مالکیت و دسترسی‌ها"
+sudo chown -R www-data:www-data /var/www/menumita_admin/
+sudo chmod -R 755 /var/www/menumita_admin/
+echo "✅ مرحله ۳ کامل: مالکیت تنظیم شد"
+
+# مرحله ۴: حذف اطلاعات menumita_admin
+echo "📝 مرحله ۴: حذف فایل‌های menumita_admin"
+cd ~
+rm -rf ~/menumita_admin/*
+echo "✅ مرحله ۴ کامل: فایل‌های menumita_admin حذف شدند"
+
+echo "🎉 تمام مراحل با موفقیت انجام شد!"
