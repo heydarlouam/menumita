@@ -29,6 +29,13 @@ void main() {
   runZonedGuarded(() async {
     WidgetsFlutterBinding.ensureInitialized();
 
+
+
+
+
+
+
+    
     // ⬅️ اینجا وضعیت لاگین رو از SharedPreferences می‌خونیم
     final userMap = await PrefsService.readMap('user');
     final isLoggedIn = userMap.isNotEmpty;
