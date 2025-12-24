@@ -1,4 +1,3 @@
-import 'dart:convert';
 
 import 'package:admin/screens/dashboard/mainscreen/main_screen.dart';
 import 'package:admin/services/auth_api.dart';
@@ -50,10 +49,20 @@ class LoginScreen extends StatelessWidget {
       child: FlutterLogin(
         title: 'ورود',
         onLogin: _onLogin,
+        // onSubmitAnimationCompleted: () async {
+        //   await context.dataProvider.initAfterLogin();
+        //   Get.offAll(() => MainScreen());
+        // },
         onSubmitAnimationCompleted: () async {
-          await context.dataProvider.initAfterLogin();
+          // 1) اول ناوبری به پنل (تا هیچوقت روی صفحه خالی گیر نکنه)
           Get.offAll(() => MainScreen());
+
+          // 2) بعدا دیتا رو لود کن (بدون await)
+          context.dataProvider.initAfterLogin().catchError((e, st) {
+            debugPrint("❌ initAfterLogin failed: $e");
+          });
         },
+
         hideForgotPasswordButton: true,
         userType: LoginUserType.text,
         userValidator: (value) {

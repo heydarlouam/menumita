@@ -1,22 +1,24 @@
 
 import 'package:admin/utility/User_helper.dart';
 import 'package:flutter/cupertino.dart';
-import 'package:get/get_connect/http/src/response/response.dart';
 
-import 'package:get/get.dart';
 import '../../../core/data/data_provider.dart';
 
 import '../../../models/variant_type.dart';
-import '../../../core/data/repositories/category_repository.dart';
+
 import '../../../utility/snack_bar_helper.dart';
 
 
 
 import 'package:flutter/material.dart';
 
+
+import 'package:admin/core/data/appwrite/variant_types_repository.dart';
+
+
 class VariantsTypeProvider extends ChangeNotifier {
-  final VariantTypeRepository repository = VariantTypeRepository();
   final DataProvider _dataProvider;
+  final VariantTypesRepository _repo = VariantTypesRepository();
 
   VariantsTypeProvider(this._dataProvider);
 
@@ -30,36 +32,48 @@ class VariantsTypeProvider extends ChangeNotifier {
   bool _isSubmitting = false;
   bool get isSubmitting => _isSubmitting;
 
+  Future<bool> submit() async {
+    if (_isSubmitting) return false;
+    _isSubmitting = true;
+    notifyListeners();
 
-  bool _ok(Response res) => res.isOk && (res.body?['success'] == true);
+    try {
+      final form = formKey.currentState;
+      if (form == null || !form.validate()) return false;
+      form.save();
 
+      return (forUpdate != null) ? await updateVariantType() : await addVariantType();
+    } finally {
+      _isSubmitting = false;
+      notifyListeners();
+    }
+  }
 
   Future<bool> addVariantType() async {
     try {
-      // شماره از SharedPreferences
-      final phone = await UserSaveHelper.getPhoneNumber();
-      if (phone == null || phone.isEmpty) {
-        SnackBarHelper.showErrorSnackBar('شماره تلفن در حافظه یافت نشد!');
+      final phone = await UserSaveHelper.getPhoneNumber(showError: false) ?? '12345';
+      if (phone.trim().isEmpty) {
+        SnackBarHelper.showErrorSnackBar('شماره تلفن/کد پیدا نشد!');
         return false;
       }
 
-      final Map<String, dynamic> body = {
-        'name': nameCtrl.text.trim(),
-        'type': typeCtrl.text.trim(),
-        'phone_number_code': phone, // ⬅️ به‌جای مقدار ثابت
-      };
+      final entity = VariantType(
+        name: nameCtrl.text.trim(),
+        type: typeCtrl.text.trim(),
+      phoneNumberCode: phone.trim(),
+      );
 
-      final Response res = await repository.addVariantType(body);
+      final res = await _repo.create(entity);
 
-      if (res.isOk && (res.body?['success'] == true)) {
-        SnackBarHelper.showSuccessSnackBar(res.body['message'] ?? 'Created');
+      if (res.isSuccess) {
+        SnackBarHelper.showSuccessSnackBar('نوع ویژگی ایجاد شد');
         clearFields();
         await _dataProvider.getAllVariantTypes();
         return true;
       }
-      SnackBarHelper.showErrorSnackBar(
-        res.body?['message'] ?? res.body?['error'] ?? res.statusText ?? 'Failed',
-      );
+
+      final err = res.requireError();
+      SnackBarHelper.showErrorSnackBar(err.userMessage.isNotEmpty ? err.userMessage : (err.devMessage ?? 'خطا در ایجاد'));
       return false;
     } catch (e) {
       SnackBarHelper.showErrorSnackBar('Error: $e');
@@ -75,32 +89,30 @@ class VariantsTypeProvider extends ChangeNotifier {
         return false;
       }
 
-      // شماره از SharedPreferences
-      final phone = await UserSaveHelper.getPhoneNumber();
-      if (phone == null || phone.isEmpty) {
-        SnackBarHelper.showErrorSnackBar('شماره تلفن در حافظه یافت نشد!');
+      final phone = await UserSaveHelper.getPhoneNumber(showError: false) ?? '12345';
+      if (phone.trim().isEmpty) {
+        SnackBarHelper.showErrorSnackBar('شماره تلفن/کد پیدا نشد!');
         return false;
       }
 
-      final Map<String, dynamic> body = {
-        'name': nameCtrl.text.trim(),
-        'phone_number_code': phone, // ⬅️ به‌جای مقدار ثابت
-      };
-      // فقط اگر type پر شده باشد ارسال کن
-      final t = typeCtrl.text.trim();
-      if (t.isNotEmpty) body['type'] = t;
+      final entity = VariantType(
+        name: nameCtrl.text.trim(),
+        type: typeCtrl.text.trim(),
+        phoneNumberCode: phone.trim(),
 
-      final Response res = await repository.updateVariantType(id, body);
+      );
 
-      if (res.isOk && (res.body?['success'] == true)) {
-        SnackBarHelper.showSuccessSnackBar(res.body['message'] ?? 'Updated');
+      final res = await _repo.update(id, entity);
+
+      if (res.isSuccess) {
+        SnackBarHelper.showSuccessSnackBar('نوع ویژگی بروزرسانی شد');
         clearFields();
         await _dataProvider.getAllVariantTypes();
         return true;
       }
-      SnackBarHelper.showErrorSnackBar(
-        res.body?['message'] ?? res.body?['error'] ?? res.statusText ?? 'Failed',
-      );
+
+      final err = res.requireError();
+      SnackBarHelper.showErrorSnackBar(err.userMessage.isNotEmpty ? err.userMessage : (err.devMessage ?? 'خطا در بروزرسانی'));
       return false;
     } catch (e) {
       SnackBarHelper.showErrorSnackBar('Error: $e');
@@ -108,34 +120,26 @@ class VariantsTypeProvider extends ChangeNotifier {
     }
   }
 
-  Future<bool> deleteVariantType(VariantType item) async {
+  Future<void> deleteVariantType(VariantType item) async {
     try {
-      final Response res = await repository.deleteVariantType(item.sId ?? '');
-      if (_ok(res)) {
-        SnackBarHelper.showSuccessSnackBar(res.body['message'] ?? 'Deleted');
-        await _dataProvider.getAllVariantTypes();
-        return true;
+      final id = item.sId ?? '';
+      if (id.isEmpty) {
+        SnackBarHelper.showErrorSnackBar('ID missing');
+        return;
       }
-      SnackBarHelper.showErrorSnackBar(
-        res.body?['message'] ?? res.body?['error'] ?? res.statusText ?? 'Failed',
-      );
-      return false;
+
+      final res = await _repo.delete(id);
+
+      if (res.isSuccess) {
+        SnackBarHelper.showSuccessSnackBar('حذف شد');
+        await _dataProvider.getAllVariantTypes();
+        return;
+      }
+
+      final err = res.requireError();
+      SnackBarHelper.showErrorSnackBar(err.userMessage.isNotEmpty ? err.userMessage : (err.devMessage ?? 'خطا در حذف'));
     } catch (e) {
       SnackBarHelper.showErrorSnackBar('Error: $e');
-      return false;
-    }
-  }
-
-  Future<bool> submit() async {
-    if (_isSubmitting) return false;
-    _isSubmitting = true; notifyListeners();
-    try {
-      final form = formKey.currentState;
-      if (form == null || !form.validate()) return false;
-      form.save();
-      return (forUpdate != null) ? await updateVariantType() : await addVariantType();
-    } finally {
-      _isSubmitting = false; notifyListeners();
     }
   }
 
@@ -155,6 +159,14 @@ class VariantsTypeProvider extends ChangeNotifier {
     forUpdate = null;
     nameCtrl.clear();
     typeCtrl.clear();
-    // notify در پایان submit/close هم صدا می‌خورد
+    notifyListeners();
+  }
+
+  @override
+  void dispose() {
+    nameCtrl.dispose();
+    typeCtrl.dispose();
+    super.dispose();
   }
 }
+

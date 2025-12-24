@@ -12,10 +12,10 @@ class SideMenu extends StatelessWidget {
   final ScrollController? controller;
 
   void _go(BuildContext context, String name) async {
-    if (await UserSaveHelper.isExpired()) {
-      DialogHelper.showExpiredDialog(context);
-      return;
-    }
+    // if (await UserSaveHelper.isExpired()) {
+    //   DialogHelper.showExpiredDialog(context);
+    //   return;
+    // }
     context.mainScreenProvider.navigateToScreen(name);
     if (Scaffold.maybeOf(context)?.isDrawerOpen == true) {
       Navigator.of(context).pop();

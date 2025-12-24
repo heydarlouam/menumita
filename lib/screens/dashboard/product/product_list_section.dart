@@ -12,13 +12,14 @@ import '../../../utility/functions.dart';
 import 'add_product_form.dart';
 
 
+
 class ProductListSection extends StatelessWidget {
   const ProductListSection({Key? key}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: double.infinity, // 👈 اضافه کن
+      width: double.infinity,
       padding: const EdgeInsets.all(defaultPadding),
       decoration: const BoxDecoration(
         color: secondaryColor,
@@ -27,15 +28,13 @@ class ProductListSection extends StatelessWidget {
       child: Selector<DataProvider, List<Product>>(
         selector: (_, dp) => dp.products,
         builder: (context, items, _) {
-
-
           return LayoutBuilder(
             builder: (_, cons) {
-              final w = cons.maxWidth; // عرض واقعی همین کارت/کانتینر
+              final w = cons.maxWidth;
               return SingleChildScrollView(
                 scrollDirection: Axis.horizontal,
                 child: ConstrainedBox(
-                  constraints: BoxConstraints(minWidth: w), // 👈 داینامیک: به اندازه‌ی عرض موجود
+                  constraints: BoxConstraints(minWidth: w),
                   child: DataTable(
                     columnSpacing: defaultPadding,
                     columns: const [
@@ -55,55 +54,63 @@ class ProductListSection extends StatelessWidget {
               );
             },
           );
-
         },
       ),
     );
   }
 
   DataRow _productDataRow(BuildContext context, Product productInfo) {
+    final String? imageUrl = (productInfo.imageUrls.isNotEmpty) ? productInfo.imageUrls.first : null;
+
+    // این دو فیلد را در DataProvider hydrate می‌کنیم (پایین‌تر کدش را می‌دهم)
+    final String categoryName = productInfo.resolvedCategoryName ?? '';
+    final String subCategoryName = productInfo.resolvedSubCategoryName ?? '';
+
+    final double? price = double.tryParse((productInfo.price ?? '').toString());
+
     return DataRow(
       cells: [
         DataCell(Row(
           children: [
-            if (productInfo.images != null &&
-                productInfo.images!.isNotEmpty &&
-                productInfo.images!.first.url != null)
+            if (imageUrl != null && imageUrl.trim().isNotEmpty)
               Image.network(
-                productInfo.images!.first.url!,
-                height: 30, width: 30, fit: BoxFit.cover,
+                imageUrl,
+                height: 30,
+                width: 30,
+                fit: BoxFit.cover,
                 errorBuilder: (_, __, ___) => const Icon(Icons.broken_image, size: 30),
               )
             else
               const Icon(Icons.image, size: 30),
             const SizedBox(width: defaultPadding),
-            Text(productInfo.name ?? 'بدون نام',style: TextStyle(fontFamily: FONTS_STYLE_FAMILY),)
+            Text(productInfo.name ?? 'بدون نام', style: const TextStyle(fontFamily: FONTS_STYLE_FAMILY)),
           ],
         )),
-        DataCell(Text(productInfo.proCategoryId?.name ?? '',style: TextStyle(fontFamily: FONTS_STYLE_FAMILY),)),
-        DataCell(Text(productInfo.proSubCategoryId?.name ?? '',style: TextStyle(fontFamily: FONTS_STYLE_FAMILY),)),
-        DataCell(Text(formatCurrency(context, productInfo.price),style: TextStyle(fontFamily: FONTS_STYLE_FAMILY),)),
+        DataCell(Text(categoryName, style: const TextStyle(fontFamily: FONTS_STYLE_FAMILY))),
+        DataCell(Text(subCategoryName, style: const TextStyle(fontFamily: FONTS_STYLE_FAMILY))),
+        DataCell(Text(formatCurrency(context, price), style: const TextStyle(fontFamily: FONTS_STYLE_FAMILY))),
         DataCell(IconButton(
+          onPressed: ()async {
+    if (await UserSaveHelper.isExpired()) {
+    DialogHelper.showExpiredDialog(context);
+    return;
+    }
+    showAddProductForm(context, productInfo);
+    }
 
-          onPressed: () async {
-            if (await UserSaveHelper.isExpired()) {
-              DialogHelper.showExpiredDialog(context);
-              return;
-            }
-            showAddProductForm(context, productInfo);
-          },
-
+         ,
           icon: const Icon(Icons.edit, color: Colors.white),
         )),
         DataCell(IconButton(
-          onPressed: () async {
-            if (await UserSaveHelper.isExpired()) {
-              DialogHelper.showExpiredDialog(context);
-              return;
-            }
-            context.dashBoardProvider.deleteProduct(productInfo);
-          },
 
+        onPressed: ()async {
+    if (await UserSaveHelper.isExpired()) {
+    DialogHelper.showExpiredDialog(context);
+    return;
+    }
+    context.dashBoardProvider.deleteProduct(productInfo);
+    }
+     ,
           icon: const Icon(Icons.delete, color: Colors.red),
         )),
       ],

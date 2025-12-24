@@ -108,7 +108,30 @@ DataRow subCategoryDataRow(
           ],
         ),
       ),
-      DataCell(Text(subCatInfo.categoryId?.name ?? '')),
+      // DataCell(Text(subCatInfo.categoryId?.name ?? '')),
+      DataCell(
+        Text(
+          (() {
+            // ۱) اول تلاش با داده‌ی قدیمی (expand)
+            String categoryName = subCatInfo.categoryId?.name ?? '';
+
+            // ۲) اگر خالی بود، از روی ID در لیست کتگوری‌ها (Appwrite) پیدا کن
+            if (categoryName.isEmpty && subCatInfo.category != null) {
+              try {
+                final cat = context.dataProvider.categories.firstWhere(
+                      (c) => c.sId == subCatInfo.category,
+                );
+                categoryName = cat.name ?? '';
+              } catch (_) {
+                categoryName = '';
+              }
+            }
+
+            return categoryName;
+          })(),
+        ),
+      ),
+
       DataCell(Text(formatTimestamp(context, subCatInfo.createdAt))),
       DataCell(IconButton(
         onPressed: () async {

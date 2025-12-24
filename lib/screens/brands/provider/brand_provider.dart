@@ -1,4 +1,4 @@
-import 'dart:developer';
+
 
 import 'package:admin/utility/User_helper.dart';
 import 'package:flutter/cupertino.dart';
@@ -8,13 +8,18 @@ import '../../../core/data/data_provider.dart';
 
 import '../../../models/brand.dart';
 import '../../../models/sub_category.dart';
-import '../../../core/data/repositories/category_repository.dart';
+
 import '../../../utility/snack_bar_helper.dart';
 
-import 'dart:convert';
+
+import 'package:admin/core/data/appwrite/brands_repository.dart';
+
+import 'package:flutter/material.dart';
+
+
 
 class BrandProvider extends ChangeNotifier {
-  final BrandRepository repository = BrandRepository();
+  final BrandsRepository _repo = BrandsRepository();
   final DataProvider _dataProvider;
 
   final addBrandFormKey = GlobalKey<FormState>();
@@ -28,112 +33,94 @@ class BrandProvider extends ChangeNotifier {
 
   BrandProvider(this._dataProvider);
 
-  // ---------- Helpers ----------
-  Map<String, dynamic>? _parseBody(dynamic body) {
-    if (body == null) return null;
-    if (body is Map<String, dynamic>) return body;
-    if (body is Map) return body.cast<String, dynamic>();
-    if (body is String) {
-      try {
-        final decoded = jsonDecode(body);
-        if (decoded is Map) return decoded.cast<String, dynamic>();
-      } catch (_) {}
-    }
-    return null;
-  }
-
-  bool _okFlag(Map<String, dynamic>? m) =>
-      m != null && (m['success'] == true || m['ok'] == true);
-
-  String _msg(Map<String, dynamic>? m, String fallback) =>
-      (m != null && m['message'] is String && (m['message'] as String).isNotEmpty)
-          ? m!['message'] as String
-          : fallback;
-
-
-// ---------- Create ----------
+  // ---------- Create ----------
   Future<bool> addBrand() async {
     try {
-      // ✅ گرفتن شماره از SharedPreferences
-      final phone = await UserSaveHelper.getPhoneNumber();
-      if (phone == null || phone.isEmpty) {
-        SnackBarHelper.showErrorSnackBar('شماره تلفن در حافظه یافت نشد!');
+      final phone = await UserSaveHelper.getPhoneNumber(showError: false);
+      if (phone == null || phone.trim().isEmpty) {
+        SnackBarHelper.showErrorSnackBar('شماره تلفن/کد در حافظه یافت نشد!');
         return false;
       }
 
-      final Map<String, dynamic> brand = {
-        'name': brandNameCtrl.text,
-        'subcategory': selectedSubCategory?.sId,
-        'phone_number_code': phone, // ← جایگزین عدد ثابت
-      };
+      final sub = selectedSubCategory;
+      final subId = sub?.sId;
+      if (subId == null || subId.trim().isEmpty) {
+        SnackBarHelper.showErrorSnackBar('لطفاً یک زیر‌دسته انتخاب کنید');
+        return false;
+      }
 
-      final response = await repository.addBrand(brand);
+      final brand = Brand(
+        name: brandNameCtrl.text.trim(),
+        phoneNumberCode: phone.trim(),
 
-      if (response.isOk) {
-        final m = _parseBody(response.body);
-        if (_okFlag(m)) {
-          clearFields();
-          SnackBarHelper.showSuccessSnackBar(_msg(m, 'Brand added successfully'));
-          log('brand added');
-          await _dataProvider.getAllBrands();
-          return true;
-        } else {
-          SnackBarHelper.showErrorSnackBar(
-            'Failed to add brand: ${m?['error'] ?? m?['message'] ?? 'Unknown error'}',
-          );
-          return false;
-        }
+        subcategory: subId.trim(),
+      );
+
+      final res = await _repo.create(brand);
+
+      if (res.isSuccess) {
+        clearFields();
+        SnackBarHelper.showSuccessSnackBar('برند ایجاد شد');
+        await _dataProvider.getAllBrands(showSnack: false);
+        return true;
       } else {
-        SnackBarHelper.showErrorSnackBar('Error: ${response.statusText}');
+        final err = res.requireError();
+        SnackBarHelper.showErrorSnackBar(
+          err.userMessage.isNotEmpty ? err.userMessage : (err.devMessage ?? 'خطا در ایجاد برند'),
+        );
         return false;
       }
     } catch (e) {
-      SnackBarHelper.showErrorSnackBar('An error occurred: $e');
+      SnackBarHelper.showErrorSnackBar('خطا: $e');
       return false;
     }
   }
 
-// ---------- Update ----------
+  // ---------- Update ----------
   Future<bool> updateBrand() async {
     try {
-      // ✅ گرفتن شماره از SharedPreferences
-      final phone = await UserSaveHelper.getPhoneNumber();
-      if (phone == null || phone.isEmpty) {
-        SnackBarHelper.showErrorSnackBar('شماره تلفن در حافظه یافت نشد!');
+      final id = brandForUpdate?.sId ?? '';
+      if (id.trim().isEmpty) {
+        SnackBarHelper.showErrorSnackBar('ID برند نامعتبر است');
         return false;
       }
 
-      final Map<String, dynamic> brand = {
-        'name': brandNameCtrl.text,
-        'subcategory': selectedSubCategory?.sId,
-        'phone_number_code': phone, // ← جایگزین عدد ثابت
-      };
+      final phone = await UserSaveHelper.getPhoneNumber(showError: false);
+      if (phone == null || phone.trim().isEmpty) {
+        SnackBarHelper.showErrorSnackBar('شماره تلفن/کد در حافظه یافت نشد!');
+        return false;
+      }
 
-      final response = await repository.updateBrand(
-        brandForUpdate?.sId ?? '',
-        brand,
+      final sub = selectedSubCategory;
+      final subId = sub?.sId;
+      if (subId == null || subId.trim().isEmpty) {
+        SnackBarHelper.showErrorSnackBar('لطفاً یک زیر‌دسته انتخاب کنید');
+        return false;
+      }
+
+      final brand = Brand(
+        name: brandNameCtrl.text.trim(),
+        phoneNumberCode: phone.trim(),
+
+        subcategory: subId.trim(),
       );
 
-      if (response.isOk) {
-        final m = _parseBody(response.body);
-        if (_okFlag(m)) {
-          clearFields();
-          SnackBarHelper.showSuccessSnackBar(_msg(m, 'Brand updated successfully'));
-          log('brand updated');
-          await _dataProvider.getAllBrands();
-          return true;
-        } else {
-          SnackBarHelper.showErrorSnackBar(
-            'Failed to update brand: ${m?['error'] ?? m?['message'] ?? 'Unknown error'}',
-          );
-          return false;
-        }
+      final res = await _repo.update(id.trim(), brand);
+
+      if (res.isSuccess) {
+        clearFields();
+        SnackBarHelper.showSuccessSnackBar('برند بروزرسانی شد');
+        await _dataProvider.getAllBrands(showSnack: false);
+        return true;
       } else {
-        SnackBarHelper.showErrorSnackBar('Error: ${response.statusText}');
+        final err = res.requireError();
+        SnackBarHelper.showErrorSnackBar(
+          err.userMessage.isNotEmpty ? err.userMessage : (err.devMessage ?? 'خطا در بروزرسانی برند'),
+        );
         return false;
       }
     } catch (e) {
-      SnackBarHelper.showErrorSnackBar('An error occurred: $e');
+      SnackBarHelper.showErrorSnackBar('خطا: $e');
       return false;
     }
   }
@@ -145,19 +132,12 @@ class BrandProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-      if (addBrandFormKey.currentState?.validate() != true) {
-        return false;
-      }
-      addBrandFormKey.currentState?.save();
+      final form = addBrandFormKey.currentState;
+      if (form == null) return false;
+      if (!form.validate()) return false;
+      form.save();
 
-      if (brandForUpdate != null) {
-        return await updateBrand();
-      } else {
-        return await addBrand();
-      }
-    } catch (e) {
-      SnackBarHelper.showErrorSnackBar('An error occurred: $e');
-      return false;
+      return brandForUpdate == null ? await addBrand() : await updateBrand();
     } finally {
       _isSubmitting = false;
       notifyListeners();
@@ -165,41 +145,40 @@ class BrandProvider extends ChangeNotifier {
   }
 
   // ---------- Delete ----------
-  Future<bool> deleteBrand(Brand brand) async {
+  Future<void> deleteBrand(Brand b) async {
     try {
-      final response = await repository.deleteBrand(
-        brand.sId ?? '',
-      );
+      final id = b.sId ?? '';
+      if (id.trim().isEmpty) {
+        SnackBarHelper.showErrorSnackBar('ID برند نامعتبر است');
+        return;
+      }
 
-      if (response.isOk) {
-        final m = _parseBody(response.body);
-        if (_okFlag(m)) {
-          SnackBarHelper.showSuccessSnackBar(
-              _msg(m, 'Brand deleted successfully!'));
-          await _dataProvider.getAllBrands();
-          return true;
-        } else {
-          SnackBarHelper.showErrorSnackBar(
-              'Failed to delete: ${m?['error'] ?? m?['message'] ?? 'Unknown error'}');
-          return false;
-        }
+      final res = await _repo.delete(id.trim());
+
+      if (res.isSuccess) {
+        SnackBarHelper.showSuccessSnackBar('برند حذف شد');
+        await _dataProvider.getAllBrands(showSnack: false);
       } else {
-        SnackBarHelper.showErrorSnackBar('Error: ${response.statusText}');
-        return false;
+        final err = res.requireError();
+        SnackBarHelper.showErrorSnackBar(
+          err.userMessage.isNotEmpty ? err.userMessage : (err.devMessage ?? 'خطا در حذف برند'),
+        );
       }
     } catch (e) {
-      SnackBarHelper.showErrorSnackBar('An error occurred: $e');
-      return false;
+      SnackBarHelper.showErrorSnackBar('خطا: $e');
     }
   }
 
-  // ---------- Editing context ----------
-  void setDataForUpdateBrand(Brand? brand) {
+
+
+
+  // ---------- Edit mode ----------
+  setDataForUpdateBrand(Brand? brand) {
     if (brand != null) {
       brandForUpdate = brand;
       brandNameCtrl.text = brand.name ?? '';
 
-      // انتخاب SubCategory متناظر با اولویت: expand → id
+      // preselect: اولویت با object -> سپس id
       final String? subId = brand.subCategoryId?.sId ?? brand.subcategory;
       selectedSubCategory = _dataProvider.subCategories.firstWhereOrNull(
             (s) => s.sId == subId,
@@ -217,7 +196,12 @@ class BrandProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  void updateUi() {
-    notifyListeners();
+  void updateUi() => notifyListeners();
+
+  @override
+  void dispose() {
+    brandNameCtrl.dispose();
+    super.dispose();
   }
 }
+

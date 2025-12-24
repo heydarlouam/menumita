@@ -1,141 +1,87 @@
 
 
-class Coupon {
-  String? sId;
-  String? collectionId;
-  String? collectionName;
-  String? created;
-  String? updated;
-  String? couponCode;
-  String? discountType;
-  double? discountAmount;
-  double? minimumPurchaseAmount;
-  String? endDate;
-  String? status;
-  String? applicableCategory; // تغییر به String برای ID
-  String? applicableSubCategory; // تغییر به String برای ID
-  String? applicableProduct; // تغییر به String برای ID
-  Expand? expand; // اضافه شدن expand
 
-  Coupon({
-    this.sId,
-    this.collectionId,
-    this.collectionName,
-    this.created,
-    this.updated,
-    this.couponCode,
+class Coupon {
+  // ستون‌های واقعی Appwrite
+  final String? id; // $id
+
+  final String? discountType;
+  final String? discountAmount;
+  final String? minimumPurchaseAmount;
+  final String? endDate;
+  final String? status;
+  final String? phoneNumberCode;
+
+  // فقط همین ۳ تا
+  final String? categoriesId;
+  final String? subcategoriesId;
+  final String? productsId;
+
+  final String? createdAt;
+  final String? updatedAt;
+
+  const Coupon({
+    this.id,
     this.discountType,
     this.discountAmount,
     this.minimumPurchaseAmount,
     this.endDate,
     this.status,
-    this.applicableCategory,
-    this.applicableSubCategory,
-    this.applicableProduct,
-    this.expand,
+    this.phoneNumberCode,
+    this.categoriesId,
+    this.subcategoriesId,
+    this.productsId,
+    this.createdAt,
+    this.updatedAt,
   });
 
-  Coupon.fromJson(Map<String, dynamic> json) {
-    sId = json['id'];
-    collectionId = json['collectionId'];
-    collectionName = json['collectionName'];
-    created = json['created'];
-    updated = json['updated'];
-    couponCode = json['couponCode'];
-    discountType = json['discountType'];
-    discountAmount = json['discountAmount']?.toDouble();
-    minimumPurchaseAmount = json['minimumPurchaseAmount']?.toDouble();
-    endDate = json['endDate'];
-    status = json['status'];
+  // ---- سازگاری با کدهای فعلی (بدون اطلاعات اضافی) ----
+  String? get sId => id;
+  String? get couponCode => id; // چون couponCode ستون ندارد و id کد است
+  String? get applicableCategory => categoriesId;
+  String? get applicableSubCategory => subcategoriesId;
+  String? get applicableProduct => productsId;
+  // -----------------------------------------------------
 
-    // تبدیل فیلدهای خالی به null - مطابق با سرور
-    applicableCategory = json['applicableCategory'] == "" ? null : json['applicableCategory'];
-    applicableSubCategory = json['applicableSubCategory'] == "" ? null : json['applicableSubCategory'];
-    applicableProduct = json['applicableProduct'] == "" ? null : json['applicableProduct'];
-
-    expand = json['expand'] != null ? Expand.fromJson(json['expand']) : null;
+  factory Coupon.fromJson(Map<String, dynamic> json) {
+    return Coupon(
+      id: (json[r'$id'] ?? json['id'])?.toString(),
+      discountType: json['discountType']?.toString(),
+      discountAmount: json['discountAmount']?.toString(),
+      minimumPurchaseAmount: json['minimumPurchaseAmount']?.toString(),
+      endDate: json['endDate']?.toString(),
+      status: json['status']?.toString(),
+      phoneNumberCode:
+      (json['phone_number_code'] ?? json['phoneNumberCode'])?.toString(),
+      categoriesId: json['categories_id']?.toString(),
+      subcategoriesId: json['subcategories_id']?.toString(),
+      productsId: json['products_id']?.toString(),
+      createdAt:
+      (json[r'$createdAt']  ?? json['createdAt'])
+          ?.toString(),
+      updatedAt:
+      (json[r'$updatedAt']  ?? json['updatedAt'])
+          ?.toString(),
+    );
   }
 
-  Map<String, dynamic> toJson() {
-    final Map<String, dynamic> data = new Map<String, dynamic>();
-    data['id'] = this.sId;
-    data['collectionId'] = this.collectionId;
-    data['collectionName'] = this.collectionName;
-    data['created'] = this.created;
-    data['updated'] = this.updated;
-    data['couponCode'] = this.couponCode;
-    data['discountType'] = this.discountType;
-    data['discountAmount'] = this.discountAmount;
-    data['minimumPurchaseAmount'] = this.minimumPurchaseAmount;
-    data['endDate'] = this.endDate;
-    data['status'] = this.status;
-
-    // تبدیل null به "" برای ارسال به سرور
-    data['applicableCategory'] = this.applicableCategory ?? "";
-    data['applicableSubCategory'] = this.applicableSubCategory ?? "";
-    data['applicableProduct'] = this.applicableProduct ?? "";
-
-    if (this.expand != null) {
-      data['expand'] = this.expand!.toJson();
+  // فقط ستون‌های واقعی جدول (برای create/update)
+  Map<String, dynamic> toAppwriteData() {
+    String? _nullIfEmpty(String? v) {
+      final s = v?.trim() ?? '';
+      return s.isEmpty ? null : s;
     }
 
-    return data;
-  }
-}
-
-class Expand {
-  CatRef? applicableCategory;
-  CatRef? applicableSubCategory;
-  CatRef? applicableProduct;
-
-  Expand({
-    this.applicableCategory,
-    this.applicableSubCategory,
-    this.applicableProduct,
-  });
-
-  Expand.fromJson(Map<String, dynamic> json) {
-    applicableCategory = json['applicableCategory'] != null
-        ? CatRef.fromJson(json['applicableCategory'])
-        : null;
-    applicableSubCategory = json['applicableSubCategory'] != null
-        ? CatRef.fromJson(json['applicableSubCategory'])
-        : null;
-    applicableProduct = json['applicableProduct'] != null
-        ? CatRef.fromJson(json['applicableProduct'])
-        : null;
-  }
-
-  Map<String, dynamic> toJson() {
-    final Map<String, dynamic> data = new Map<String, dynamic>();
-    if (this.applicableCategory != null) {
-      data['applicableCategory'] = this.applicableCategory!.toJson();
-    }
-    if (this.applicableSubCategory != null) {
-      data['applicableSubCategory'] = this.applicableSubCategory!.toJson();
-    }
-    if (this.applicableProduct != null) {
-      data['applicableProduct'] = this.applicableProduct!.toJson();
-    }
-    return data;
-  }
-}
-
-class CatRef {
-  String? sId;
-  String? name;
-
-  CatRef({this.sId, this.name});
-
-  CatRef.fromJson(Map<String, dynamic> json) {
-    sId = json['id'];
-    name = json['name'];
-  }
-
-  Map<String, dynamic> toJson() {
-    final Map<String, dynamic> data = new Map<String, dynamic>();
-    data['id'] = this.sId;
-    data['name'] = this.name;
-    return data;
+    return <String, dynamic>{
+      'discountType': (discountType ?? '').trim(),
+      'discountAmount': (discountAmount ?? '').trim(),
+      'minimumPurchaseAmount': (minimumPurchaseAmount ?? '').trim(),
+      'endDate': (endDate ?? '').trim(),
+      'status': (status ?? '').trim(),
+      'phone_number_code': (phoneNumberCode ?? '').trim(),
+      'categories_id': _nullIfEmpty(categoriesId),
+      'subcategories_id': _nullIfEmpty(subcategoriesId),
+      'products_id': _nullIfEmpty(productsId),
+    };
   }
 }

@@ -38,8 +38,8 @@ class SubCategoryScreen extends StatelessWidget {
                                 DialogHelper.showExpiredDialog(context);
                                 return;
                               }
-                              context.dataProvider
-                                  .getAllSubCategories(showSnack: true);
+
+                              await context.dataProvider.getAllSubCategories(showSnack: true);
                             },
 
                             icon: Icon(Icons.refresh),

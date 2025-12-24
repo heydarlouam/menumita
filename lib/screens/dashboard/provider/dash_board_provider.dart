@@ -1,8 +1,12 @@
-import 'dart:convert';
+
 import 'dart:io';
+import 'package:admin/core/data/appwrite/product_images_storage_service.dart';
+import 'package:admin/core/data/appwrite/products_appwrite_service.dart';
+import 'package:admin/models/variant.dart';
+import 'package:admin/utility/User_helper.dart';
 import 'package:flutter/foundation.dart' show debugPrint, kDebugMode;
 
-import 'package:admin/utility/User_helper.dart';
+
 import 'package:flutter/foundation.dart' hide Category;
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -15,302 +19,469 @@ import '../../../models/category.dart';
 import '../../../models/product.dart';
 import '../../../models/sub_category.dart';
 import '../../../models/variant_type.dart';
-import '../../../core/data/repositories/category_repository.dart';
+
 import '../../../utility/snack_bar_helper.dart';
 
 class DashBoardProvider extends ChangeNotifier {
-  final ProductRepository repository = ProductRepository();
   final DataProvider _dataProvider;
+  final ProductsAppwriteService _service = ProductsAppwriteService();
+
+  DashBoardProvider(this._dataProvider);
+
   final addProductFormKey = GlobalKey<FormState>();
-  final Set<int> removedImageSlots = {};
 
-  // --- Busy state (هم‌راستا با CategoryProvider)
-  bool _isSubmitting = false;
-  bool get isSubmitting => _isSubmitting;
+  // Controllers (همانی که UI استفاده می‌کند)
+  final TextEditingController productNameCtrl = TextEditingController();
+  final TextEditingController productDescCtrl = TextEditingController();
+  final TextEditingController productQntCtrl = TextEditingController();
+  final TextEditingController productPriceCtrl = TextEditingController();
+  final TextEditingController productOffPriceCtrl = TextEditingController();
 
-  TextEditingController productNameCtrl = TextEditingController();
-  TextEditingController productDescCtrl = TextEditingController();
-  TextEditingController productQntCtrl = TextEditingController();
-  TextEditingController productPriceCtrl = TextEditingController();
-  TextEditingController productOffPriceCtrl = TextEditingController();
-
-  //? dropdown value
+  // selections
   Category? selectedCategory;
   SubCategory? selectedSubCategory;
   Brand? selectedBrand;
   VariantType? selectedVariantType;
-  List<String> selectedVariants = [];
 
-  Product? productForUpdate;
-  File? selectedMainImage,
-      selectedSecondImage,
-      selectedThirdImage,
-      selectedFourthImage,
-      selectedFifthImage;
+  // multi variants
+  List<Variant> selectedVariants = <Variant>[];
+
+  // dropdown dependent lists
+  List<SubCategory> subCategoriesByCategory = <SubCategory>[];
+  List<Brand> brandsBySubCategory = <Brand>[];
+  List<Variant> variantsByVariantType = <Variant>[];
+
+  // images slots (فقط برای UI preview؛ در Appwrite فعلاً باید imageUrls داشته باشی)
+  final Set<int> removedImageSlots = {};
+  File? selectedMainImage, selectedSecondImage, selectedThirdImage, selectedFourthImage, selectedFifthImage;
   XFile? imgXFile1, imgXFile2, imgXFile3, imgXFile4, imgXFile5;
 
-  //? to filter the data depending on the selected dropdown value
-  List<SubCategory> subCategoriesByCategory = [];
-  List<Brand> brandsBySubCategory = [];
-  List<String> variantsByVariantType = [];
+  // Appwrite model images: URL list
+  final List<String> imageUrls = <String>[];
 
-  DashBoardProvider(this._dataProvider);
-
-  // ---------- Helpers (هم‌الگو با CategoryProvider) ----------
-  Map<String, dynamic>? _parseBody(dynamic body) {
-    if (body == null) return null;
-    if (body is Map<String, dynamic>) return body;
-    if (body is Map) return body.cast<String, dynamic>();
-    if (body is String) {
-      try {
-        final decoded = jsonDecode(body);
-        if (decoded is Map) return decoded.cast<String, dynamic>();
-      } catch (_) {}
+  Product? productForUpdate;
+  void setDataForUpdateProduct(Product? product) {
+    // ✅ مثل پوستر: اگر null بود یعنی حالت افزودن → پاکسازی کامل
+    if (product == null) {
+      clearFields();
+      return;
     }
-    return null;
+
+    // جلوگیری از loop در rebuild ها
+    if (productForUpdate?.sId == product.sId) return;
+
+    setDataForUpdate(product);
   }
 
-  bool _isOk(Response res) => res.isOk;
-  bool _okFlag(Map<String, dynamic>? m) =>
-      m != null && (m['success'] == true || m['ok'] == true);
-  String _msg(Map<String, dynamic>? m, String fallback) {
-    if (m != null && m['message'] is String) {
-      final msg = (m['message'] as String).trim();
-      if (msg.isNotEmpty) return msg;
+  bool _isSubmitting = false;
+  bool get isSubmitting => _isSubmitting;
+
+
+  void setDataForUpdate(Product? p) {
+    if (p == null) {
+      clearFields();
+      return;
     }
-    return fallback;
+
+    productForUpdate = p;
+
+    productNameCtrl.text = p.name ?? '';
+    productDescCtrl.text = p.description ?? '';
+    productQntCtrl.text = p.quantity ?? '';
+    productPriceCtrl.text = p.price ?? '';
+    productOffPriceCtrl.text = p.offerPrice ?? '';
+
+    // ✅ تصاویر: در حالت ویرایش، عکس‌ها از URL موجود می‌آیند.
+    // انتخاب‌های موقت/حذف‌های موقت را صفر می‌کنیم.
+    selectedMainImage = null;
+    selectedSecondImage = null;
+    selectedThirdImage = null;
+    selectedFourthImage = null;
+    selectedFifthImage = null;
+
+    imgXFile1 = null;
+    imgXFile2 = null;
+    imgXFile3 = null;
+    imgXFile4 = null;
+    imgXFile5 = null;
+
+    removedImageSlots.clear();
+
+    imageUrls
+      ..clear()
+      ..addAll(p.imageUrls);
+
+    final catId = p.categoryId;
+    final subId = p.subCategoryId;
+    final brId = p.brandId;
+    final vtId = p.variantTypeId;
+
+    selectedCategory = _dataProvider.categories.firstWhereOrNull((e) => e.sId == catId);
+    if (selectedCategory != null) {
+      filterSubcategory(selectedCategory!);
+      selectedSubCategory = subCategoriesByCategory.firstWhereOrNull((e) => e.sId == subId);
+    }
+
+    if (selectedSubCategory != null) {
+      filterBrand(selectedSubCategory!);
+      selectedBrand = brandsBySubCategory.firstWhereOrNull((e) => e.sId == brId);
+    } else {
+      selectedBrand = null;
+      brandsBySubCategory = <Brand>[];
+    }
+
+    selectedVariantType = _dataProvider.variantTypes.firstWhereOrNull((e) => e.sId == vtId);
+    if (selectedVariantType != null) {
+      filterVariant(selectedVariantType!);
+    }
+
+    selectedVariants = <Variant>[];
+    final ids = p.variantIds;
+    for (final id in ids) {
+      final v = _dataProvider.variants.firstWhereOrNull((e) => e.sId == id);
+      if (v != null) selectedVariants.add(v);
+    }
+
+    notifyListeners();
   }
 
-  void _logProgress(String step, [Object? detail]) {
-    if (!kDebugMode) return;
-    final msg = detail == null ? step : '$step | $detail';
-    debugPrint('🟦 ProductSubmit → $msg');
-  }
+
+
+
+  final ProductImagesStorageService _imageStorage = ProductImagesStorageService();
+
+
 
   Future<bool> submitProduct() async {
     if (_isSubmitting) return false;
+
+
+      final phone = await UserSaveHelper.getPhoneNumber(showError: false) ?? '12345';
+      if (phone.trim().isEmpty) {
+        SnackBarHelper.showErrorSnackBar('شماره تلفن/کد پیدا نشد!');
+        return false;
+      }
+    final form = addProductFormKey.currentState;
+    if (form == null) return false;
+    if (!form.validate()) return false;
+    form.save();
+
     _isSubmitting = true;
     notifyListeners();
 
+    bool _isValidUrl(String s) {
+      final v = s.trim();
+      if (v.isEmpty) return false;
+      if (v.startsWith('Instance of')) return false;
+      return v.startsWith('http://') || v.startsWith('https://');
+    }
+
+    List<String> _ensure5Slots(List<String> input) {
+      final out = List<String>.from(input);
+      while (out.length < 5) out.add('');
+      if (out.length > 5) out.removeRange(5, out.length);
+      return out;
+    }
+
     try {
-      _logProgress('started');
-      final phone = await UserSaveHelper.getPhoneNumber();
-      if (phone == null || phone.isEmpty) {
-        SnackBarHelper.showErrorSnackBar('شماره تلفن در حافظه یافت نشد!');
-        _logProgress('failed', 'phone number missing');
+      // ----------- Guards (مثل روال فعلی شما)
+      final categoryId = selectedCategory?.sId?.trim();
+      final subId = selectedSubCategory?.sId?.trim();
+      final brandId = selectedBrand?.sId?.trim();
+      final vtId = selectedVariantType?.sId?.trim();
+
+      if (categoryId == null || categoryId.isEmpty) {
+        SnackBarHelper.showErrorSnackBar('کتگوری را انتخاب کنید');
         return false;
       }
-      _logProgress('phone loaded', phone);
-
-      // variant names -> ids
-      List<String> variantIds = [];
-      if (selectedVariants.isNotEmpty) {
-        variantIds = _dataProvider.variants
-            .where((v) => selectedVariants.contains(v.name))
-            .map((v) => v.sId ?? '')
-            .where((id) => id.isNotEmpty)
-            .toList();
+      if (subId == null || subId.isEmpty) {
+        SnackBarHelper.showErrorSnackBar('ساب‌کتگوری را انتخاب کنید');
+        return false;
+      }
+      if (brandId == null || brandId.isEmpty) {
+        SnackBarHelper.showErrorSnackBar('برند را انتخاب کنید');
+        return false;
+      }
+      if (vtId == null || vtId.isEmpty) {
+        SnackBarHelper.showErrorSnackBar('VariantType را انتخاب کنید');
+        return false;
       }
 
-      // ✅ آرایه‌های موازی فایل‌ها و اسلات‌ها
-      final List<Map<String, XFile?>> imageEntries = [];
-      final List<int> imageSlots = [];
+      final variantIds = selectedVariants
+          .map((e) => (e.sId ?? '').trim())
+          .where((e) => e.isNotEmpty)
+          .toList();
 
-      if (imgXFile1 != null) {
-        imageEntries.add({'images': imgXFile1});
-        imageSlots.add(1);
-      }
-      if (imgXFile2 != null) {
-        imageEntries.add({'images': imgXFile2});
-        imageSlots.add(2);
-      }
-      if (imgXFile3 != null) {
-        imageEntries.add({'images': imgXFile3});
-        imageSlots.add(3);
-      }
-      if (imgXFile4 != null) {
-        imageEntries.add({'images': imgXFile4});
-        imageSlots.add(4);
-      }
-      if (imgXFile5 != null) {
-        imageEntries.add({'images': imgXFile5});
-        imageSlots.add(5);
-      }
-      _logProgress(
-          'images prepared', 'count=${imageEntries.length}, slots=$imageSlots');
+      final isUpdate =
+          productForUpdate != null && (productForUpdate!.sId?.trim().isNotEmpty ?? false);
 
-      final Map<String, dynamic> formDataMap = {
-        'name': productNameCtrl.text,
-        'description': productDescCtrl.text,
-        'quantity': int.tryParse(productQntCtrl.text) ?? 0,
-        'price': double.tryParse(productPriceCtrl.text) ?? 0.0,
-        'offer_price': productOffPriceCtrl.text.isEmpty
-            ? (double.tryParse(productPriceCtrl.text) ?? 0.0)
-            : (double.tryParse(productOffPriceCtrl.text) ?? 0.0),
-        'category': selectedCategory?.sId ?? '',
-        'subcategory': selectedSubCategory?.sId,
-        'brand': selectedBrand?.sId,
-        'variant_type': selectedVariantType?.sId,
-        'variants': jsonEncode(variantIds),
-        'phone_number_code': phone,
+      // ✅ برای حذف عکس‌های قبلی بعد از آپدیت موفق
+      final oldUrls = List<String>.from(productForUpdate?.imageUrls ?? const []);
 
-        // ✅ اسلات‌های حذف‌شده (برای PUT اهمیت دارد)
-        'remove_image_indexes': jsonEncode(removedImageSlots.toList()),
-      };
+      // ----------- Base urls (برای update از دیتای قبلی، برای create از وضعیت فعلی)
+      final baseUrls = isUpdate
+          ? List<String>.from(productForUpdate!.imageUrls)
+          : List<String>.from(imageUrls);
 
-      // ✅ ساخت FormData با فایل‌ها + الصاق image_slots
-      _logProgress('building form data');
-      final FormData form = await createFormDataForMultipleImage(
-        imgXFiles: imageEntries,
-        formData: formDataMap,
-        imageSlots: imageSlots, // ← جدید
+      final updatedSlots = _ensure5Slots(baseUrls);
+
+      // ----------- اعمال حذف اسلات‌ها
+      for (final slot in removedImageSlots) {
+        final i = slot - 1;
+        if (i >= 0 && i < updatedSlots.length) {
+          updatedSlots[i] = '';
+        }
+      }
+
+      // ----------- جمع کردن فایل‌های انتخاب‌شده برای آپلود
+      final List<(int slot, XFile file)> picked = [];
+      if (imgXFile1 != null) picked.add((1, imgXFile1!));
+      if (imgXFile2 != null) picked.add((2, imgXFile2!));
+      if (imgXFile3 != null) picked.add((3, imgXFile3!));
+      if (imgXFile4 != null) picked.add((4, imgXFile4!));
+      if (imgXFile5 != null) picked.add((5, imgXFile5!));
+
+      // ----------- آپلود و جایگزینی URL در اسلات مربوطه
+      for (final item in picked) {
+        final slot = item.$1;
+        final file = item.$2;
+
+        final uploaded = await _imageStorage.upload(file: file); // ✅ مثل پوستر
+        final i = slot - 1;
+
+        if (i >= 0 && i < updatedSlots.length) {
+          updatedSlots[i] = uploaded.viewUrl; // ✅ فقط URL
+        }
+      }
+
+      // ----------- خروجی نهایی imageUrls برای دیتابیس
+      final dbUrls = updatedSlots.where(_isValidUrl).toList();
+
+      // برای هماهنگ شدن UI بعد از سابمیت
+      imageUrls
+        ..clear()
+        ..addAll(dbUrls);
+
+      // ----------- ساخت مدل
+      final model = Product(
+        sId: productForUpdate?.sId,
+        name: productNameCtrl.text.trim(),
+        description: productDescCtrl.text.trim(),
+        quantity: productQntCtrl.text.trim(),
+        price: productPriceCtrl.text.trim(),
+        offerPrice: productOffPriceCtrl.text.trim(),
+        phoneNumberCode: phone,
+        imageUrls: List<String>.from(dbUrls),
+
+        categoryId: categoryId,
+        subCategoryId: subId,
+        brandId: brandId,
+        variantTypeId: vtId,
+        variantIds: variantIds,
       );
-      _logProgress('form data ready',
-          'fields=${form.fields.length}, files=${form.files.length}');
 
-      final String? targetId = productForUpdate?.sId;
-      if (productForUpdate != null && (targetId == null || targetId.isEmpty)) {
-        SnackBarHelper.showErrorSnackBar(
-            'شناسه محصول برای بروزرسانی نامعتبر است');
-        _logProgress('abort', 'empty product id while editing');
-        return false;
-      }
-
-      late final Response res;
-      late final bool isUpdate;
-      if (targetId != null && targetId.isNotEmpty) {
-        isUpdate = true;
-        _logProgress('updating product', targetId);
-        res = await repository.updateProduct(targetId, form);
-      } else {
-        isUpdate = false;
-        _logProgress('creating product', 'new');
-        res = await repository.addProduct(form);
-      }
-      _logProgress('response received', 'status=${res.statusCode}');
-
-      final Map<String, dynamic>? body = _parseBody(res.body);
-      final bool ok = _isOk(res) && _okFlag(body);
-
-      if (ok) {
-        _logProgress('success', body?['message'] ?? 'ok');
-        await _dataProvider.getAllProducts(showSnack: true);
-        final msg = _msg(
-          body,
-          isUpdate
-              ? 'Product updated successfully'
-              : 'Product created successfully',
+      // ----------- Create / Update
+      if (!isUpdate) {
+        final res = await _service.createProduct(
+          data: model.toAppwriteData(forUpdate: false),
         );
-        SnackBarHelper.showSuccessSnackBar(msg);
-        clearFields();
-        return true;
+
+        if (res.isSuccess) {
+          SnackBarHelper.showSuccessSnackBar('محصول ایجاد شد');
+          await _dataProvider.getAllProducts(showSnack: false);
+          clearFields();
+          return true;
+        }
+
+        final err = res.requireError();
+        SnackBarHelper.showErrorSnackBar(
+          err.userMessage.isNotEmpty ? err.userMessage : (err.devMessage ?? 'خطا'),
+        );
+        return false;
       } else {
-        final err = body?['message'] ?? body?['error'] ?? 'Operation failed';
-        SnackBarHelper.showErrorSnackBar(err.toString());
-        _logProgress('server error', err);
+        final id = productForUpdate!.sId!.trim();
+
+        final res = await _service.updateProduct(
+          documentId: id,
+          data: model.toAppwriteData(forUpdate: true),
+        );
+
+        if (res.isSuccess) {
+          // ✅ حذف عکس‌های قدیمی که دیگر در محصول نیستند
+          final oldSet = oldUrls.map((e) => e.trim()).where((e) => e.isNotEmpty).toSet();
+          final newSet = dbUrls.map((e) => e.trim()).where((e) => e.isNotEmpty).toSet();
+
+          final urlsToDelete = oldSet.difference(newSet).toList();
+          await _imageStorage.deleteManyByViewUrls(urlsToDelete);
+
+          SnackBarHelper.showSuccessSnackBar('محصول بروزرسانی شد');
+          await _dataProvider.getAllProducts(showSnack: false);
+          clearFields();
+          return true;
+        }
+
+        final err = res.requireError();
+        SnackBarHelper.showErrorSnackBar(
+          err.userMessage.isNotEmpty ? err.userMessage : (err.devMessage ?? 'خطا'),
+        );
         return false;
       }
     } catch (e) {
-      SnackBarHelper.showErrorSnackBar('An error occurred: $e');
-      _logProgress('exception', e);
+      SnackBarHelper.showErrorSnackBar('خطا: $e');
       return false;
     } finally {
       _isSubmitting = false;
       notifyListeners();
-      _logProgress('finished');
     }
   }
 
-  // ---------- Delete ----------
-  deleteProduct(Product product) async {
-    try {
-      Response response = await repository.deleteProduct(
-        product.sId ?? '',
+  Future<void> deleteProduct(Product p) async {
+    final id = p.sId ?? '';
+    if (id.isEmpty) {
+      SnackBarHelper.showErrorSnackBar('ID محصول نامعتبر است');
+      return;
+    }
+
+    // قبل از حذف سند، URLها را نگه می‌داریم
+    final oldUrls = List<String>.from(p.imageUrls);
+
+    final res = await _service.deleteProduct(id);
+    if (res.isSuccess) {
+      // بعد از حذف محصول، همه عکس‌ها حذف شوند
+      await _imageStorage.deleteManyByViewUrls(oldUrls);
+
+      SnackBarHelper.showSuccessSnackBar('محصول حذف شد');
+      await _dataProvider.getAllProducts(showSnack: false);
+    } else {
+      final err = res.requireError();
+      SnackBarHelper.showErrorSnackBar(
+        err.userMessage.isNotEmpty ? err.userMessage : (err.devMessage ?? 'خطا'),
       );
-
-      if (response.isOk) {
-        final body = _parseBody(response.body);
-        if (_okFlag(body)) {
-          SnackBarHelper.showSuccessSnackBar(
-              _msg(body, 'محصول با موفقیت حذف شد!'));
-          await _dataProvider.getAllProducts(showSnack: true);
-        } else {
-          SnackBarHelper.showErrorSnackBar(
-              'خطا در حذف محصول: ${body?['error'] ?? 'Unknown error'}');
-        }
-      } else {
-        SnackBarHelper.showErrorSnackBar(
-            'خطا: ${response.body?['error'] ?? response.statusText}');
-      }
-    } catch (e) {
-      print('❌ Error deleting product: $e');
-      SnackBarHelper.showErrorSnackBar('خطا در حذف محصول: $e');
-      rethrow;
     }
   }
 
-  void pickImage({required int imageCardNumber}) async {
+
+  void setSelectedVariants(List<Variant> items) {
+    selectedVariants = List<Variant>.from(items);
+    notifyListeners();
+  }
+
+  // ---------- Filters
+  void filterSubcategory(Category category) {
+    selectedCategory = category;
+    selectedSubCategory = null;
+    selectedBrand = null;
+
+    subCategoriesByCategory = _dataProvider.subCategories
+        .where((s) => s.categoryId?.sId == category.sId)
+        .toList();
+
+    subCategoriesByCategory.sort((a, b) => (a.name ?? '').compareTo(b.name ?? ''));
+
+    brandsBySubCategory = <Brand>[];
+    notifyListeners();
+  }
+
+  void filterBrand(SubCategory subCategory) {
+    selectedSubCategory = subCategory;
+    selectedBrand = null;
+
+    brandsBySubCategory = _dataProvider.brands
+        .where((b) => b.subcategory == subCategory.sId || b.subCategoryId?.sId == subCategory.sId)
+        .toList();
+
+    brandsBySubCategory.sort((a, b) => (a.name ?? '').compareTo(b.name ?? ''));
+
+    notifyListeners();
+  }
+
+  void filterVariant(VariantType type) {
+    selectedVariantType = type;
+
+    final vtId = type.sId;
+    variantsByVariantType = _dataProvider.variants
+        .where((v) => (v.variantType ?? v.variantTypeId?.sId) == vtId)
+        .toList();
+
+    variantsByVariantType.sort((a, b) => (a.name ?? '').compareTo(b.name ?? ''));
+
+    // اگر قبلاً انتخاب داشتیم، آنهایی که دیگر زیر این type نیستند حذف شوند
+    selectedVariants = selectedVariants
+        .where((sel) => variantsByVariantType.any((v) => v.sId == sel.sId))
+        .toList();
+
+    notifyListeners();
+  }
+
+
+  Future<void> pickImage({required int imageCardNumber}) async {
     final ImagePicker picker = ImagePicker();
     final XFile? image = await picker.pickImage(source: ImageSource.gallery);
-    if (image != null) {
-      if (imageCardNumber == 1) {
-        selectedMainImage = File(image.path);
+    if (image == null) return;
+
+    // ✅ اول XFile ست شود تا اگر File روی وب مشکل داشت، Submit از کار نیفتد
+    switch (imageCardNumber) {
+      case 1:
         imgXFile1 = image;
-      } else if (imageCardNumber == 2) {
-        selectedSecondImage = File(image.path);
+        break;
+      case 2:
         imgXFile2 = image;
-      } else if (imageCardNumber == 3) {
-        selectedThirdImage = File(image.path);
+        break;
+      case 3:
         imgXFile3 = image;
-      } else if (imageCardNumber == 4) {
-        selectedFourthImage = File(image.path);
+        break;
+      case 4:
         imgXFile4 = image;
-      } else if (imageCardNumber == 5) {
-        selectedFifthImage = File(image.path);
+        break;
+      case 5:
         imgXFile5 = image;
-      }
-
-      // ✅ اگر قبلاً برای این اسلات حذف ثبت شده بود، چون الان جایگزین می‌کنیم، حذف را لغو کن
-      removedImageSlots.remove(imageCardNumber);
-
-      notifyListeners();
-    }
-  }
-
-  Future<FormData> createFormDataForMultipleImage({
-    required List<Map<String, XFile?>>? imgXFiles,
-    required Map<String, dynamic> formData,
-    List<int>? imageSlots, // ← جدید
-  }) async {
-    final FormData form = FormData(formData);
-
-    if (imgXFiles != null && imgXFiles.isNotEmpty) {
-      for (int i = 0; i < imgXFiles.length; i++) {
-        final XFile? imgXFile = imgXFiles[i]['images'];
-        if (imgXFile != null) {
-          _logProgress('attach image',
-              'slot=${imageSlots != null && i < imageSlots.length ? imageSlots[i] : '?'} name=${imgXFile.name}');
-          if (kIsWeb) {
-            final String fileName = imgXFile.name;
-            final Uint8List byteImg = await imgXFile.readAsBytes();
-            form.files.add(
-                MapEntry('images', MultipartFile(byteImg, filename: fileName)));
-          } else {
-            final String filePath = imgXFile.path;
-            final String fileName = filePath.split('/').last;
-            form.files.add(MapEntry(
-                'images', await MultipartFile(filePath, filename: fileName)));
-          }
-
-          // ✅ الصاق شماره اسلات متناظر با همین فایل
-          if (imageSlots != null && i < imageSlots.length) {
-            form.fields.add(MapEntry('image_slots', imageSlots[i].toString()));
-          }
-        }
-      }
+        break;
+      default:
+        return;
     }
 
-    return form;
+    // برای Preview
+    try {
+      final f = File(image.path);
+      switch (imageCardNumber) {
+        case 1:
+          selectedMainImage = f;
+          break;
+        case 2:
+          selectedSecondImage = f;
+          break;
+        case 3:
+          selectedThirdImage = f;
+          break;
+        case 4:
+          selectedFourthImage = f;
+          break;
+        case 5:
+          selectedFifthImage = f;
+          break;
+      }
+    } catch (_) {
+      switch (imageCardNumber) {
+        case 1:
+          selectedMainImage = null;
+          break;
+        case 2:
+          selectedSecondImage = null;
+          break;
+        case 3:
+          selectedThirdImage = null;
+          break;
+        case 4:
+          selectedFourthImage = null;
+          break;
+        case 5:
+          selectedFifthImage = null;
+          break;
+      }
+    }
+
+    removedImageSlots.remove(imageCardNumber);
+    notifyListeners();
   }
 
   void markImageRemoved(int slot) {
@@ -338,117 +509,31 @@ class DashBoardProvider extends ChangeNotifier {
       default:
         return;
     }
-    // ✅ این اسلات باید سمت سرور حذف شود
     removedImageSlots.add(slot);
     notifyListeners();
   }
 
-  // ---------- Filters ----------
-  filterSubcategory(Category category) {
-    selectedSubCategory = null;
-    selectedBrand = null;
-    selectedCategory = category;
-    subCategoriesByCategory.clear();
 
-    subCategoriesByCategory = _dataProvider.subCategories
-        .where((subCategory) => subCategory.categoryId?.sId == category.sId)
-        .toList();
-    notifyListeners();
-  }
+  void clearFields() {
+    productForUpdate = null;
 
-  filterBrand(SubCategory subCategory) {
-    selectedBrand = null;
-    selectedSubCategory = subCategory;
-    brandsBySubCategory.clear();
-
-    brandsBySubCategory = _dataProvider.brands
-        .where((brand) => brand.subCategoryId?.sId == subCategory.sId)
-        .toList();
-    notifyListeners();
-  }
-
-  filterVariant(VariantType variantType) {
-    selectedVariants = [];
-    selectedVariantType = variantType;
-
-    variantsByVariantType = _dataProvider.variants
-        .where((variant) => variant.variantTypeId?.sId == variantType.sId)
-        .toList()
-        .map((variant) => variant.name ?? '')
-        .toList();
-    notifyListeners();
-  }
-
-  // ---------- Editing context ----------
-  setDataForUpdateProduct(Product? product) {
-    if (product != null) {
-      productForUpdate = product;
-
-      productNameCtrl.text = product.name ?? '';
-      productDescCtrl.text = product.description ?? '';
-      productPriceCtrl.text = product.price?.toString() ?? '';
-      productOffPriceCtrl.text = product.offerPrice?.toString() ?? '';
-      productQntCtrl.text = product.quantity?.toString() ?? '';
-
-      selectedCategory = _dataProvider.categories.firstWhereOrNull(
-        (element) => element.sId == product.proCategoryId?.sId,
-      );
-
-      if (selectedCategory != null) {
-        subCategoriesByCategory = _dataProvider.subCategories
-            .where((subCategory) =>
-                subCategory.categoryId?.sId == selectedCategory?.sId)
-            .toList();
-      }
-
-      selectedSubCategory = _dataProvider.subCategories.firstWhereOrNull(
-        (element) => element.sId == product.proSubCategoryId?.sId,
-      );
-
-      if (selectedSubCategory != null) {
-        brandsBySubCategory = _dataProvider.brands
-            .where(
-                (brand) => brand.subCategoryId?.sId == selectedSubCategory?.sId)
-            .toList();
-      }
-
-      selectedBrand = _dataProvider.brands.firstWhereOrNull(
-        (element) => element.sId == product.proBrandId?.sId,
-      );
-
-      selectedVariantType = _dataProvider.variantTypes.firstWhereOrNull(
-        (element) => element.sId == product.proVariantTypeId?.sId,
-      );
-
-      if (selectedVariantType != null) {
-        variantsByVariantType = _dataProvider.variants
-            .where((variant) =>
-                variant.variantTypeId?.sId == selectedVariantType?.sId)
-            .toList()
-            .map((variant) => variant.name ?? '')
-            .toList();
-      }
-
-      // نمایش نام ویژگی‌ها
-      selectedVariants = _dataProvider.variants
-          .where(
-              (variant) => product.proVariantId?.contains(variant.sId) ?? false)
-          .map((variant) => variant.name ?? '')
-          .toList();
-    } else {
-      _clearFieldsWithoutNotify();
-    }
-    // عمداً notify نمی‌زنیم
-  }
-
-  // ---------- Clear ----------
-  void _clearFieldsWithoutNotify() {
     productNameCtrl.clear();
     productDescCtrl.clear();
+    productQntCtrl.clear();
     productPriceCtrl.clear();
     productOffPriceCtrl.clear();
-    productQntCtrl.clear();
 
+    selectedCategory = null;
+    selectedSubCategory = null;
+    selectedBrand = null;
+    selectedVariantType = null;
+
+    selectedVariants = <Variant>[];
+    subCategoriesByCategory = <SubCategory>[];
+    brandsBySubCategory = <Brand>[];
+    variantsByVariantType = <Variant>[];
+
+    // ✅ تصاویر
     selectedMainImage = null;
     selectedSecondImage = null;
     selectedThirdImage = null;
@@ -461,26 +546,21 @@ class DashBoardProvider extends ChangeNotifier {
     imgXFile4 = null;
     imgXFile5 = null;
 
-    selectedCategory = null;
-    selectedSubCategory = null;
-    selectedBrand = null;
-    selectedVariantType = null;
-    selectedVariants = [];
-
-    productForUpdate = null;
-
-    subCategoriesByCategory = [];
-    brandsBySubCategory = [];
-    variantsByVariantType = [];
     removedImageSlots.clear();
-  }
+    imageUrls.clear();
 
-  clearFields() {
-    _clearFieldsWithoutNotify();
     notifyListeners();
   }
 
-  updateUI() {
-    notifyListeners();
+  void updateUI() => notifyListeners();
+
+  @override
+  void dispose() {
+    productNameCtrl.dispose();
+    productDescCtrl.dispose();
+    productQntCtrl.dispose();
+    productPriceCtrl.dispose();
+    productOffPriceCtrl.dispose();
+    super.dispose();
   }
 }

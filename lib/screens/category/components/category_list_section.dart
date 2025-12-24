@@ -1,5 +1,6 @@
 
 
+import 'package:admin/config/environment.dart';
 import 'package:admin/utility/User_helper.dart';
 import 'package:admin/utility/dialog_helper.dart';
 import 'package:admin/utility/extensions.dart';
@@ -18,8 +19,8 @@ class CategoryListSection extends StatelessWidget {
   String _imgUrl(String? u) {
     if (u == null || u.isEmpty) return '';
     if (u.startsWith('http')) return u;
-    if (u.startsWith('/')) return MAIN_URL + u;
-    return '$MAIN_URL/$u';
+    if (u.startsWith('/')) return Environment.appwriteEndpoint + u;
+    return '${Environment.appwriteEndpoint}/$u';
   }
 
   @override

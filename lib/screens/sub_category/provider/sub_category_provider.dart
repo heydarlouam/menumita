@@ -1,4 +1,4 @@
-import 'dart:convert';
+
 import 'dart:developer';
 
 
@@ -11,12 +11,17 @@ import '../../../core/data/data_provider.dart';
 import '../../../models/category.dart';
 import '../../../models/sub_category.dart';
 
-import '../../../core/data/repositories/category_repository.dart';
+
+import 'package:admin/core/data/appwrite/sub_category_appwrite_service.dart';
+
+import 'package:flutter/material.dart';
 
 
 class SubCategoryProvider extends ChangeNotifier {
-  final SubCategoryRepository repository = SubCategoryRepository();
   final DataProvider _dataProvider;
+  final SubCategoryAppwriteService _subService = SubCategoryAppwriteService();
+
+  SubCategoryProvider(this._dataProvider);
 
   final addSubCategoryFormKey = GlobalKey<FormState>();
   final TextEditingController subCategoryNameCtrl = TextEditingController();
@@ -27,133 +32,127 @@ class SubCategoryProvider extends ChangeNotifier {
   bool _isSubmitting = false;
   bool get isSubmitting => _isSubmitting;
 
-  SubCategoryProvider(this._dataProvider);
-
-  // ---------- Helpers ----------
-  Map<String, dynamic>? _parseBody(dynamic body) {
-    if (body == null) return null;
-    if (body is Map<String, dynamic>) return body;
-    if (body is Map) return body.cast<String, dynamic>();
-    if (body is String) {
-      try {
-        final decoded = jsonDecode(body);
-        if (decoded is Map) return decoded.cast<String, dynamic>();
-      } catch (_) {}
-    }
-    return null;
-  }
-
-  bool _okFlag(Map<String, dynamic>? m) =>
-      m != null && (m['success'] == true || m['ok'] == true);
-
-  String _msg(Map<String, dynamic>? m, String fallback) =>
-      (m != null && m['message'] is String && (m['message'] as String).isNotEmpty)
-          ? m!['message'] as String
-          : fallback;
-
-
-
-  Future<bool> addSubCategory() async {
+  // ---------- Create ----------
+  Future<bool> _createSubCategory() async {
     try {
-      // ⬅️ گرفتن شماره از SharedPreferences
       final phone = await UserSaveHelper.getPhoneNumber();
       if (phone == null || phone.isEmpty) {
         SnackBarHelper.showErrorSnackBar('شماره تلفن در حافظه یافت نشد!');
         return false;
       }
 
-      final Map<String, dynamic> subCategory = {
-        'name': subCategoryNameCtrl.text,
-        'category': selectedCategory?.sId,
-        'phone_number_code': phone, // ⬅️ به‌جای مقدار ثابت
-      };
-
-      final response = await repository.addSubCategory(subCategory);
-
-      if (response.isOk) {
-        final m = _parseBody(response.body);
-        if (_okFlag(m)) {
-          clearFields();
-          SnackBarHelper.showSuccessSnackBar(
-              _msg(m, 'Sub category added successfully'));
-          log('sub category added');
-          await _dataProvider.getAllSubCategories();
-          return true;
-        } else {
-          SnackBarHelper.showErrorSnackBar(
-              'Failed to add sub category: ${m?['error'] ?? m?['message'] ?? 'Unknown error'}');
-          return false;
-        }
-      } else {
-        SnackBarHelper.showErrorSnackBar('Error: ${response.statusText}');
-        return false;
-      }
-    } catch (e) {
-      SnackBarHelper.showErrorSnackBar('An error occurred: $e');
-      return false;
-    }
-  }
-
-  Future<bool> updateSubCategory() async {
-    try {
-      // ⬅️ گرفتن شماره از SharedPreferences
-      final phone = await UserSaveHelper.getPhoneNumber();
-      if (phone == null || phone.isEmpty) {
-        SnackBarHelper.showErrorSnackBar('شماره تلفن در حافظه یافت نشد!');
+      if (selectedCategory == null || selectedCategory!.sId == null) {
+        SnackBarHelper.showErrorSnackBar('لطفاً یک دسته‌بندی انتخاب کنید');
         return false;
       }
 
-      final Map<String, dynamic> subCategory = {
-        'name': subCategoryNameCtrl.text,
-        'category': selectedCategory?.sId,
-        'phone_number_code': phone, // ⬅️ به‌جای مقدار ثابت
-      };
+      final name = subCategoryNameCtrl.text.trim();
+      if (name.isEmpty) {
+        SnackBarHelper.showErrorSnackBar('نام زیر‌دسته را وارد کنید');
+        return false;
+      }
 
-      final response = await repository.updateSubCategory(
-        subCategoryForUpdate?.sId ?? '',
-        subCategory,
+      final result = await _subService.createSubCategory(
+        name: name,
+        phoneNumberCode: phone,
+
+        categoryId: selectedCategory!.sId!,
       );
 
-      if (response.isOk) {
-        final m = _parseBody(response.body);
-        if (_okFlag(m)) {
-          clearFields();
-          SnackBarHelper.showSuccessSnackBar(
-              _msg(m, 'Sub category updated successfully'));
-          log('sub category updated');
-          await _dataProvider.getAllSubCategories();
-          return true;
-        } else {
-          SnackBarHelper.showErrorSnackBar(
-              'Failed to update sub category: ${m?['error'] ?? m?['message'] ?? 'Unknown error'}');
-          return false;
-        }
+      if (result.isSuccess) {
+        await _dataProvider.getAllSubCategories(showSnack: true);
+        clearFields();
+        SnackBarHelper.showSuccessSnackBar('زیر‌دسته با موفقیت ایجاد شد');
+        log('sub category created');
+        return true;
       } else {
-        SnackBarHelper.showErrorSnackBar('Error: ${response.statusText}');
+        final err = result.requireError();
+        SnackBarHelper.showErrorSnackBar(
+          err.userMessage.isNotEmpty
+              ? err.userMessage
+              : (err.devMessage ?? 'ایجاد زیر‌دسته ناموفق بود'),
+        );
         return false;
       }
     } catch (e) {
-      SnackBarHelper.showErrorSnackBar('An error occurred: $e');
+      SnackBarHelper.showErrorSnackBar('خطا در ایجاد زیر‌دسته: $e');
       return false;
     }
   }
 
-  // ---------- Unified Submit (decides add/update) ----------
+  // ---------- Update ----------
+  Future<bool> _updateSubCategory() async {
+    try {
+      if (subCategoryForUpdate == null ||
+          subCategoryForUpdate!.sId == null ||
+          subCategoryForUpdate!.sId!.isEmpty) {
+        SnackBarHelper.showErrorSnackBar('شناسه زیر‌دسته نامعتبر است');
+        return false;
+      }
+
+      final phone = await UserSaveHelper.getPhoneNumber();
+      if (phone == null || phone.isEmpty) {
+        SnackBarHelper.showErrorSnackBar('شماره تلفن در حافظه یافت نشد!');
+        return false;
+      }
+
+      if (selectedCategory == null || selectedCategory!.sId == null) {
+        SnackBarHelper.showErrorSnackBar('لطفاً یک دسته‌بندی انتخاب کنید');
+        return false;
+      }
+
+      final name = subCategoryNameCtrl.text.trim();
+      if (name.isEmpty) {
+        SnackBarHelper.showErrorSnackBar('نام زیر‌دسته را وارد کنید');
+        return false;
+      }
+
+      final result = await _subService.updateSubCategory(
+        documentId: subCategoryForUpdate!.sId!,
+        name: name,
+        phoneNumberCode: phone,
+
+        categoryId: selectedCategory!.sId!,
+      );
+
+      if (result.isSuccess) {
+        await _dataProvider.getAllSubCategories(showSnack: true);
+        clearFields();
+        SnackBarHelper.showSuccessSnackBar('زیر‌دسته با موفقیت ویرایش شد');
+        log('sub category updated');
+        return true;
+      } else {
+        final err = result.requireError();
+        SnackBarHelper.showErrorSnackBar(
+          err.userMessage.isNotEmpty
+              ? err.userMessage
+              : (err.devMessage ?? 'ویرایش زیر‌دسته ناموفق بود'),
+        );
+        return false;
+      }
+    } catch (e) {
+      SnackBarHelper.showErrorSnackBar('خطا در ویرایش زیر‌دسته: $e');
+      return false;
+    }
+  }
+
+  // ---------- Unified Submit ----------
   Future<bool> submitSubCategory() async {
     if (_isSubmitting) return false;
+
     _isSubmitting = true;
     notifyListeners();
 
     try {
-      if (addSubCategoryFormKey.currentState?.validate() != true) {
-        return false;
-      }
-      addSubCategoryFormKey.currentState?.save();
+      final form = addSubCategoryFormKey.currentState;
+      if (form == null) return false;
+      if (!form.validate()) return false;
+      form.save();
 
       if (subCategoryForUpdate != null) {
-        return await updateSubCategory();
+        return await _updateSubCategory();
       } else {
-        return await addSubCategory();
+        return await _createSubCategory();
       }
     } catch (e) {
       SnackBarHelper.showErrorSnackBar('An error occurred: $e');
@@ -165,31 +164,29 @@ class SubCategoryProvider extends ChangeNotifier {
   }
 
   // ---------- Delete ----------
-  Future<bool> deleteSubCategory(SubCategory subCategory) async {
+  Future<void> deleteSubCategory(SubCategory subCategory) async {
     try {
-      final response = await repository.deleteSubCategory(
-        subCategory.sId ?? '',
-      );
+      final id = subCategory.sId;
+      if (id == null || id.isEmpty) {
+        SnackBarHelper.showErrorSnackBar('شناسه زیر‌دسته نامعتبر است');
+        return;
+      }
 
-      if (response.isOk) {
-        final m = _parseBody(response.body);
-        if (_okFlag(m)) {
-          SnackBarHelper.showSuccessSnackBar(
-              _msg(m, 'Sub category deleted successfully!'));
-          await _dataProvider.getAllSubCategories();
-          return true;
-        } else {
-          SnackBarHelper.showErrorSnackBar(
-              'Failed to delete: ${m?['error'] ?? m?['message'] ?? 'Unknown error'}');
-          return false;
-        }
+      final result = await _subService.deleteSubCategory(documentId: id);
+
+      if (result.isSuccess) {
+        SnackBarHelper.showSuccessSnackBar('زیر‌دسته با موفقیت حذف شد');
+        await _dataProvider.getAllSubCategories();
       } else {
-        SnackBarHelper.showErrorSnackBar('Error: ${response.statusText}');
-        return false;
+        final err = result.requireError();
+        SnackBarHelper.showErrorSnackBar(
+          err.userMessage.isNotEmpty
+              ? err.userMessage
+              : (err.devMessage ?? 'حذف زیر‌دسته ناموفق بود'),
+        );
       }
     } catch (e) {
-      SnackBarHelper.showErrorSnackBar('An error occurred: $e');
-      return false;
+      SnackBarHelper.showErrorSnackBar('خطا در حذف زیر‌دسته: $e');
     }
   }
 
@@ -198,10 +195,15 @@ class SubCategoryProvider extends ChangeNotifier {
     if (subCategory != null) {
       subCategoryForUpdate = subCategory;
       subCategoryNameCtrl.text = subCategory.name ?? '';
-      // پیدا کردن Category متناظر برای انتخاب اولیه
-      selectedCategory = _dataProvider.categories.firstWhereOrNull(
-            (c) => c.sId == subCategory.categoryId?.sId,
+
+      // سعی می‌کنیم کتگوری متناظر را در لیست کتگوری‌ها پیدا کنیم
+      final allCategories = _dataProvider.categories;
+
+      selectedCategory = allCategories.firstWhereOrNull(
+            (c) =>
+        c.sId == (subCategory.categoryId?.sId ?? subCategory.category),
       );
+
     } else {
       clearFields();
     }

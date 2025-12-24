@@ -1,6 +1,7 @@
 
 import 'dart:io';
 
+import 'package:admin/models/variant.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -19,14 +20,40 @@ import '../../../widgets/product_image_card.dart';
 import '../../../widgets/submission_spinner.dart';
 import '../provider/dash_board_provider.dart';
 
-class ProductSubmitForm extends StatelessWidget {
+
+
+
+
+
+
+class ProductSubmitForm extends StatefulWidget {
   final Product? product;
 
   const ProductSubmitForm({super.key, this.product});
 
   @override
+  State<ProductSubmitForm> createState() => _ProductSubmitFormState();
+}
+
+class _ProductSubmitFormState extends State<ProductSubmitForm> {
+  bool _inited = false;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_inited) return;
+    _inited = true;
+
+    // ✅ مقداردهی آپدیت فقط یکبار و خارج از build
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      context.dashBoardProvider.setDataForUpdateProduct(widget.product);
+    });
+  }
+
+
+  @override
   Widget build(BuildContext context) {
-    context.dashBoardProvider.setDataForUpdateProduct(product);
 
     return SingleChildScrollView(
       child: Form(
@@ -172,13 +199,13 @@ class ProductSubmitForm extends StatelessWidget {
                           transitionBuilder: (child, anim) => FadeTransition(opacity: anim, child: child),
                           child: isBusy
                               ? const SubmissionSpinner(
-                                  key: ValueKey('product_loading'),
-                                )
+                            key: ValueKey('product_loading'),
+                          )
                               : const Text(
-                                  'ثبت',
-                                  key: ValueKey('product_submit_text'),
-                                  style: TextStyle(fontFamily: FONTS_STYLE_FAMILY),
-                                ),
+                            'ثبت',
+                            key: ValueKey('product_submit_text'),
+                            style: TextStyle(fontFamily: FONTS_STYLE_FAMILY),
+                          ),
                         ),
                       );
                     },
@@ -192,7 +219,7 @@ class ProductSubmitForm extends StatelessWidget {
     );
   }
 
-  // تابع کمکی برای ساخت ImageCard
+// تابع کمکی برای ساخت ImageCard
   Widget _buildImageCard(BuildContext context, int cardNumber, String label) {
     return Consumer<DashBoardProvider>(
       builder: (context, dashProvider, child) {
@@ -216,20 +243,18 @@ class ProductSubmitForm extends StatelessWidget {
         }
 
         String? imageUrl;
-        if (product?.images != null && product!.images!.isNotEmpty) {
-          final imageIndex = cardNumber - 1;
-          if (imageIndex < product!.images!.length) {
-            imageUrl = product!.images![imageIndex].url;
-          }
+        final urls = widget.product?.imageUrls ?? const <String>[];
+        final imageIndex = cardNumber - 1;
+        if (imageIndex >= 0 && imageIndex < urls.length) {
+          imageUrl = urls[imageIndex];
         }
+
         return ProductImageCard(
           labelText: label,
           imageFile: selectedImage,
           imageUrlForUpdateImage: imageUrl,
-          onTap: () {
-            dashProvider.pickImage(imageCardNumber: cardNumber);
-          },
-          onRemoveImage: () => dashProvider.markImageRemoved(cardNumber), // ← همین
+          onTap: () => dashProvider.pickImage(imageCardNumber: cardNumber),
+          onRemoveImage: () => dashProvider.markImageRemoved(cardNumber),
         );
 
 
@@ -237,7 +262,7 @@ class ProductSubmitForm extends StatelessWidget {
     );
   }
 
-  // توابع کمکی برای dropdown ها
+// توابع کمکی برای dropdown ها
   Widget _buildCategoryDropdown(BuildContext context) {
     return Consumer<DashBoardProvider>(
       builder: (context, dashProvider, child) {
@@ -357,22 +382,24 @@ class ProductSubmitForm extends StatelessWidget {
     return Consumer<DashBoardProvider>(
       builder: (context, dashProvider, child) {
         final filteredSelectedItems = dashProvider.selectedVariants
-            .where((item) => dashProvider.variantsByVariantType.contains(item))
+            .where((item) => dashProvider.variantsByVariantType.any((v) => v.sId == item.sId))
             .toList();
 
-        return MultiSelectDropDown(
+        return MultiSelectDropDown<Variant>(
           items: dashProvider.variantsByVariantType,
           onSelectionChanged: (newValue) {
-            dashProvider.selectedVariants = newValue;
-            dashProvider.updateUI();
+            dashProvider.setSelectedVariants(newValue);
           },
-          displayItem: (String item) => item,
+          displayItem: (Variant item) => item.name ?? '',
           selectedItems: filteredSelectedItems,
         );
       },
     );
   }
+
 }
+
+
 
 // Popup
 void showAddProductForm(BuildContext context, Product? product) {

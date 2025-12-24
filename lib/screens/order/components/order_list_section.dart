@@ -1,6 +1,8 @@
 
 
 import 'package:admin/screens/order/components/view_order_form.dart';
+import 'package:admin/utility/User_helper.dart';
+import 'package:admin/utility/dialog_helper.dart';
 import 'package:admin/utility/extensions.dart';
 import 'package:admin/utility/functions.dart';
 import 'package:flutter/material.dart';
@@ -80,19 +82,7 @@ class OrderListSection extends StatelessWidget {
                   // 👈 عمودی مثل قبل
                   child:
 
-                  // DataTable(
-                  //   columnSpacing: defaultPadding,
-                  //   columns: const [
-                  //     DataColumn(label: Text("نام مشتری")),
-                  //     DataColumn(label: Text("مبلغ سفارش")),
-                  //     DataColumn(label: Text("پرداخت")),
-                  //     DataColumn(label: Text("وضعیت")),
-                  //     DataColumn(label: Text("تاریخ")),
-                  //     DataColumn(label: Text("ویرایش")),
-                  //     DataColumn(label: Text("حذف")),
-                  //   ],
-                  //   rows: rows,
-                  // ),
+
                   DataTable(
                     columnSpacing: defaultPadding,
                     columns: [
@@ -158,71 +148,7 @@ class OrderListSection extends StatelessWidget {
     );
   }
 
-  // DataRow _orderDataRow(BuildContext context, Order orderInfo, int index) {
-  //   return DataRow(
-  //     cells: [
-  //       DataCell(
-  //         Row(
-  //           children: [
-  //             Container(
-  //               height: 24,
-  //               width: 24,
-  //               alignment: Alignment.center,
-  //               decoration: BoxDecoration(
-  //                 color: colors[index % colors.length],
-  //                 shape: BoxShape.circle,
-  //               ),
-  //               child: Text(
-  //                 index.toString(),
-  //                 textAlign: TextAlign.center,
-  //                 style: const TextStyle(fontSize: 12),
-  //               ),
-  //             ),
-  //             const SizedBox(width: defaultPadding),
-  //             Text(orderInfo.userName ?? 'کاربر نامشخص'),
-  //           ],
-  //         ),
-  //       ),
-  //       DataCell(Text(orderInfo.orderTotal?.total?.toStringAsFixed(2) ?? '0.00')),
-  //       DataCell(Text(orderInfo.paymentMethod ?? '')),
-  //       DataCell(
-  //         Container(
-  //           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-  //           decoration: BoxDecoration(
-  //             color: _statusColor(orderInfo.orderStatus),
-  //             borderRadius: BorderRadius.circular(4),
-  //           ),
-  //           child: Text(
-  //             _statusFa(orderInfo.orderStatus ?? ''),
-  //             style: const TextStyle(
-  //               color: Colors.white,
-  //               fontSize: 12,
-  //               fontWeight: FontWeight.bold,
-  //             ),
-  //           ),
-  //         ),
-  //       ),
-  //       DataCell(Text(formatTimestamp(context, orderInfo.orderDate))),
-  //       DataCell(
-  //         IconButton(
-  //           tooltip: 'ویرایش سفارش',
-  //           onPressed: () {
-  //             context.orderProvider.loadOrderForUpdate(orderInfo);
-  //             _showOrderDialog(context, orderInfo);
-  //           },
-  //           icon: const Icon(Icons.edit, color: Colors.blue),
-  //         ),
-  //       ),
-  //       DataCell(
-  //         IconButton(
-  //           tooltip: 'حذف سفارش',
-  //           onPressed: () => _confirmDelete(context, orderInfo),
-  //           icon: const Icon(Icons.delete, color: Colors.red),
-  //         ),
-  //       ),
-  //     ],
-  //   );
-  // }
+
   DataRow _orderDataRow(BuildContext context, Order orderInfo, int index) {
     return DataRow(
       cells: [
@@ -246,7 +172,7 @@ class OrderListSection extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(width: defaultPadding),
-                Text(orderInfo.userName ?? 'کاربر نامشخص'),
+                Text(orderInfo.shippingAddress?.street ?? 'کاربر نامشخص'),
               ],
             ),
           ),
@@ -283,7 +209,7 @@ class OrderListSection extends StatelessWidget {
         DataCell(
           Center( // 🔽 اضافه شود
             child: Text(
-              '${formatToJalali(orderInfo.orderDate.toString())}\n${getTimeAgo(orderInfo.orderDate ?? '')}',
+              '${formatToJalali(orderInfo.orderDate.toString())}\n${getTimeAgo(orderInfo.orderDate.toString() ?? '')}',
               style: const TextStyle(
                 fontSize: 12,
                 color: Colors.grey,
@@ -297,10 +223,15 @@ class OrderListSection extends StatelessWidget {
           Center( // 🔽 اضافه شود
             child: IconButton(
               tooltip: 'ویرایش سفارش',
-              onPressed: () {
+              onPressed: () async {
+                if (await UserSaveHelper.isExpired()) {
+                  DialogHelper.showExpiredDialog(context);
+                  return;
+                }
                 context.orderPaidProvider.loadOrderForUpdate(orderInfo);
                 _showOrderDialog(context, orderInfo);
               },
+
               icon: const Icon(Icons.edit, color: Colors.blue),
             ),
           ),
@@ -309,7 +240,17 @@ class OrderListSection extends StatelessWidget {
           Center( // 🔽 اضافه شود
             child: IconButton(
               tooltip: 'حذف سفارش',
-              onPressed: () => _confirmDelete(context, orderInfo),
+
+
+
+              onPressed: () async {
+                if (await UserSaveHelper.isExpired()) {
+                  DialogHelper.showExpiredDialog(context);
+                  return;
+                }
+                _confirmDelete(context, orderInfo);
+              },
+
               icon: const Icon(Icons.delete, color: Colors.red),
             ),
           ),

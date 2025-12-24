@@ -62,7 +62,7 @@ class _OrderSubmitFormPaidState extends State<OrderSubmitFormPaid> {
             children: [
               Row(
                 children: [
-                  Expanded(child: formRow('نام:', Text(widget.order?.userName ?? 'N/A', style: const TextStyle(fontSize: 16)))),
+                  Expanded(child: formRow('نام:', Text(widget.order?.shippingAddress?.street ?? 'N/A', style: const TextStyle(fontSize: 16)))),
                   Expanded(child: formRow('شناسه سفارش:', Text(widget.order?.sId ?? 'N/A', style: const TextStyle(fontSize: 12)))),
                 ],
               ),
@@ -161,34 +161,6 @@ class _OrderSubmitFormPaidState extends State<OrderSubmitFormPaid> {
     );
   }
 
-  // Widget paymentDetailsSection(Order? order) {
-  //   return Container(
-  //     margin: const EdgeInsets.only(top: 20),
-  //     padding: const EdgeInsets.all(defaultPadding),
-  //     decoration: BoxDecoration(
-  //       color: secondaryColor,
-  //       border: Border.all(color: Colors.blueAccent),
-  //       boxShadow: [
-  //         BoxShadow(color: Colors.grey.withOpacity(0.2), spreadRadius: 1, blurRadius: 3, offset: const Offset(0, 1)),
-  //       ],
-  //       borderRadius: BorderRadius.circular(8.0),
-  //     ),
-  //     child: Column(
-  //       crossAxisAlignment: CrossAxisAlignment.start,
-  //       children: [
-  //         const Padding(
-  //           padding: EdgeInsets.symmetric(vertical: 8.0),
-  //           child: Text('جزئیات پرداخت', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: primaryColor)),
-  //         ),
-  //         formRow('روش پرداخت:', Text(order?.paymentMethod ?? 'N/A', style: const TextStyle(fontSize: 16))),
-  //         formRow('کد کوپن:', Text(order?.couponName ?? 'N/A', style: const TextStyle(fontSize: 16))),
-  //         formRow('جمع جزء سفارش:', Text('${ money(context, order?.orderTotal?.subTotal)  ?? 'N/A'}', style: const TextStyle(fontSize: 16))),
-  //         formRow('تخفیف:', Text('${money(context, order?.orderTotal?.discount)  ?? 'N/A'}', style: const TextStyle(fontSize: 16, color: Colors.red))),
-  //         formRow('جمع کل:', Text('${money(context, order?.orderTotal?.total)  ?? 'N/A'}', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold))),
-  //       ],
-  //     ),
-  //   );
-  // }
 
 
   Widget paymentDetailsSection(Order? order) {
@@ -211,7 +183,7 @@ class _OrderSubmitFormPaidState extends State<OrderSubmitFormPaid> {
             child: Text('جزئیات پرداخت', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: primaryColor)),
           ),
 
-          formRow('کد کوپن:', Text(order?.couponName ?? 'N/A', style: const TextStyle(fontSize: 16))),
+          formRow('کد کوپن:', Text(order?.couponCode ?? 'N/A', style: const TextStyle(fontSize: 16))),
           // 🔽 این سه خط را تغییر دهید
           formRow('جمع جزء سفارش:', Text(money(context, order?.orderTotal?.subTotal), style: const TextStyle(fontSize: 16))),
           formRow('تخفیف:', Text(money(context, order?.orderTotal?.discount), style: const TextStyle(fontSize: 16, color: Colors.red))),
@@ -220,32 +192,7 @@ class _OrderSubmitFormPaidState extends State<OrderSubmitFormPaid> {
       ),
     );
   }
-  // Widget itemsSection(Order? order, BuildContext context) {
-  //   return Container(
-  //     margin: const EdgeInsets.only(top: 20),
-  //     padding: const EdgeInsets.all(defaultPadding),
-  //     decoration: BoxDecoration(
-  //       color: secondaryColor,
-  //       border: Border.all(color: Colors.blueAccent),
-  //       boxShadow: [
-  //         BoxShadow(color: Colors.grey.withOpacity(0.2), spreadRadius: 1, blurRadius: 3, offset: const Offset(0, 1)),
-  //       ],
-  //       borderRadius: BorderRadius.circular(8.0),
-  //     ),
-  //     child: Column(
-  //       crossAxisAlignment: CrossAxisAlignment.start,
-  //       children: [
-  //         const Padding(
-  //           padding: EdgeInsets.symmetric(vertical: 8.0),
-  //           child: Text('آیتم‌ها', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: primaryColor)),
-  //         ),
-  //         _buildItemsList(order,context),
-  //         const SizedBox(height: defaultPadding),
-  //         formRow('قیمت کل:', Text('${  money(context, order?.totalPrice)   ?? 'N/A'}', style: const TextStyle(fontSize: 16, color: Colors.green))),
-  //       ],
-  //     ),
-  //   );
-  // }
+
   Widget itemsSection(Order? order, BuildContext context) {
     return Container(
       margin: const EdgeInsets.only(top: 20),

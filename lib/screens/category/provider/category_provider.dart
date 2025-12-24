@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'dart:developer';
 import 'dart:io';
 
-import 'package:admin/core/data/repositories/category_repository.dart';
+
 import 'package:admin/utility/User_helper.dart';
 import 'package:admin/utility/snack_bar_helper.dart';
 import 'package:flutter/cupertino.dart';
@@ -10,16 +10,20 @@ import 'package:flutter/foundation.dart' hide Category;
 import 'package:get/get.dart';
 import 'package:image_picker/image_picker.dart';
 
+import '../../../core/data/appwrite/category_appwrite_service.dart';
 import '../../../core/data/data_provider.dart';
 import '../../../models/category.dart';
 
 
 class CategoryProvider extends ChangeNotifier {
+
   bool _isSubmitting = false;
   bool get isSubmitting => _isSubmitting;
 
-  final CategoryRepository repository = CategoryRepository();
+
   final DataProvider _dataProvider;
+
+  final CategoryAppwriteService _categoryService = CategoryAppwriteService(); // ✅ جدید
 
   final addCategoryFormKey = GlobalKey<FormState>();
   final TextEditingController categoryNameCtrl = TextEditingController();
@@ -33,195 +37,85 @@ class CategoryProvider extends ChangeNotifier {
 
   CategoryProvider(this._dataProvider);
 
-  // ---------- Helpers ----------
-  Map<String, dynamic>? _parseBody(dynamic body) {
-    if (body == null) return null;
-    if (body is Map<String, dynamic>) return body;
-    if (body is Map) return body.cast<String, dynamic>();
-    if (body is String) {
-      try {
-        final decoded = jsonDecode(body);
-        if (decoded is Map) return decoded.cast<String, dynamic>();
-      } catch (_) {}
-    }
-    return null;
-  }
 
-  bool _isOk(Response res) => res.isOk;
-  bool _okFlag(Map<String, dynamic>? m) =>
-      m != null && (m['success'] == true || m['ok'] == true);
-  String _msg(Map<String, dynamic>? m, String fallback) => (m != null &&
-          m['message'] is String &&
-          (m['message'] as String).isNotEmpty)
-      ? m!['message'] as String
-      : fallback;
-
-
-  Future<void> addCategory() async {
-    try {
-      if (selectedImage == null && imgXFile == null) {
-        SnackBarHelper.showErrorSnackBar('Please choose an image!');
-        return;
-      }
-
-      // ✅ گرفتن شماره از SharedPreferences
-      final phone = await UserSaveHelper.getPhoneNumber();
-      if (phone == null || phone.isEmpty) {
-        SnackBarHelper.showErrorSnackBar('شماره تلفن در حافظه یافت نشد!');
-        return;
-      }
-
-      final Map<String, dynamic> formDataMap = {
-        'name': categoryNameCtrl.text,
-        'phone_number_code': phone, // 👈 جایگزین عدد ثابت
-      };
-
-      final FormData form =
-          await createFormData(imgXFile: imgXFile, formData: formDataMap);
-
-      final res = await repository.addCategory(form);
-
-      if (_isOk(res)) {
-        final body = _parseBody(res.body);
-        if (_okFlag(body)) {
-          clearFields();
-          SnackBarHelper.showSuccessSnackBar(
-              _msg(body, 'Category created successfully'));
-          log('category added');
-          await _dataProvider.getAllCategories();
-        } else {
-          SnackBarHelper.showErrorSnackBar(
-              'Failed to add category: ${body?['error'] ?? 'Unknown error'}');
-        }
-      } else {
-        SnackBarHelper.showErrorSnackBar(
-            'Error: ${res.body?['error'] ?? res.statusText}');
-      }
-    } catch (e) {
-      SnackBarHelper.showErrorSnackBar('An error occurred: $e');
-      rethrow;
-    }
-  }
-
-// ---------- Update ----------
-  Future<void> updateCategory() async {
-    try {
-      if (categoryForUpdate == null) {
-        SnackBarHelper.showErrorSnackBar('Category data is missing');
-        return;
-      }
-      final String? categoryId = categoryForUpdate?.sId;
-      if (categoryId == null || categoryId.isEmpty) {
-        SnackBarHelper.showErrorSnackBar('Category ID is missing');
-        return;
-      }
-
-      // ✅ گرفتن شماره از SharedPreferences
-      final phone = await UserSaveHelper.getPhoneNumber();
-      if (phone == null || phone.isEmpty) {
-        SnackBarHelper.showErrorSnackBar('شماره تلفن در حافظه یافت نشد!');
-        return;
-      }
-
-      final Map<String, dynamic> formDataMap = {
-        'name': categoryNameCtrl.text,
-        'phone_number_code': phone, // 👈 جایگزین عدد ثابت
-      };
-
-      final FormData form =
-          await createFormData(imgXFile: imgXFile, formData: formDataMap);
-
-      final res = await repository.updateCategory(categoryId, form);
-
-      if (_isOk(res)) {
-        final body = _parseBody(res.body);
-        if (_okFlag(body)) {
-          clearFields();
-          SnackBarHelper.showSuccessSnackBar(
-              _msg(body, 'Category updated successfully'));
-          log('category updated');
-          await _dataProvider.getAllCategories();
-        } else {
-          SnackBarHelper.showErrorSnackBar(
-              'Failed to update category: ${body?['error'] ?? 'Unknown error'}');
-        }
-      } else {
-        SnackBarHelper.showErrorSnackBar(
-            'Error: ${res.body?['error'] ?? res.statusText}');
-      }
-    } catch (e) {
-      SnackBarHelper.showErrorSnackBar('An error occurred: $e');
-      rethrow;
-    }
-  }
-
-// ---------- Unified Submit ----------
   Future<bool> submitCategory() async {
-    if (_isSubmitting) return false; // درحال ارسال: کاری نکن
+    if (_isSubmitting) return false;
     _isSubmitting = true;
     notifyListeners();
 
     try {
-      // ✅ گرفتن شماره از SharedPreferences
+      // شماره تلفن از SharedPreferences
       final phone = await UserSaveHelper.getPhoneNumber();
       if (phone == null || phone.isEmpty) {
         SnackBarHelper.showErrorSnackBar('شماره تلفن در حافظه یافت نشد!');
         return false;
       }
 
-      final Map<String, dynamic> formDataMap = {
-        'name': categoryNameCtrl.text,
-        'phone_number_code': phone, // 👈 جایگزین عدد ثابت
-      };
-
-      final FormData form =
-          await createFormData(imgXFile: imgXFile, formData: formDataMap);
+      final String name = categoryNameCtrl.text.trim();
+      if (name.isEmpty) {
+        SnackBarHelper.showErrorSnackBar('لطفاً نام دسته‌بندی را وارد کنید');
+        return false;
+      }
 
       final String? targetId = categoryForUpdate?.sId;
       final bool isUpdate = (targetId != null && targetId.isNotEmpty);
 
-      // در افزودن (نه ویرایش) تصویر اجباری است
-      if (!isUpdate && imgXFile == null) {
-        SnackBarHelper.showErrorSnackBar('Please choose an image!');
+      // خواندن تصویر (در صورت وجود)
+      Uint8List? bytes;
+      String? filename;
+
+      if (imgXFile != null) {
+        bytes = await imgXFile!.readAsBytes();
+        filename = imgXFile!.name;
+      }
+
+      // در افزودن، تصویر اجباری است
+      if (!isUpdate && bytes == null) {
+        SnackBarHelper.showErrorSnackBar('لطفاً تصویر را انتخاب کنید');
         return false;
       }
 
-      final Response res = isUpdate
-          ? await repository.updateCategory(targetId!, form)
-          : await repository.addCategory(form);
+      // تماس با سرویس Appwrite
+      final result = isUpdate
+          ? await _categoryService.updateCategory(
+        documentId: targetId!,
+        name: name,
+   phoneNumberCode: phone,
 
-      // parse امن
-      Map<String, dynamic>? body;
-      final dynamic raw = res.body;
-      if (raw is String) {
-        try {
-          final decoded = jsonDecode(raw);
-          if (decoded is Map) body = decoded.cast<String, dynamic>();
-        } catch (_) {}
-      } else if (raw is Map) {
-        body = raw.cast<String, dynamic>();
-      }
+        imageBytes: bytes,
+        filename: filename,
+        existingImageUrl: categoryForUpdate?.image,
+      )
+          : await _categoryService.createCategoryWithImage(
+        name: name,
+       phoneNumberCode: phone,
 
-      final okFlag =
-          body != null && (body!['success'] == true || body!['ok'] == true);
+        imageBytes: bytes!,
+        filename: filename!,
+      );
 
-      if (res.isOk && okFlag) {
+      if (result.isSuccess) {
         await _dataProvider.getAllCategories(showSnack: true);
-        final msg = (body?['message'] as String?) ??
-            (isUpdate
-                ? 'Category updated successfully'
-                : 'Category created successfully');
+
+        final msg = isUpdate
+            ? 'دسته‌بندی با موفقیت ویرایش شد'
+            : 'دسته‌بندی با موفقیت ایجاد شد';
         SnackBarHelper.showSuccessSnackBar(msg);
+
         clearFields();
-        return true; // ✅ موفقیت
+        return true;
       } else {
-        final errMsg = body?['message'] ?? body?['error'] ?? 'Operation failed';
-        SnackBarHelper.showErrorSnackBar(errMsg.toString());
+        final error = result.requireError();
+        SnackBarHelper.showErrorSnackBar(
+          error.userMessage.isNotEmpty
+              ? error.userMessage
+              : (error.devMessage ?? 'عملیات ناموفق بود'),
+        );
         return false;
       }
     } catch (e) {
       log(e.toString());
-      SnackBarHelper.showErrorSnackBar('An error occurred: $e');
+      SnackBarHelper.showErrorSnackBar('خطا در ثبت دسته‌بندی: $e');
       return false;
     } finally {
       _isSubmitting = false;
@@ -229,26 +123,34 @@ class CategoryProvider extends ChangeNotifier {
     }
   }
 
-  // ---------- Delete ----------
+
+
   Future<void> deleteCategory(Category category) async {
     try {
-      final res = await repository.deleteCategory(category.sId ?? '');
+      final String? categoryId = category.sId;
+      if (categoryId == null || categoryId.isEmpty) {
+        SnackBarHelper.showErrorSnackBar('شناسه دسته‌بندی نامعتبر است');
+        return;
+      }
 
-      if (_isOk(res)) {
-        final body = _parseBody(res.body);
-        if (_okFlag(body)) {
-          SnackBarHelper.showSuccessSnackBar(
-              _msg(body, 'Category deleted successfully!'));
-          await _dataProvider.getAllCategories();
-        } else {
-          SnackBarHelper.showErrorSnackBar(
-              'Failed to delete category: ${body?['error'] ?? 'Unknown error'}');
-        }
+      final result = await _categoryService.deleteCategory(
+        documentId: categoryId,
+        existingImageUrl: category.image, // ✅ آدرس عکس فعلی برای حذف
+      );
+
+      if (result.isSuccess) {
+        SnackBarHelper.showSuccessSnackBar('دسته‌بندی با موفقیت حذف شد');
+        await _dataProvider.getAllCategories();
       } else {
+        final error = result.requireError();
         SnackBarHelper.showErrorSnackBar(
-            'Error: ${res.body?['error'] ?? res.statusText}');
+          error.userMessage.isNotEmpty
+              ? error.userMessage
+              : (error.devMessage ?? 'حذف دسته‌بندی ناموفق بود'),
+        );
       }
     } catch (e) {
+      SnackBarHelper.showErrorSnackBar('خطا در حذف دسته‌بندی: $e');
       rethrow;
     }
   }

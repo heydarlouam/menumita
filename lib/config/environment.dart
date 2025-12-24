@@ -3,11 +3,12 @@ class Environment {
   Environment._();
 
   // TODO: این‌ها رو با مقادیر واقعی Appwrite پر کن
-  static const String appwriteEndpoint = 'https://YOUR_APPWRITE_ENDPOINT/v1';
-  static const String appwriteProjectId = 'YOUR_PROJECT_ID';
+  static const String appwriteEndpoint = 'https://pb.frozencoffee.ir/v1';
+  static const String appwriteProjectId = '692c0b6a00389c2456f6';
 
   // Database
-  static const String databaseIdMenuMita = 'db_menu_mita';
+  // static const String databaseIdMenuMita = 'db_menu_mita';
+  static const String databaseIdMenuMita = '692d6d2c002b8242adc1'; // ✅
 
   // Collections
   static const String collectionIdBrands = 'brands';
@@ -21,4 +22,15 @@ class Environment {
   static const String collectionIdUserShop = 'usershop';
   static const String collectionIdVariants = 'variants';
   static const String collectionIdVariantTypes = 'variant_types';
+
+
+  // ✅ باکت تصاویر کتگوری
+  static const String BucketImages = '692fbd53003412d67c52';
+
+
+  // Functions
+  static const String functionIdLogin = '6942e48c00274480bd93'; // login-function-appwrite
+
+
+
 }

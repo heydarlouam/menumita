@@ -2,8 +2,8 @@
 class Poster {
   String? sId;
   String? posterName;
-  String? imageUrl;  // 🔴 مشکل اینجاست!
-  String? imageId;   // 🔴 این هم اضافه شود
+  String? imageUrl;
+  String? imageId;   // در صورت نیاز: نگه‌داشتن fileId
   String? createdAt;
   String? updatedAt;
 
@@ -17,17 +17,27 @@ class Poster {
   });
 
   Poster.fromJson(Map<String, dynamic> json) {
-    sId = json['id'];
-    posterName = json['poster_name'];
+    // id: هم Appwrite ($id) هم بک‌اند قدیمی (id)
+    final rawId = json[r'$id'] ?? json['id'];
+    sId = rawId?.toString();
 
-    // 🔴 اصلاح این بخش - سرور imageUrl می‌فرستد نه image
-    imageUrl = json['imageUrl'] ?? json['image']; // اول imageUrl را چک کن
-    imageId = json['imageId'] ?? json['image'];   // imageId هم اضافه شد
+    // name: بک‌اند قدیمی → poster_name ، Appwrite → name
+    posterName = (json['poster_name'] ?? json['name'])?.toString();
 
-    createdAt = json['created'];
-    updatedAt = json['updated'];
+    // imageUrl: ممکن است imageUrl یا image یا poster_image باشد
+    imageUrl =
+        (json['imageUrl'] ?? json['image'] ?? json['poster_image'])?.toString();
 
-    print('🔄 Parsing Poster - imageUrl: $imageUrl, imageId: $imageId');
+    // اگر از جایی imageId داشته باشیم
+    imageId = json['imageId']?.toString();
+
+    final rawCreated =
+        json[r'$createdAt'] ?? json['createdAt'] ?? json['created'];
+    createdAt = rawCreated?.toString();
+
+    final rawUpdated =
+        json[r'$updatedAt'] ?? json['updatedAt'] ?? json['updated'];
+    updatedAt = rawUpdated?.toString();
   }
 
   Map<String, dynamic> toJson() {

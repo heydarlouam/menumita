@@ -1,9 +1,17 @@
-import 'package:admin/core/data/repositories/category_repository.dart';
+import 'package:admin/core/data/appwrite/brands_repository.dart';
+import 'package:admin/core/data/appwrite/coupon_code_appwrite_service.dart';
+import 'package:admin/core/data/appwrite/orders_appwrite_service.dart';
+import 'package:admin/core/data/appwrite/products_appwrite_service.dart';
+import 'package:admin/core/data/appwrite/sub_category_appwrite_service.dart';
+import 'package:admin/core/data/appwrite/variant_types_repository.dart';
+import 'package:admin/core/data/appwrite/variants_repository.dart';
+
 import 'package:admin/utility/User_helper.dart';
 import 'package:admin/utility/snack_bar_helper.dart';
+import 'package:appwrite/appwrite.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart' hide Category;
-import 'package:get/get.dart';
+
 
 import '../../../models/category.dart';
 import '../../models/brand.dart';
@@ -18,59 +26,25 @@ import '../../models/variant_type.dart';
 
 import '../../utility/constants.dart';
 import 'dart:async';
-import 'package:socket_io_client/socket_io_client.dart' as IO;
+
+
+import 'appwrite/categories_repository.dart';
+import 'appwrite/poster_appwrite_service.dart';
 
 
 
 
 
 class DataProvider extends ChangeNotifier {
-  final CategoryRepository categoryRepo = CategoryRepository();
-  final BrandRepository brandRepo = BrandRepository();
-  final SubCategoryRepository subCategoryRepo = SubCategoryRepository();
-  final VariantTypeRepository variantTypeRepo = VariantTypeRepository();
-  final VariantRepository variantRepo = VariantRepository();
-  final ProductRepository productRepo = ProductRepository();
-  final PosterRepository posterRepo = PosterRepository();
-  final CouponRepository couponRepo = CouponRepository();
-  final OrderRepository orderRepo = OrderRepository();
 
-  bool _initialized = false;
+// ================================
+// ✅ ORDERS SECTION (Appwrite)
+// ================================
 
-/////////////////////////////////////////////////////////
-// اگر menu_type == menu_one باشد، بخش سفارش‌ها غیرفعال است
-  Future<bool> _isOrdersEnabled() async {
-    try {
-      final info = await UserSaveHelper.getUserInfo(showError: false);
-      final menuType =
-          (info?['menu_type'] ?? '').toString().trim().toLowerCase();
-      return menuType != 'menu_one';
-    } catch (_) {
-      // اگر نتوانستیم بخوانیم، محافظه‌کارانه فعال در نظر می‌گیریم
-      return true;
-    }
-  }
+  final OrdersAppwriteService ordersAppwriteService = OrdersAppwriteService();
+  RealtimeSubscription? _ordersSub;
 
-  Future<void> _bootOrders() async {
-    if (!await _isOrdersEnabled()) {
-      // اطمینان از قطع بودن ریل‌تایم
-      await disposeOrdersRealtime();
-      // اگر خواستی پیام بگذاری:
-      // SnackBarHelper.showInfoSnackBar('ماژول سفارش‌ها برای این نوع منو غیرفعال است');
-      return;
-    }
-    await getAllsOrders();
-    await initOrdersRealtime();
-    await getAllCoupons();
-  }
-
-/////////////////////////////////////////////////////////
-
-/////////////////////////////////////////////////////////
-  // Realtime (ساده و عمومی)
-  IO.Socket? _ordersSocket;
   Timer? _notifyDebounce;
-
   void _safeNotify() {
     _notifyDebounce?.cancel();
     _notifyDebounce = Timer(const Duration(milliseconds: 120), () {
@@ -78,116 +52,14 @@ class DataProvider extends ChangeNotifier {
     });
   }
 
-  Future<void> initOrdersRealtime() async {
-    await disposeOrdersRealtime(); // اگر قبلاً وصل بوده
+  bool _isPaidStatus(String? s) => (s ?? '').trim().toLowerCase() == 'paid';
 
-    try {
-      final phone =
-          await UserSaveHelper.getPhoneNumber(); // برای فیلتر سمت کلاینت
-      final url =
-          MAIN_URL; // مثلا: http://10.0.2.2:5001 یا http://localhost:5001
+// --- In Progress (Dashboard) ---
+  final List<Order> _allsOrders = [];
+  List<Order> _filteredOrdersall = [];
+  List<Order> get allsOrders => _filteredOrdersall;
 
-      _ordersSocket = IO.io(
-        url,
-        IO.OptionBuilder()
-            .setTransports(['websocket'])
-            .disableAutoConnect()
-            .enableReconnection()
-            .setReconnectionDelay(600)
-            .setReconnectionDelayMax(4000)
-            .build(),
-      );
-
-      _ordersSocket!
-        ..onConnect((_) {
-          // وصل شد
-        })
-        ..on('orders_change', (payload) {
-          _applyOrderChange(payload, phoneNumberCode: phone);
-        })
-        ..onError((e) {
-          // debugPrint('socket error: $e');
-        })
-        ..onDisconnect((_) {
-          // debugPrint('socket disconnected');
-        })
-        ..connect();
-    } catch (_) {}
-  }
-
-  Future<void> disposeOrdersRealtime() async {
-    try {
-      _ordersSocket?.dispose();
-      _ordersSocket?.destroy();
-      _ordersSocket = null;
-    } catch (_) {}
-  }
-
-  void _applyOrderChange(dynamic payload, {String? phoneNumberCode}) {
-    try {
-      if (payload is! Map) return;
-      final action = (payload['action'] ?? '').toString();
-      final rec = payload['record'];
-      if (rec is! Map) return;
-
-      // یکدست‌سازی id با مدل تو (Order.fromJson معمولاً sId می‌خواد)
-      final json = Map<String, dynamic>.from(rec);
-      json['sId'] ??= json['id'];
-// 🔽 این خط را اضافه کنید - پردازش orderMode و tableNumber
-      json['orderMode'] = (json['orderMode']?.toString().trim().toLowerCase()) ?? '';
-      json['tableNumber'] = (json['tableNumber']?.toString().trim()) ?? '';
-
-      // فیلتر tenant
-      if (phoneNumberCode != null && phoneNumberCode.isNotEmpty) {
-        final p = (json['phone_number_code'] ?? '').toString();
-        if (p.isNotEmpty && p != phoneNumberCode) return;
-      }
-
-      final order = Order.fromJson(json);
-
-      if (action == 'create' || action == 'update') {
-        _upsertOrderInList(_allsOrders, order);
-        _upsertOrderInList(_allOrders, order);
-      } else if (action == 'delete') {
-        final id = order.sId ?? json['id']?.toString();
-        if (id != null) {
-          _removeOrderFromList(_allsOrders, id);
-          _removeOrderFromList(_allOrders, id);
-        }
-      } else {
-        return;
-      }
-
-      // بازاعمال فیلترها (ساده: نمایش کامل؛ اگر حالت فیلتر فعال داری، همان منطق را اینجا صدا بزن)
-      _filteredOrdersall = List.unmodifiable(_allsOrders);
-      _filteredOrders = List.unmodifiable(_allOrders);
-
-      _safeNotify();
-    } catch (_) {}
-  }
-
-  void _upsertOrderInList(List<Order> list, Order incoming) {
-    final idx = list.indexWhere((o) => (o.sId ?? '') == (incoming.sId ?? ''));
-    if (idx == -1) {
-      list.insert(0, incoming); // جدید بالا
-    } else {
-      list[idx] = incoming; // بروزرسانی
-    }
-  }
-
-  void _removeOrderFromList(List<Order> list, String id) {
-    list.removeWhere((o) => (o.sId ?? '') == id);
-  }
-
-  @override
-  void dispose() {
-    _notifyDebounce?.cancel();
-    disposeOrdersRealtime();
-    super.dispose();
-  }
-
-/////////////////////////////////////////////////////////
-
+// --- Paid (Orders page, pagination) ---
   final int _ordersPageSize = 50;
   int _ordersPage = 1;
   bool _ordersHasMore = true;
@@ -200,6 +72,69 @@ class DataProvider extends ChangeNotifier {
   List<Order> _filteredOrders = [];
   List<Order> get orders => _filteredOrders;
 
+// اگر menu_type == menu_one باشد، بخش سفارش‌ها غیرفعال است
+  Future<bool> _isOrdersEnabled() async {
+    try {
+      final info = await UserSaveHelper.getUserInfo(showError: false);
+      final menuType = (info?['menu_type'] ?? '').toString().trim().toLowerCase();
+      return menuType != 'menu_one';
+    } catch (_) {
+      return true;
+    }
+  }
+
+  Future<void> _bootOrders() async {
+    if (!await _isOrdersEnabled()) {
+      await disposeOrdersRealtime();
+      return;
+    }
+
+    // داشبورد: همه سفارشات در جریان (به جز Paid)
+    await getAllsOrders(showSnack: false);
+
+    // صفحه Paid ها با پیجین (اگه لازم داری همون اول لود شه)
+    // await loadInitialOrders(showSnack: false);
+
+    // realtime
+    await initOrdersRealtime();
+  }
+
+// -------------------------------
+// ✅ Dashboard: دریافت همه سفارشات در جریان (بدون پیجین)
+// -------------------------------
+  Future<List<Order>> getAllsOrders({bool showSnack = false}) async {
+    try {
+      final phone = await UserSaveHelper.getPhoneNumber(showError: false) ?? '';
+      if (phone.trim().isEmpty) {
+        if (showSnack) SnackBarHelper.showErrorSnackBar('شماره تلفن در حافظه یافت نشد!');
+        return _allsOrders;
+      }
+
+      final data = await ordersAppwriteService.fetchAllInProgress(
+
+        phoneNumberCode: phone.trim(),
+        batchSize: 200,
+
+      );
+
+      _allsOrders
+        ..clear()
+        ..addAll(data);
+
+      _filteredOrdersall = List.unmodifiable(_allsOrders);
+
+      notifyListeners();
+      if (showSnack) SnackBarHelper.showSuccessSnackBar('Orders (in progress) loaded');
+      return _allsOrders;
+    } catch (e) {
+      if (showSnack) SnackBarHelper.showErrorSnackBar('Failed to load in-progress orders: $e');
+      rethrow;
+    }
+  }
+
+// -------------------------------
+// ✅ Paid Orders: Pagination
+// -------------------------------
   Future<List<Order>> loadInitialOrders({bool showSnack = false}) async {
     if (_ordersLoading) return _filteredOrders;
     _ordersPage = 1;
@@ -207,76 +142,176 @@ class DataProvider extends ChangeNotifier {
     _allOrders.clear();
     _filteredOrders = const [];
     notifyListeners();
-
-    return _fetchOrdersPage(_ordersPage, showSnack: showSnack);
+    return _fetchPaidOrdersPage(_ordersPage, showSnack: showSnack);
   }
 
   Future<List<Order>> loadMoreOrders({bool showSnack = false}) async {
     if (_ordersLoading || !_ordersHasMore) return _filteredOrders;
     _ordersPage += 1;
-    return _fetchOrdersPage(_ordersPage, showSnack: showSnack);
+    return _fetchPaidOrdersPage(_ordersPage, showSnack: showSnack);
   }
 
-  Future<List<Order>> _fetchOrdersPage(int page,
-      {bool showSnack = false}) async {
-    if (_ordersLoading) return _filteredOrders; // گارد مضاعف
+  Future<List<Order>> _fetchPaidOrdersPage(int page, {bool showSnack = false}) async {
+    if (_ordersLoading) return _filteredOrders;
     _ordersLoading = true;
     notifyListeners();
 
     try {
-      // ✅ مقدار شماره تلفن از SharedPreferences
-      final phone = await UserSaveHelper.getPhoneNumber();
-      if (phone == null || phone.isEmpty) {
-        SnackBarHelper.showErrorSnackBar('شماره تلفن در حافظه یافت نشد!');
+      final phone = await UserSaveHelper.getPhoneNumber(showError: false) ?? '';
+      if (phone.trim().isEmpty) {
+        if (showSnack) SnackBarHelper.showErrorSnackBar('شماره تلفن در حافظه یافت نشد!');
         return _filteredOrders;
       }
 
-      final response = await orderRepo.fetchPaged(
-        phone,
+      final res = await ordersAppwriteService.fetchPaidPaged(
+        phoneNumberCode: phone.trim(),
         page: page,
         perPage: _ordersPageSize,
       );
 
-      if (!response.isOk) {
-        throw Exception('HTTP ${response.statusCode}: ${response.statusText}');
-      }
+      if (page == 1) _allOrders.clear();
+      _allOrders.addAll(res.orders);
+      _filteredOrders = List.unmodifiable(_allOrders);
+      _ordersHasMore = res.hasMore;
 
-      final responseBody = response.body;
-      if (responseBody['success'] != true) {
-        throw Exception(responseBody['message'] ?? 'Failed to load orders');
-      }
-
-      final List<dynamic> ordersData = responseBody['data'] ?? [];
-      final List<Order> pageOrders =
-          ordersData.map((item) => Order.fromJson(item)).toList();
-
-      // append
-      _allOrders.addAll(pageOrders);
-      _filteredOrders = List.unmodifiable(_allOrders); // امن‌تر برای UI
-
-      // hasMore از meta یا سایز صفحه
-      final meta = responseBody['meta'];
-      if (meta is Map && meta.containsKey('hasMore')) {
-        _ordersHasMore = meta['hasMore'] == true;
-      } else {
-        _ordersHasMore = pageOrders.length >= _ordersPageSize;
-      }
-
-      if (showSnack) {
-        SnackBarHelper.showSuccessSnackBar(
-            responseBody['message'] ?? 'Orders loaded successfully');
-      }
-
+      if (showSnack) SnackBarHelper.showSuccessSnackBar('Paid orders loaded');
       return _filteredOrders;
     } catch (e) {
-      // اگر خطا داد، شماره صفحه را برگردان
       if (_ordersPage > 1) _ordersPage -= 1;
-      SnackBarHelper.showErrorSnackBar('An error occurred: $e');
+      if (showSnack) SnackBarHelper.showErrorSnackBar('Failed to load paid orders: $e');
       rethrow;
     } finally {
       _ordersLoading = false;
       notifyListeners();
     }
+  }
+
+// -------------------------------
+// ✅ Realtime (Appwrite)
+// -------------------------------
+  Future<void> initOrdersRealtime() async {
+    await disposeOrdersRealtime();
+
+    try {
+      final phone = await UserSaveHelper.getPhoneNumber(showError: false) ?? '';
+      if (phone.trim().isEmpty) return;
+
+      _ordersSub = ordersAppwriteService.subscribeOrders((msg) {
+        _applyOrdersRealtime(msg, phoneNumberCode: phone.trim());
+      });
+    } catch (_) {}
+  }
+
+  Future<void> disposeOrdersRealtime() async {
+    try {
+      await _ordersSub?.close();
+      _ordersSub = null;
+    } catch (_) {}
+  }
+
+  String _actionFromEvents(List<String> events) {
+    if (events.any((e) => e.endsWith('.delete'))) return 'delete';
+    if (events.any((e) => e.endsWith('.create'))) return 'create';
+    if (events.any((e) => e.endsWith('.update'))) return 'update';
+    return 'unknown';
+  }
+
+  void _applyOrdersRealtime(RealtimeMessage msg, {required String phoneNumberCode}) {
+    try {
+      final action = _actionFromEvents(msg.events);
+      final payload = msg.payload;
+      if (payload is! Map) return;
+
+      final doc = Map<String, dynamic>.from(payload as Map);
+      final normalized = <String, dynamic>{
+        ...doc,
+        'id': doc['id'] ?? doc[r'$id'],
+        'created': doc['created'] ?? doc[r'$createdAt'],
+      };
+
+      final order = Order.fromJson(normalized);
+
+      // tenant filter
+      final p = (order.phoneNumberCode ?? '').trim();
+      if (p.isNotEmpty && p != phoneNumberCode) return;
+
+      final id = (order.sId ?? '').trim();
+      if (id.isEmpty) return;
+
+      if (action == 'delete') {
+        _removeOrderFromList(_allsOrders, id); // in-progress
+        _removeOrderFromList(_allOrders, id);  // paid
+      } else if (action == 'create' || action == 'update') {
+        if (_isPaidStatus(order.orderStatus)) {
+          // Paid => از داشبورد حذف
+          _removeOrderFromList(_allsOrders, id);
+
+          // Paid list => اگر لیست Paid لود شده، آپدیت/اضافه کن
+          final idx = _allOrders.indexWhere((o) => (o.sId ?? '') == id);
+          if (idx >= 0) {
+            _allOrders[idx] = order;
+          } else {
+            // فقط اگر صفحه اول یا قبلاً لیست رو داری
+            if (_ordersPage <= 1) _allOrders.insert(0, order);
+          }
+        } else {
+          // Non-Paid => در جریان
+          _upsertOrderInList(_allsOrders, order);
+
+          // اگر قبلاً Paid بوده، از لیست Paid حذف
+          _removeOrderFromList(_allOrders, id);
+        }
+      }
+
+      _filteredOrdersall = List.unmodifiable(_allsOrders);
+      _filteredOrders = List.unmodifiable(_allOrders);
+
+      _safeNotify();
+    } catch (_) {}
+  }
+
+  void _upsertOrderInList(List<Order> list, Order incoming) {
+    final incomingId = (incoming.sId ?? '').toString();
+    final idx = list.indexWhere((o) => (o.sId ?? '').toString() == incomingId);
+    if (idx == -1) {
+      list.insert(0, incoming);
+    } else {
+      list[idx] = incoming;
+    }
+  }
+
+  void _removeOrderFromList(List<Order> list, String id) {
+    list.removeWhere((o) => (o.sId ?? '').toString() == id);
+  }
+
+// -------------------------------
+// ✅ Filters/Search
+// -------------------------------
+  void filterAllOrders(String status) {
+    if (status == ORDER_STATUS_ALL || status.isEmpty) {
+      _filteredOrdersall = List.unmodifiable(_allsOrders);
+    } else {
+      final s = status.toLowerCase();
+      _filteredOrdersall = List.unmodifiable(
+        _allsOrders.where((o) => (o.orderStatus ?? '').toLowerCase() == s),
+      );
+    }
+    notifyListeners();
+  }
+
+  void searchAllOrders(String query) {
+    if (query.isEmpty) {
+      _filteredOrdersall = List.unmodifiable(_allsOrders);
+    } else {
+      final q = query.toLowerCase();
+      _filteredOrdersall = List.unmodifiable(
+        _allsOrders.where((o) =>
+        (o.userID ?? '').toLowerCase().contains(q) ||
+            (o.orderStatus ?? '').toLowerCase().contains(q) ||
+            (o.sId ?? '').toLowerCase().contains(q)),
+      );
+    }
+    notifyListeners();
   }
 
   void searchOrders(String query) {
@@ -286,14 +321,51 @@ class DataProvider extends ChangeNotifier {
       final q = query.toLowerCase();
       _filteredOrders = List.unmodifiable(
         _allOrders.where((o) =>
-            (o.userName ?? '').toLowerCase().contains(q) ||
+        (o.userID ?? '').toLowerCase().contains(q) ||
             (o.orderStatus ?? '').toLowerCase().contains(q) ||
-            (o.paymentMethod ?? '').toLowerCase().contains(q) ||
             (o.sId ?? '').toLowerCase().contains(q)),
       );
     }
     notifyListeners();
   }
+
+// در dispose اصلی DataProvider این‌ها را نگه دار:
+  @override
+  void dispose() {
+    _notifyDebounce?.cancel();
+    disposeOrdersRealtime();
+    super.dispose();
+  }
+
+
+  // final CategoryRepository categoryRepo = CategoryRepository();
+  final CategoriesRepository categoriesRepoAppwrite = CategoriesRepository();
+  // final BrandRepository brandRepo = BrandRepository();
+  final BrandsRepository brandsRepoAppwrite = BrandsRepository();
+
+  // final SubCategoryRepository subCategoryRepo = SubCategoryRepository();
+  final SubCategoryAppwriteService _subCategoryService =
+  SubCategoryAppwriteService();
+
+  // final VariantTypeRepository variantTypeRepo = VariantTypeRepository();
+  final VariantTypesRepository variantTypesRepoAppwrite = VariantTypesRepository();
+
+  // final VariantRepository variantRepo = VariantRepository();
+  final VariantsRepository variantsRepoAppwrite = VariantsRepository();
+  // final ProductRepository productRepo = ProductRepository();
+  final ProductsAppwriteService _productsService = ProductsAppwriteService();
+
+  // final PosterRepository posterRepo = PosterRepository();
+  final PosterAppwriteService _posterService = PosterAppwriteService();
+
+  // final CouponRepository couponRepo = CouponRepository();
+  final CouponCodeAppwriteService _couponService = CouponCodeAppwriteService();
+
+
+
+
+  bool _initialized = false;
+
 
   // اگر جایی هنوز از این استفاده می‌کنی، این فقط یک شورت‌کات به لود اولیه است
   Future<List<Order>> getAllOrders({bool showSnack = false}) async {
@@ -375,154 +447,72 @@ class DataProvider extends ChangeNotifier {
     await initAll();
   }
 
-// -------------------------------
-// 🔹 لیست‌ها
-// -------------------------------
-  final List<Order> _allsOrders = [];
-  List<Order> _filteredOrdersall = [];
-
-  List<Order> get allsOrders => _filteredOrdersall;
-
-// -------------------------------
-// 🔹 گرفتن همه سفارش‌ها (از روت /api/ordersalls)
-// -------------------------------
-  Future<List<Order>> getAllsOrders({bool showSnack = false}) async {
-    try {
-      // ✅ گرفتن phone_number_code از SharedPreferences
-      final phone = await UserSaveHelper.getPhoneNumber();
-      if (phone == null || phone.isEmpty) {
-        SnackBarHelper.showErrorSnackBar('شماره تلفن در حافظه یافت نشد!');
-        return _allsOrders;
-      }
-
-      final Response response = await orderRepo.fetchAlls(phone);
-
-      if (response.isOk) {
-        final body = response.body;
-        if (body is Map && body['success'] == true && body['data'] is List) {
-          final List<dynamic> data = body['data'];
-
-          _allsOrders
-            ..clear()
-            ..addAll(
-                data.map((e) => Order.fromJson(e as Map<String, dynamic>)));
-
-          // فیلتر اولیه: همه سفارش‌ها
-          _filteredOrdersall = List.unmodifiable(_allsOrders);
-
-
-          print('✅ Orders loaded: ${_allsOrders.length}');
-          if (_allsOrders.isNotEmpty) {
-            final o = _allsOrders.first;
-            print(
-                '🔍 First order => id: ${o.sId}, status: ${o.orderStatus}, total: ${o.totalPrice}');
-          }
-
-          notifyListeners();
-          if (showSnack) {
-            SnackBarHelper.showSuccessSnackBar('Orders loaded successfully');
-          }
-          return _allsOrders;
-        } else {
-          throw Exception('Invalid response format');
-        }
-      } else {
-        throw Exception('HTTP ${response.statusCode}: ${response.statusText}');
-      }
-    } catch (e) {
-      print('❌ Error in getAllsOrders: $e');
-      if (showSnack) {
-        SnackBarHelper.showErrorSnackBar('Failed to load orders: $e');
-      }
-      rethrow;
-    }
-  }
-
-// -------------------------------
-// 🔹 فیلتر بر اساس وضعیت سفارش (status)
-// -------------------------------
-  void filterAllOrders(String status) {
-    if (status == ORDER_STATUS_ALL || status.isEmpty) {
-      _filteredOrdersall = List.unmodifiable(_allsOrders);
-    } else {
-      final s = status.toLowerCase();
-      _filteredOrdersall = List.unmodifiable(
-        _allsOrders.where(
-          (o) => (o.orderStatus ?? '').toLowerCase() == s,
-        ),
-      );
-    }
-    notifyListeners();
-  }
-
-// -------------------------------
-// 🔹 جستجو بین سفارش‌ها
-// -------------------------------
-  void searchAllOrders(String query) {
-    if (query.isEmpty) {
-      _filteredOrdersall = List.unmodifiable(_allsOrders);
-    } else {
-      final q = query.toLowerCase();
-      _filteredOrdersall = List.unmodifiable(
-        _allsOrders.where(
-          (o) =>
-              (o.userName ?? '').toLowerCase().contains(q) ||
-              (o.orderStatus ?? '').toLowerCase().contains(q) ||
-              (o.paymentMethod ?? '').toLowerCase().contains(q) ||
-              (o.sId ?? '').toLowerCase().contains(q),
-        ),
-      );
-    }
-    notifyListeners();
-  }
 
   Future<List<Category>> getAllCategories({bool showSnack = false}) async {
     try {
-      final phone = await UserSaveHelper.getPhoneNumber();
+      final phone = await UserSaveHelper.getPhoneNumber(showError: false) ?? '12345';
       if (phone == null || phone.isEmpty) {
         SnackBarHelper.showErrorSnackBar('شماره تلفن در حافظه یافت نشد!');
         return _filteredCategories;
       }
 
-      Response response = await categoryRepo.fetchAll(phone);
+      // ✅ نسخه جدید: خواندن از Appwrite
+      final result =
+      await categoriesRepoAppwrite.getByPhoneNumberCode(phone);
 
-      if (response.isOk) {
-        if (response.body['success'] == true) {
-          // 🔽 این قسمت را اصلاح کنید - استفاده از 'categories' به جای 'data'
-          List<dynamic> data = response.body['data'] ?? []; // 🔄 تغییر داده شد
-
-          print('🔍 Categories data received: ${data.length} items');
-
-          if (data.isNotEmpty) {
-            print('🔍 First category item: ${data[0]}');
+      if (result.isSuccess) {
+        final data = result.requireData();
+        // 🔍 لاگ دقیق تمام آیتم‌های برگردانده‌شده
+        if (kDebugMode) {
+          print('===== CATEGORIES FROM APPWRITE (MAPPED TO MODEL) =====');
+          print('count: ${data.length}');
+          for (final c in data) {
+            print('----------------------------------------');
+            print('id       : ${c.sId}');
+            print('name     : ${c.name}');
+            // اگر توی مدل Category فیلد phone_number_code رو نگه می‌داری:
+            // print('phoneCode: ${c.phoneNumberCode}');
+            print('toJson() : ${c.toJson()}');
           }
-
-          _allCategories = data.map((item) => Category.fromJson(item)).toList();
-          _filteredCategories = List.from(_allCategories);
-
-          print('✅ Categories loaded: ${_allCategories.length} items');
-
-          notifyListeners();
-
-          if (showSnack) {
-            SnackBarHelper.showSuccessSnackBar('Categories loaded successfully');
-          }
-
-          return _filteredCategories;
-        } else {
-          throw Exception('Invalid response format');
+          print('========================================');
         }
+
+        _allCategories = data;
+        _filteredCategories = List<Category>.from(_allCategories);
+
+        if (kDebugMode) {
+          print('✅ Categories loaded from Appwrite: ${_allCategories.length} items');
+        }
+
+        notifyListeners();
+
+        if (showSnack) {
+          SnackBarHelper.showSuccessSnackBar(
+            'دسته‌بندی‌ها با موفقیت از Appwrite لود شدند',
+          );
+        }
+
+        return _filteredCategories;
       } else {
-        throw Exception('HTTP ${response.statusCode}: ${response.statusText}');
+        final error = result.requireError();
+        if (kDebugMode) {
+          print('❌ Appwrite error in getAllCategories: $error');
+        }
+        if (showSnack) {
+          SnackBarHelper.showErrorSnackBar(error.userMessage);
+        }
+        return _filteredCategories;
       }
     } catch (e) {
-      print('❌ Error in getAllCategories: $e');
+      print('❌ Exception in getAllCategories: $e');
       if (showSnack) {
-        SnackBarHelper.showErrorSnackBar('Failed to load categories: $e');
+        SnackBarHelper.showErrorSnackBar('خطا در لود دسته‌بندی‌ها: $e');
       }
       rethrow;
     }
   }
+
+
   void filterCategories(String keyword) {
     keyword = keyword.trim();
 
@@ -538,46 +528,66 @@ class DataProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<List<SubCategory>> getAllSubCategories(
-      {bool showSnack = false}) async {
+
+  Future<List<SubCategory>> getAllSubCategories({bool showSnack = false}) async {
     try {
-      // ✅ گرفتن شماره تلفن از SharedPreferences
-      final phone = await UserSaveHelper.getPhoneNumber();
+      // ✅ خواندن از Appwrite
+
+      final phone = await UserSaveHelper.getPhoneNumber(showError: false) ?? '12345';
       if (phone == null || phone.isEmpty) {
         SnackBarHelper.showErrorSnackBar('شماره تلفن در حافظه یافت نشد!');
         return _filteredSubCategories;
       }
 
-      Response response = await subCategoryRepo.fetchAll(phone);
 
-      if (response.isOk) {
-        if (response.body['success'] == true) {
-          List<dynamic> data = response.body['data'];
+      final result = await _subCategoryService.getByPhoneNumberCode(phone);
 
-          _allSubCategories =
-              data.map((item) => SubCategory.fromJson(item)).toList();
-          _filteredSubCategories = List.from(_allSubCategories);
+      if (result.isSuccess) {
+        final subs = result.requireData();
 
-          print('✅ SubCategories loaded: ${_allSubCategories.length} items');
-
-          if (_allSubCategories.isNotEmpty) {
-            print('🔍 First subcategory: ${_allSubCategories.first.name}');
-            print('🔍 Category: ${_allSubCategories.first.categoryId?.name}');
+        // 🔍 لاگ دقیق تمام ساب‌کتگوری‌ها
+        if (kDebugMode) {
+          print('===== SUBCATEGORIES FROM APPWRITE (MAPPED TO MODEL) =====');
+          print('count: ${subs.length}');
+          for (final s in subs) {
+            print('----------------------------------------');
+            print('id              : ${s.sId}');
+            print('name            : ${s.name}');
+            print('category (ID)   : ${s.category}');              // از فیلد categories[]
+            print('expandCatId     : ${s.categoryId?.sId}');       // اگر از بک‌اند قدیمی باشد
+            print('expandCatName   : ${s.categoryId?.name}');
+            print('createdAt       : ${s.createdAt}');
+            print('updatedAt       : ${s.updatedAt}');
+            print('toJson()        : ${s.toJson()}');
           }
-
-          notifyListeners();
-
-          if (showSnack) {
-            SnackBarHelper.showSuccessSnackBar(
-                'Subcategories loaded successfully');
-          }
-
-          return _filteredSubCategories;
-        } else {
-          throw Exception(response.body['error'] ?? 'Unknown error');
+          print('=========================================================');
         }
+
+        _allSubCategories = subs;
+        _filteredSubCategories = List<SubCategory>.from(_allSubCategories);
+
+        notifyListeners();
+
+        if (showSnack) {
+          SnackBarHelper.showSuccessSnackBar(
+            'Subcategories loaded successfully',
+          );
+        }
+
+        return _filteredSubCategories;
       } else {
-        throw Exception('HTTP ${response.statusCode}: ${response.statusText}');
+        final error = result.requireError();
+        if (kDebugMode) {
+          print('❌ Appwrite error in getAllSubCategories: $error');
+        }
+        if (showSnack) {
+          SnackBarHelper.showErrorSnackBar(
+            error.userMessage.isNotEmpty
+                ? error.userMessage
+                : (error.devMessage ?? 'Failed to load subcategories'),
+          );
+        }
+        return _filteredSubCategories;
       }
     } catch (e) {
       print('❌ Error in getAllSubCategories: $e');
@@ -587,6 +597,7 @@ class DataProvider extends ChangeNotifier {
       rethrow;
     }
   }
+
 
   void filterSubCategories(String keyword) {
     keyword = keyword.trim();
@@ -603,54 +614,72 @@ class DataProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+
   Future<List<Brand>> getAllBrands({bool showSnack = false}) async {
     try {
-      // ✅ گرفتن شماره تلفن از SharedPreferences
-      final phone = await UserSaveHelper.getPhoneNumber();
-      if (phone == null || phone.isEmpty) {
-        SnackBarHelper.showErrorSnackBar('شماره تلفن در حافظه یافت نشد!');
+      final phone = await UserSaveHelper.getPhoneNumber(showError: false) ?? '12345';
+
+      if (phone == null || phone.trim().isEmpty) {
+        SnackBarHelper.showErrorSnackBar('شماره تلفن/کد در حافظه یافت نشد!');
         return _filteredBrands;
       }
 
-      Response response = await brandRepo.fetchAll(phone);
+      // برای اینکه نام ساب‌کتگوری در لیست برندها نمایش داده شود
+      if (_allSubCategories.isEmpty) {
+        await getAllSubCategories(showSnack: false);
+      }
 
-      if (response.isOk) {
-        if (response.body['success'] == true) {
-          List<dynamic> data = response.body['data'];
+      final result = await brandsRepoAppwrite.getByPhoneNumberCode(phone.trim());
 
-          // استفاده مستقیم از fromJson
-          _allBrands = data.map((item) => Brand.fromJson(item)).toList();
-          _filteredBrands = List.from(_allBrands);
+      if (result.isSuccess) {
+        final brands = result.requireData();
 
-          print('✅ Brands loaded: ${_allBrands.length} items');
-
-          // دیباگ - بررسی اولین آیتم
-          if (_allBrands.isNotEmpty) {
-            print('🔍 First brand: ${_allBrands.first.name}');
-            print('🔍 SubCategory: ${_allBrands.first.subCategoryId?.name}');
-          }
-
-          notifyListeners();
-
-          if (showSnack) {
-            SnackBarHelper.showSuccessSnackBar('Brands loaded successfully');
-          }
-
-          return _filteredBrands;
-        } else {
-          throw Exception('Invalid response format');
+        // مپ ساب‌کتگوری‌ها برای پر کردن نام
+        final scMap = <String, SubCategory>{};
+        for (final sc in _allSubCategories) {
+          final id = sc.sId;
+          if (id != null && id.isNotEmpty) scMap[id] = sc;
         }
+
+        for (final b in brands) {
+          final subId = b.subcategory ?? b.subcategoriesId;
+          if (subId != null && scMap.containsKey(subId)) {
+            final sc = scMap[subId]!;
+            b.subCategoryId = SubcategoryId(
+              sId: sc.sId,
+              name: sc.name,
+              // اگر خواستی: category: sc.category,
+            );
+          }
+        }
+
+        _allBrands = brands;
+        _filteredBrands = List.from(_allBrands);
+
+        notifyListeners();
+
+        if (showSnack) {
+          SnackBarHelper.showSuccessSnackBar('Brands loaded successfully');
+        }
+
+        return _filteredBrands;
       } else {
-        throw Exception('HTTP ${response.statusCode}: ${response.statusText}');
+        final err = result.requireError();
+        if (showSnack) {
+          SnackBarHelper.showErrorSnackBar(
+            err.userMessage.isNotEmpty ? err.userMessage : (err.devMessage ?? 'Failed to load brands'),
+          );
+        }
+        return _filteredBrands;
       }
     } catch (e) {
-      print('❌ Error in getAllBrands: $e');
       if (showSnack) {
         SnackBarHelper.showErrorSnackBar('Failed to load brands: $e');
       }
       rethrow;
     }
   }
+
 
   void filterBrands(String keyword) {
     keyword = keyword.trim();
@@ -669,54 +698,44 @@ class DataProvider extends ChangeNotifier {
 
   Future<List<VariantType>> getAllVariantTypes({bool showSnack = false}) async {
     try {
-      // ✅ گرفتن شماره تلفن از SharedPreferences
-      final phone = await UserSaveHelper.getPhoneNumber();
-      if (phone == null || phone.isEmpty) {
-        SnackBarHelper.showErrorSnackBar('شماره تلفن در حافظه یافت نشد!');
+      final phone = await UserSaveHelper.getPhoneNumber(showError: false) ?? '12345';
+      if (phone.trim().isEmpty) {
+        SnackBarHelper.showErrorSnackBar('شماره تلفن/کد در حافظه یافت نشد!');
         return _filteredVariantTypes;
       }
 
-      Response response = await variantTypeRepo.fetchAll(phone);
+      final result = await variantTypesRepoAppwrite.getByPhoneNumberCode(phone.trim());
 
-      if (response.isOk) {
-        if (response.body['success'] == true) {
-          List<dynamic> data = response.body['data'];
+      if (result.isSuccess) {
+        final data = result.requireData();
 
-          // استفاده مستقیم از fromJson با مدل اصلاح شده
-          _allVariantTypes =
-              data.map((item) => VariantType.fromJson(item)).toList();
-          _filteredVariantTypes = List.from(_allVariantTypes);
+        _allVariantTypes = data;
+        _filteredVariantTypes = List.from(_allVariantTypes);
 
-          print('✅ VariantTypes loaded: ${_allVariantTypes.length} items');
+        notifyListeners();
 
-          // دیباگ - بررسی اولین آیتم
-          if (_allVariantTypes.isNotEmpty) {
-            print('🔍 First variant type: ${_allVariantTypes.first.name}');
-            print('🔍 Type: ${_allVariantTypes.first.type}');
-          }
-
-          notifyListeners();
-
-          if (showSnack) {
-            SnackBarHelper.showSuccessSnackBar(
-                'Variant types loaded successfully');
-          }
-
-          return _filteredVariantTypes;
-        } else {
-          throw Exception(response.body['error'] ?? 'Unknown error');
+        if (showSnack) {
+          SnackBarHelper.showSuccessSnackBar('Variant types loaded successfully');
         }
+
+        return _filteredVariantTypes;
       } else {
-        throw Exception('HTTP ${response.statusCode}: ${response.statusText}');
+        final err = result.requireError();
+        if (showSnack) {
+          SnackBarHelper.showErrorSnackBar(
+            err.userMessage.isNotEmpty ? err.userMessage : (err.devMessage ?? 'Failed to load variant types'),
+          );
+        }
+        return _filteredVariantTypes;
       }
     } catch (e) {
-      print('❌ Error in getAllVariantTypes: $e');
       if (showSnack) {
         SnackBarHelper.showErrorSnackBar('Failed to load variant types: $e');
       }
       rethrow;
     }
   }
+
 
   void filterVariantTypes(String keyword) {
     keyword = keyword.trim();
@@ -733,54 +752,70 @@ class DataProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+
+
   Future<List<Variant>> getAllVariants({bool showSnack = false}) async {
     try {
-      // ✅ گرفتن شماره تلفن از SharedPreferences
-      final phone = await UserSaveHelper.getPhoneNumber();
-      if (phone == null || phone.isEmpty) {
-        SnackBarHelper.showErrorSnackBar('شماره تلفن در حافظه یافت نشد!');
+      final phone = await UserSaveHelper.getPhoneNumber(showError: false) ?? '12345';
+      if (phone.trim().isEmpty) {
+        SnackBarHelper.showErrorSnackBar('شماره تلفن/کد در حافظه یافت نشد!');
         return _filteredVariants;
       }
 
-      Response response = await variantRepo.fetchAll(phone);
+      // برای نمایش نام تایپ در لیست variants
+      if (_allVariantTypes.isEmpty) {
+        await getAllVariantTypes(showSnack: false);
+      }
 
-      if (response.isOk) {
-        if (response.body['success'] == true) {
-          List<dynamic> data = response.body['data'];
+      final result = await variantsRepoAppwrite.getByPhoneNumberCode(phone.trim());
 
-          // استفاده مستقیم از fromJson با مدل اصلاح شده
-          _allVariants = data.map((item) => Variant.fromJson(item)).toList();
-          _filteredVariants = List.from(_allVariants);
+      if (result.isSuccess) {
+        final data = result.requireData();
+        _allVariants = data;
+        _filteredVariants = List.from(_allVariants);
 
-          print('✅ Variants loaded: ${_allVariants.length} items');
-
-          // دیباگ - بررسی اولین آیتم
-          if (_allVariants.isNotEmpty) {
-            print('🔍 First variant: ${_allVariants.first.name}');
-            print('🔍 Variant Type: ${_allVariants.first.variantTypeId?.name}');
-          }
-
-          notifyListeners();
-
-          if (showSnack) {
-            SnackBarHelper.showSuccessSnackBar('Variants loaded successfully');
-          }
-
-          return _filteredVariants;
-        } else {
-          throw Exception(response.body['error'] ?? 'Unknown error');
+        // مپ نام تایپ
+        final map = <String, VariantType>{};
+        for (final vt in _allVariantTypes) {
+          final id = vt.sId;
+          if (id != null && id.isNotEmpty) map[id] = vt;
         }
+
+        for (final v in _filteredVariants) {
+          final vtId = v.variantType ?? v.variantTypeId?.sId;
+          if (vtId != null && map.containsKey(vtId)) {
+            final vt = map[vtId]!;
+            v.variantTypeId = VariantTypeId(
+              sId: vt.sId,
+              name: vt.name,
+              type: vt.type,
+            );
+          }
+        }
+
+        notifyListeners();
+
+        if (showSnack) {
+          SnackBarHelper.showSuccessSnackBar('Variants loaded successfully');
+        }
+        return _filteredVariants;
       } else {
-        throw Exception('HTTP ${response.statusCode}: ${response.statusText}');
+        final err = result.requireError();
+        if (showSnack) {
+          SnackBarHelper.showErrorSnackBar(
+            err.userMessage.isNotEmpty ? err.userMessage : (err.devMessage ?? 'Failed to load variants'),
+          );
+        }
+        return _filteredVariants;
       }
     } catch (e) {
-      print('❌ Error in getAllVariants: $e');
       if (showSnack) {
         SnackBarHelper.showErrorSnackBar('Failed to load variants: $e');
       }
       rethrow;
     }
   }
+
 
   void filterVariants(String keyword) {
     keyword = keyword.trim();
@@ -797,55 +832,69 @@ class DataProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+
   Future<List<Product>> getAllProducts({bool showSnack = false}) async {
     try {
-      // ✅ گرفتن شماره تلفن از SharedPreferences
-      final phone = await UserSaveHelper.getPhoneNumber();
-      if (phone == null || phone.isEmpty) {
-        SnackBarHelper.showErrorSnackBar('شماره تلفن در حافظه یافت نشد!');
+      final phone = await UserSaveHelper.getPhoneNumber(showError: false) ?? '12345';
+      if (phone.trim().isEmpty) {
+        SnackBarHelper.showErrorSnackBar('شماره تلفن/کد در حافظه یافت نشد!');
         return _filteredProducts;
       }
 
-      Response response = await productRepo.fetchAll(phone);
+      // برای اینکه dropdownها/نام‌ها آماده باشند (اگر لازم شد در UI)
+      if (_allCategories.isEmpty) await getAllCategories(showSnack: false);
+      if (_allSubCategories.isEmpty) await getAllSubCategories(showSnack: false);
+      if (_allVariantTypes.isEmpty) await getAllVariantTypes(showSnack: false);
+      if (_allVariants.isEmpty) await getAllVariants(showSnack: false);
+      if (_allBrands.isEmpty) await getAllBrands(showSnack: false);
 
-      if (response.isOk) {
-        // پردازش response بر اساس ساختار سرور شما
-        Map<String, dynamic> responseBody = response.body;
+      final result = await _productsService.getByPhoneNumberCode(phone.trim());
 
-        if (responseBody['success'] == true) {
-          List<dynamic> productsJson = responseBody['data'];
-          print(responseBody['data']);
-          List<Product> products =
-              productsJson.map((item) => Product.fromJson(item)).toList();
-
-          print('✅ ${products.length} products loaded successfully');
-
-          _allProducts = products;
-          _filteredProducts = List.from(_allProducts);
-
-          notifyListeners();
-
-          if (showSnack) {
-            SnackBarHelper.showSuccessSnackBar(
-                '${products.length} محصول با موفقیت بارگذاری شد');
-          }
-
-          return _filteredProducts;
-        } else {
-          throw Exception(responseBody['error'] ?? 'Failed to load products');
+      if (result.isSuccess) {
+        _allProducts = result.requireData();
+        _filteredProducts = List.from(_allProducts);
+        final catMap = <String, String>{};
+        for (final c in _allCategories) {
+          final id = c.sId ?? '';
+          if (id.isNotEmpty) catMap[id] = c.name ?? '';
         }
+
+        final subMap = <String, String>{};
+        for (final s in _allSubCategories) {
+          final id = s.sId ?? '';
+          if (id.isNotEmpty) subMap[id] = s.name ?? '';
+        }
+
+        for (final p in _allProducts) {
+          final cid = p.categoryId ?? '';
+          final sid = p.subCategoryId ?? '';
+          p.resolvedCategoryName = catMap[cid] ?? '';
+          p.resolvedSubCategoryName = subMap[sid] ?? '';
+        }
+
+        notifyListeners();
+
+        if (showSnack) {
+          SnackBarHelper.showSuccessSnackBar('Products loaded successfully');
+        }
+        return _filteredProducts;
       } else {
-        throw Exception('HTTP ${response.statusCode}: ${response.statusText}');
+        final err = result.requireError();
+        if (showSnack) {
+          SnackBarHelper.showErrorSnackBar(
+            err.userMessage.isNotEmpty ? err.userMessage : (err.devMessage ?? 'Failed to load products'),
+          );
+        }
+        return _filteredProducts;
       }
     } catch (e) {
-      print('❌ Error loading products: $e');
       if (showSnack) {
-        SnackBarHelper.showErrorSnackBar(
-            'خطا در بارگذاری محصولات: ${e.toString()}');
+        SnackBarHelper.showErrorSnackBar('Failed to load products: $e');
       }
       rethrow;
     }
   }
+
 
   void filterProducts(String keyword) {
     keyword = keyword.trim();
@@ -853,18 +902,17 @@ class DataProvider extends ChangeNotifier {
     if (keyword.isEmpty) {
       _filteredProducts = List.from(_allProducts);
     } else {
-      final lowerKeyword = keyword.trim().toLowerCase();
+      final lowerKeyword = keyword.toLowerCase();
 
       _filteredProducts = _allProducts.where((product) {
         final productNameContainsKeyword =
-            (product.name ?? '').toLowerCase().contains(lowerKeyword);
+        (product.name ?? '').toLowerCase().contains(lowerKeyword);
+
         final categoryNameContainsKeyword =
-            product.proCategoryId?.name?.toLowerCase().contains(lowerKeyword) ??
-                false;
-        final subCategoryNameContainsKeyword = product.proSubCategoryId?.name
-                ?.toLowerCase()
-                .contains(lowerKeyword) ??
-            false;
+        (product.resolvedCategoryName ?? '').toLowerCase().contains(lowerKeyword);
+
+        final subCategoryNameContainsKeyword =
+        (product.resolvedSubCategoryName ?? '').toLowerCase().contains(lowerKeyword);
 
         return productNameContainsKeyword ||
             categoryNameContainsKeyword ||
@@ -878,49 +926,55 @@ class DataProvider extends ChangeNotifier {
   Future<List<Poster>> getAllPosters({bool showSnack = false}) async {
     try {
       // ✅ گرفتن شماره تلفن از SharedPreferences
-      final phone = await UserSaveHelper.getPhoneNumber();
+      final phone = await UserSaveHelper.getPhoneNumber(showError: false) ?? '12345';
       if (phone == null || phone.isEmpty) {
         SnackBarHelper.showErrorSnackBar('شماره تلفن در حافظه یافت نشد!');
         return _filteredPosters;
       }
 
-      Response response = await posterRepo.fetchAll(phone);
-      if (response.isOk) {
-        if (response.body['success'] == true) {
-          List<dynamic> data = response.body['data'];
+      final result = await _posterService.getPostersByPhoneNumberCode(phone);
 
-          // دیباگ دقیق‌تر
-          print('🔍 Raw poster data: ${data[0]}');
+      if (result.isSuccess) {
+        final posters = result.requireData();
 
-          _allPosters = data.map((item) => Poster.fromJson(item)).toList();
-          _filteredPosters = List.from(_allPosters);
+        _allPosters = posters;
+        _filteredPosters = List<Poster>.from(_allPosters);
 
-          print('✅ Posters loaded: ${_allPosters.length} items');
-
+        if (kDebugMode) {
+          print('✅ Posters loaded from Appwrite: ${_allPosters.length} items');
           if (_allPosters.isNotEmpty) {
             print('🔍 First poster details:');
             print('   - Name: ${_allPosters.first.posterName}');
             print('   - ImageUrl: ${_allPosters.first.imageUrl}');
-            print('   - ImageId: ${_allPosters.first.imageId}');
             print('   - ID: ${_allPosters.first.sId}');
           }
-
-          notifyListeners();
-
-          if (showSnack) {
-            SnackBarHelper.showSuccessSnackBar('Posters loaded successfully');
-          }
-          return _filteredPosters;
-        } else {
-          throw Exception(response.body['error'] ?? 'Unknown error');
         }
+
+        notifyListeners();
+
+        if (showSnack) {
+          SnackBarHelper.showSuccessSnackBar('پوسترها با موفقیت لود شدند');
+        }
+
+        return _filteredPosters;
       } else {
-        throw Exception('HTTP ${response.statusCode}: ${response.statusText}');
+        final error = result.requireError();
+        if (kDebugMode) {
+          print('❌ Appwrite error in getAllPosters: $error');
+        }
+        if (showSnack) {
+          SnackBarHelper.showErrorSnackBar(
+            error.userMessage.isNotEmpty
+                ? error.userMessage
+                : (error.devMessage ?? 'خطا در لود پوسترها'),
+          );
+        }
+        return _filteredPosters;
       }
     } catch (e) {
-      print('❌ Error in getAllPosters: $e');
+      print('❌ Exception in getAllPosters: $e');
       if (showSnack) {
-        SnackBarHelper.showErrorSnackBar('Failed to load posters: $e');
+        SnackBarHelper.showErrorSnackBar('خطا در لود پوسترها: $e');
       }
       rethrow;
     }
@@ -1008,81 +1062,40 @@ class DataProvider extends ChangeNotifier {
 
   Future<List<Coupon>> getAllCoupons({bool showSnack = false}) async {
     try {
-      // ✅ گرفتن شماره تلفن از SharedPreferences
-      final phone = await UserSaveHelper.getPhoneNumber();
-      if (phone == null || phone.isEmpty) {
+      final phone = await UserSaveHelper.getPhoneNumber(showError: false) ?? '12345';
+      if (phone == null || phone.trim().isEmpty) {
         SnackBarHelper.showErrorSnackBar('شماره تلفن در حافظه یافت نشد!');
         return _filteredCoupons;
       }
 
-      Response response = await couponRepo.fetchAll(phone);
+      final result = await _couponService.getByPhoneNumberCode(phone);
 
-      if (response.isOk) {
-        if (response.body['success'] == true) {
-          List<dynamic> data = response.body['data'];
+      if (result.isSuccess) {
+        _allCoupons = result.requireData();
+        _filteredCoupons = List.from(_allCoupons);
+        notifyListeners();
 
-          // دیباگ دقیق‌تر
-          print('🔍 Raw coupon data length: ${data.length}');
-          if (data.isNotEmpty) {
-            print('🔍 First coupon raw data: ${data[0]}');
-          }
-
-          _allCoupons = data.map((item) => Coupon.fromJson(item)).toList();
-          _filteredCoupons = List.from(_allCoupons);
-
-          print('✅ Coupons loaded: ${_allCoupons.length} items');
-
-          if (_allCoupons.isNotEmpty) {
-            print('🔍 First coupon details:');
-            print('   - Code: ${_allCoupons.first.couponCode}');
-            print('   - Discount: ${_allCoupons.first.discountAmount}');
-            print('   - Type: ${_allCoupons.first.discountType}');
-            print('   - Status: ${_allCoupons.first.status}');
-            print('   - End Date: ${_allCoupons.first.endDate}');
-            print('   - Category ID: ${_allCoupons.first.applicableCategory}');
-            print(
-                '   - SubCategory ID: ${_allCoupons.first.applicableSubCategory}');
-            print('   - Product ID: ${_allCoupons.first.applicableProduct}');
-
-            // بررسی expand data
-            if (_allCoupons.first.expand != null) {
-              print('   - Expand Data:');
-              if (_allCoupons.first.expand!.applicableCategory != null) {
-                print(
-                    '     - Category: ${_allCoupons.first.expand!.applicableCategory!.name}');
-              }
-              if (_allCoupons.first.expand!.applicableSubCategory != null) {
-                print(
-                    '     - SubCategory: ${_allCoupons.first.expand!.applicableSubCategory!.name}');
-              }
-              if (_allCoupons.first.expand!.applicableProduct != null) {
-                print(
-                    '     - Product: ${_allCoupons.first.expand!.applicableProduct!.name}');
-              }
-            }
-          }
-
-          notifyListeners();
-
-          if (showSnack) {
-            SnackBarHelper.showSuccessSnackBar('Coupons loaded successfully');
-          }
-
-          return _filteredCoupons;
-        } else {
-          throw Exception(response.body['error'] ?? 'Unknown error');
+        if (showSnack) {
+          SnackBarHelper.showSuccessSnackBar('Coupons loaded successfully');
         }
+        return _filteredCoupons;
       } else {
-        throw Exception('HTTP ${response.statusCode}: ${response.statusText}');
+        final err = result.requireError();
+        if (showSnack) {
+          SnackBarHelper.showErrorSnackBar(
+            err.userMessage.isNotEmpty ? err.userMessage : (err.devMessage ?? 'Failed to load coupons'),
+          );
+        }
+        return _filteredCoupons;
       }
     } catch (e) {
-      print('❌ Error in getAllCoupons: $e');
       if (showSnack) {
         SnackBarHelper.showErrorSnackBar('Failed to load coupons: $e');
       }
       rethrow;
     }
   }
+
 
   void filterCoupons(String keyword) {
     keyword = keyword.trim();

@@ -1,8 +1,10 @@
 import 'package:admin/screens/orderpaid/components/view_order_form_paid.dart';
+import 'package:admin/utility/User_helper.dart';
+import 'package:admin/utility/dialog_helper.dart';
 import 'package:admin/utility/extensions.dart';
 import 'package:admin/utility/functions.dart';
 import 'package:flutter/material.dart';
-import 'package:persian_datetime_picker/persian_datetime_picker.dart';
+
 import 'package:provider/provider.dart';
 
 import '../../../core/data/data_provider.dart';
@@ -26,29 +28,7 @@ class OrderListSectionPaid extends StatelessWidget {
       for (int i = 0; i < orders.length; i++)
         _orderDataRow(context, orders[i], i + 1),
 
-      // ✅ ردیف انتهایی فقط پیام ساده، بدون لودینگ یا hasMore
-      // const DataRow(
-      //   cells: [
-      //     DataCell(
-      //       Padding(
-      //         padding: EdgeInsets.symmetric(vertical: 12.0),
-      //         child: Center(
-      //           child: Text(
-      //             'پایان لیست سفارشات',
-      //             style: TextStyle(color: Colors.grey),
-      //           ),
-      //         ),
-      //       ),
-      //     ),
-      //     DataCell(SizedBox.shrink()),
-      //     DataCell(SizedBox.shrink()),
-      //     DataCell(SizedBox.shrink()),
-      //     DataCell(SizedBox.shrink()),
-      //     DataCell(SizedBox.shrink()),
-      //     DataCell(SizedBox.shrink()),
-      //   ],
-      // ),
-      // ✅ ردیف انتهایی فقط پیام ساده، بدون لودینگ یا hasMore
+
       const
 
       DataRow(
@@ -91,21 +71,7 @@ class OrderListSectionPaid extends StatelessWidget {
                 // 👈 اسکرول عمودی مثل قبل
                 child:
 
-                // DataTable(
-                //   columnSpacing: defaultPadding,
-                //   columns: const [
-                //     DataColumn(label: Text("نام مشتری")),
-                //     DataColumn(label: Text("مبلغ سفارش")),
-                //     DataColumn(label: Text("نوع سفارش")),
-                //     // 🔽 تغییر از "پرداخت" به "نوع سفارش"
-                //
-                //     DataColumn(label: Text("وضعیت")),
-                //     DataColumn(label: Text("تاریخ")),
-                //     DataColumn(label: Text("ویرایش")),
-                //     DataColumn(label: Text("حذف")),
-                //   ],
-                //   rows: rows,
-                // ),
+
                 DataTable(
                   columnSpacing: defaultPadding,
                   columns: [
@@ -193,7 +159,7 @@ class OrderListSectionPaid extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(width: defaultPadding),
-                Text(orderInfo.userName ?? 'کاربر نامشخص'),
+                Text(orderInfo.shippingAddress?.street ?? 'کاربر نامشخص'),
               ],
             ),
           ),
@@ -230,7 +196,7 @@ class OrderListSectionPaid extends StatelessWidget {
         DataCell(
           Center( // 🔽 اضافه شود
             child: Text(
-              '${formatToJalali(orderInfo.orderDate.toString())}\n${getTimeAgo(orderInfo.orderDate ?? '')}',
+              '${formatToJalali(orderInfo.orderDate.toString())}\n${getTimeAgo(orderInfo.orderDate.toString() ?? '')}',
               style: const TextStyle(
                 fontSize: 12,
                 color: Colors.grey,
@@ -244,10 +210,15 @@ class OrderListSectionPaid extends StatelessWidget {
           Center( // 🔽 اضافه شود
             child: IconButton(
               tooltip: 'ویرایش سفارش',
-              onPressed: () {
-                context.orderPaidProvider.loadOrderForUpdate(orderInfo);
-                _showOrderDialog(context, orderInfo);
-              },
+    onPressed: () async {
+      if (await UserSaveHelper.isExpired()) {
+        DialogHelper.showExpiredDialog(context);
+        return;
+      }
+      context.orderPaidProvider.loadOrderForUpdate(orderInfo);
+      _showOrderDialog(context, orderInfo);
+    }
+          ,
               icon: const Icon(Icons.edit, color: Colors.blue),
             ),
           ),
@@ -256,7 +227,17 @@ class OrderListSectionPaid extends StatelessWidget {
           Center( // 🔽 اضافه شود
             child: IconButton(
               tooltip: 'حذف سفارش',
-              onPressed: () => _confirmDelete(context, orderInfo),
+    onPressed: () async {
+    if (await UserSaveHelper.isExpired()) {
+      DialogHelper.showExpiredDialog(context);
+      return;
+    }
+    _confirmDelete(context, orderInfo);
+    },
+
+
+
+
               icon: const Icon(Icons.delete, color: Colors.red),
             ),
           ),
@@ -340,34 +321,7 @@ Color _statusColor(String? status) {
   }
 }
 
-// 🔽 تابع جدید برای نمایش نوع سفارش
-// Widget _buildOrderModeCell(Order orderInfo) {
-//   final orderMode = orderInfo.orderMode ?? '';
-//   final tableNumber = orderInfo.tableNumber?.toString() ?? '';
-//
-//   if (orderMode == 'in_person') {
-//     return Text(
-//       tableNumber.isNotEmpty ? 'حضوری - میز: $tableNumber' : 'حضوری',
-//       style: TextStyle(
-//         color: Colors.blue[700],
-//         fontWeight: FontWeight.bold,
-//       ),
-//     );
-//   } else if (orderMode == 'online') {
-//     return Text(
-//       'سفارش آنلاین',
-//       style: TextStyle(
-//         color: Colors.green[700],
-//         fontWeight: FontWeight.bold,
-//       ),
-//     );
-//   } else {
-//     return Text(
-//       orderMode.isNotEmpty ? orderMode : 'نامشخص',
-//       style: const TextStyle(color: Colors.grey),
-//     );
-//   }
-// }
+
 
 Widget _buildOrderModeCell(Order orderInfo) {
   final orderMode = orderInfo.orderMode ?? '';

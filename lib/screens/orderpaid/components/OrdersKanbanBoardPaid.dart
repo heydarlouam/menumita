@@ -1,3 +1,5 @@
+import 'package:admin/utility/User_helper.dart';
+import 'package:admin/utility/dialog_helper.dart';
 import 'package:admin/utility/functions.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -17,7 +19,7 @@ class OrdersKanbanBoardPaid extends StatelessWidget {
     }
     // مرتب‌سازی داخل هر ستون
     for (final s in map.keys) {
-      map[s]!.sort((a, b) => (a.orderDate ?? '').compareTo(b.orderDate ?? ''));
+     map[s]!.sort((a, b) => (a.orderDate.toString() ?? '').compareTo(b.orderDate.toString() ?? ''));
     }
     return map;
   }
@@ -42,6 +44,10 @@ class OrdersKanbanBoardPaid extends StatelessWidget {
               orders: items,
 
               onAccept: (order) async {
+                if (await UserSaveHelper.isExpired()) {
+                  DialogHelper.showExpiredDialog(context);
+                  return;
+                }
                 if ((order.orderStatus ?? ORDER_STATUS_PENDING) == status) {
                   return; // همون ستون بود → هیچ کاری نکن
                 }
@@ -126,7 +132,7 @@ class _KanbanColumn extends StatelessWidget {
                     child: ListView.builder(
                       padding: const EdgeInsets.fromLTRB(10, 10, 10, 12),
                       itemCount: orders.length,
-                      // itemBuilder: (_, i) => _DraggableOrderCard(order: orders[i]),
+
                       itemBuilder: (_, i) => KeyedSubtree(
                         key: ValueKey(orders[i].sId ?? orders[i].hashCode),
                         child: _DraggableOrderCard(order: orders[i]),
@@ -170,81 +176,6 @@ class _DraggableOrderCard extends StatelessWidget {
 }
 
 
-// class _OrderCard extends StatelessWidget {
-//   final Order order;
-//   final bool dimmed;
-//   const _OrderCard({Key? key, required this.order, this.dimmed = false}) : super(key: key);
-//
-//   @override
-//   Widget build(BuildContext context) {
-//     final Color surface = Theme.of(context).colorScheme.surface;
-//     final Color labelColor = statusColor(order.orderStatus);
-//
-//     return TweenAnimationBuilder<double>(
-//       tween: Tween(begin: 0.96, end: 1.0),
-//       duration: const Duration(milliseconds: 450), // ⬅️ اگر خواستی واضح‌تر: 320–360ms
-//       curve: Curves.easeInSine,
-//       builder: (context, scale, child) {
-//         return Opacity(
-//           opacity: 1 - (1 - scale) * 3,
-//           child: Transform.scale(scale: scale, child: child),
-//         );
-//       },
-//       child: Card(
-//         color: surface,
-//         elevation: dimmed ? 1.5 : 3,
-//         shadowColor: labelColor.withOpacity(.2),
-//         margin: const EdgeInsets.symmetric(horizontal: 2, vertical: 6),
-//         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-//         child: Padding(
-//           padding: const EdgeInsets.all(12.0),
-//           child: ListTile(
-//             dense: true,
-//             contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-//             title: Text(
-//               order.userName ?? 'کاربر نامشخص',
-//               maxLines: 1, overflow: TextOverflow.ellipsis,
-//               style: const TextStyle(fontWeight: FontWeight.w700),
-//             ),
-//             subtitle: Padding(
-//               padding: const EdgeInsets.only(top: 6.0),
-//               child: Column(
-//                 crossAxisAlignment: CrossAxisAlignment.start,
-//                 children: [
-//                   if (order.totalPrice != null) ...[
-//                     Text('مبلغ: ${money(context, order.totalPrice!)}'),
-//
-//                     const SizedBox(height: 4),
-//                   ],
-//                   if (order.orderDate != null) ...[
-//                     Text(
-//       '${formatToJalali(order.orderDate!.toString())}\n${getTimeAgo(order.orderDate! ?? '')}',
-//
-//                     ),
-//                     const SizedBox(height: 4),
-//                   ],
-//                   if (order.trackingUrl?.isNotEmpty == true)
-//                     Text('پیگیری: ${order.trackingUrl!}', maxLines: 1, overflow: TextOverflow.ellipsis),
-//                 ],
-//               ),
-//             ),
-//             trailing: Container(
-//               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-//               decoration: BoxDecoration(
-//                 color: labelColor.withOpacity(.12),
-//                 borderRadius: BorderRadius.circular(6),
-//               ),
-//               child: Text(
-//                 statusFa(order.orderStatus ?? ''),
-//                 style: TextStyle(color: labelColor, fontSize: 11, fontWeight: FontWeight.bold),
-//               ),
-//             ),
-//           ),
-//         ),
-//       ),
-//     );
-//   }
-// }
 
 
 class _OrderCard extends StatefulWidget {
@@ -293,7 +224,7 @@ class __OrderCardState extends State<_OrderCard> {
                   children: [
                     Expanded(
                       child: Text(
-                        widget.order.userName ?? 'کاربر نامشخص',
+                        widget.order.userID ?? 'کاربر نامشخص',
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: const TextStyle(fontWeight: FontWeight.w700),
@@ -325,7 +256,7 @@ class __OrderCardState extends State<_OrderCard> {
                      ),
                       Text(' && '),
                        Text(
-                       '${getTimeAgo(widget.order.orderDate! ?? '')}',
+                       '${getTimeAgo(widget.order.orderDate.toString()! ?? '')}',
                      ),],),
                       const SizedBox(height: 4),
                     ],
@@ -444,7 +375,7 @@ class __OrderCardState extends State<_OrderCard> {
       ];
     }
 
-    return order.items!.map((item) => _buildItemRow(item, ctx)).toList();
+    return order.items!.map((item) => _buildItemRow(item as Items, ctx)).toList();
   }
 
   // 🔽 تابع برای نمایش هر آیتم

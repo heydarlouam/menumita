@@ -2,11 +2,10 @@ import 'package:admin/screens/orderpaid/provider/order_provider_paid.dart';
 import 'package:admin/services/auth_api.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'config/ network/appwrite_client.dart';
 import 'login.dart';
-
 import 'package:provider/provider.dart';
 import 'dart:async';
-
 import 'core/data/data_provider.dart';
 import 'core/routes/app_pages.dart';
 import 'screens/brands/provider/brand_provider.dart';
@@ -15,7 +14,6 @@ import 'screens/coupon_code/provider/coupon_code_provider.dart';
 import 'screens/dashboard/provider/dash_board_provider.dart';
 import 'screens/dashboard/mainscreen/main_screen.dart';
 import 'screens/main/provider/main_screen_provider.dart';
-
 import 'screens/order/provider/order_provider.dart';
 import 'screens/posters/provider/poster_provider.dart';
 import 'screens/sub_category/provider/sub_category_provider.dart';
@@ -28,6 +26,8 @@ import 'utility/extensions.dart';
 void main() {
   runZonedGuarded(() async {
     WidgetsFlutterBinding.ensureInitialized();
+    // ✅ این خط مهمه: AppwriteClient برای کل اپ initialize می‌شه
+    AppwriteClient.instance.init();
 
     // ⬅️ اینجا وضعیت لاگین رو از SharedPreferences می‌خونیم
     final userMap = await PrefsService.readMap('user');
@@ -86,14 +86,14 @@ class MyApp extends StatelessWidget {
       ),
 
       // ⬅️ اینجا دیگه RootDecider نداریم
-      home: isLoggedIn ?  MainScreen() : LoginScreen(),
+    home: isLoggedIn ?  MainScreen() : LoginScreen(),
 
+      // home: MainScreen(),
       unknownRoute: GetPage(name: '/notFound', page: () =>  MainScreen()),
       defaultTransition: Transition.cupertino,
       getPages: AppPages.routes,
     );
   }
 }
-
 
 

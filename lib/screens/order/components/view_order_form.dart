@@ -61,7 +61,7 @@ class _OrderSubmitFormState extends State<OrderSubmitForm> {
             children: [
               Row(
                 children: [
-                  Expanded(child: formRow('نام:', Text(widget.order?.userName ?? 'N/A', style: const TextStyle(fontSize: 16)))),
+                  Expanded(child: formRow('نام:', Text(widget.order?.shippingAddress?.street ?? 'N/A', style: const TextStyle(fontSize: 16)))),
                   Expanded(child: formRow('شناسه سفارش:', Text(widget.order?.sId ?? 'N/A', style: const TextStyle(fontSize: 12)))),
                 ],
               ),
@@ -101,14 +101,7 @@ class _OrderSubmitFormState extends State<OrderSubmitForm> {
                   ),
                 ),
               ),
-              // formRow(
-              //   'لینک پیگیری:',
-              //   CustomTextField(
-              //     labelText: 'لینک پیگیری',
-              //     onSave: (_) {},
-              //     controller: provider.trackingUrlCtrl,
-              //   ),
-              // ),
+
               const Gap(defaultPadding * 2),
               Consumer<OrderProvider>(
                 builder: (_, op, __) => actionButtons(context, op),
@@ -181,7 +174,7 @@ class _OrderSubmitFormState extends State<OrderSubmitForm> {
             child: Text('جزئیات پرداخت', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: primaryColor)),
           ),
 
-          formRow('کد کوپن:', Text(order?.couponName ?? 'N/A', style: const TextStyle(fontSize: 16))),
+          formRow('کد کوپن:', Text(order?.couponCode ?? 'N/A', style: const TextStyle(fontSize: 16))),
           // 🔽 این سه خط را تغییر دهید
           formRow('جمع جزء سفارش:', Text(money(context, order?.orderTotal?.subTotal), style: const TextStyle(fontSize: 16))),
           formRow('تخفیف:', Text(money(context, order?.orderTotal?.discount), style: const TextStyle(fontSize: 16, color: Colors.red))),

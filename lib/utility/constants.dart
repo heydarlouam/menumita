@@ -6,19 +6,10 @@ const bgColor = Color(0xFF212332);
 const defaultPadding = 16.0;
 
 // TODO: change according to yours
-//const MAIN_URL = 'http://localhost:5000';
-// const MAIN_URL = 'http://87.248.155.214:5050';
-// String MAIN_URL = "https://backend.frozencoffee.ir";
-String MAIN_URL = "https://backend.frozencoffee.ir";
-// String MAIN_URL = "http://localhost:5050";
+
 const currency_symbol = "ریال";
 
-// product summary info
-// const ALL_PRODUCTS = "All Products";
-// const STOCK_OUT_PRODUCTS = "Out of Stock";
-// const LIMITED_STOCK_PRODUCTS = "Limited Stock";
-// const OTHER_PRODUCTS = "Other Stock";
-//
+
 // // do not change
 const ORDER_STATUS_ALL = 'All orders';
 const ORDER_STATUS_PENDING = 'Pending';

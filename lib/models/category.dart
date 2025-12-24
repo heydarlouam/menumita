@@ -1,5 +1,4 @@
 
-
 class Category {
   String? sId;
   String? name;
@@ -7,23 +6,43 @@ class Category {
   String? createdAt;
   String? updatedAt;
 
-  Category({this.sId, this.name, this.image, this.createdAt, this.updatedAt});
+  Category({
+    this.sId,
+    this.name,
+    this.image,
+    this.createdAt,
+    this.updatedAt,
+  });
 
   Category.fromJson(Map<String, dynamic> json) {
-    sId = json['id'];
-    name = json['name'];
-    image = json['imageUrl'];
-    createdAt = json['created']; // 🔄 تغییر به 'created'
-    updatedAt = json['updated']; // 🔄 تغییر به 'updated'
+    // id
+    final rawId = json[r'$id'] ?? json['id'];
+    sId = rawId?.toString();
+
+    // name
+    name = json['name']?.toString();
+
+    // imageUrl
+    image = json['imageUrl']?.toString();
+
+    // createdAt
+    final rawCreated =
+        json[r'$createdAt'] ?? json['createdAt'] ?? json['created'];
+    createdAt = rawCreated?.toString();
+
+    // updatedAt
+    final rawUpdated =
+        json[r'$updatedAt'] ?? json['updatedAt'] ?? json['updated'];
+    updatedAt = rawUpdated?.toString();
   }
 
   Map<String, dynamic> toJson() {
-    final Map<String, dynamic> data = new Map<String, dynamic>();
-    data['id'] = this.sId;
-    data['name'] = this.name;
-    data['imageUrl'] = this.image;
-    data['created'] = this.createdAt; // 🔄 تغییر به 'created'
-    data['updated'] = this.updatedAt; // 🔄 تغییر به 'updated'
+    final Map<String, dynamic> data = <String, dynamic>{};
+    data['id'] = sId;
+    data['name'] = name;
+    data['imageUrl'] = image;
+    data['created'] = createdAt;
+    data['updated'] = updatedAt;
     return data;
   }
 }
