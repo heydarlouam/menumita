@@ -356,12 +356,6 @@
       "languageVersion": "3.2"
     },
     {
-      "name": "logging",
-      "rootUri": "file:///Users/milademoun/.pub-cache/hosted/pub.dev/logging-1.3.0",
-      "packageUri": "lib/",
-      "languageVersion": "3.4"
-    },
-    {
       "name": "matcher",
       "rootUri": "file:///Users/milademoun/.pub-cache/hosted/pub.dev/matcher-0.12.17",
       "packageUri": "lib/",
@@ -554,6 +548,12 @@
       "languageVersion": "3.3"
     },
     {
+      "name": "shimmer_animation",
+      "rootUri": "file:///Users/milademoun/.pub-cache/hosted/pub.dev/shimmer_animation-2.2.2+1",
+      "packageUri": "lib/",
+      "languageVersion": "3.4"
+    },
+    {
       "name": "sign_in_button",
       "rootUri": "file:///Users/milademoun/.pub-cache/hosted/pub.dev/sign_in_button-4.0.1",
       "packageUri": "lib/",
@@ -568,18 +568,6 @@
     {
       "name": "slide_countdown",
       "rootUri": "file:///Users/milademoun/.pub-cache/hosted/pub.dev/slide_countdown-2.0.2",
-      "packageUri": "lib/",
-      "languageVersion": "3.0"
-    },
-    {
-      "name": "socket_io_client",
-      "rootUri": "file:///Users/milademoun/.pub-cache/hosted/pub.dev/socket_io_client-3.1.2",
-      "packageUri": "lib/",
-      "languageVersion": "3.0"
-    },
-    {
-      "name": "socket_io_common",
-      "rootUri": "file:///Users/milademoun/.pub-cache/hosted/pub.dev/socket_io_common-3.1.1",
       "packageUri": "lib/",
       "languageVersion": "3.0"
     },
@@ -770,7 +758,7 @@
       "languageVersion": "3.3"
     }
   ],
-  "generated": "2025-12-10T11:24:57.238266Z",
+  "generated": "2025-12-24T09:20:24.418460Z",
   "generator": "pub",
   "generatorVersion": "3.7.0",
   "flutterRoot": "file:///Users/milademoun/Public/pro/flutter",
