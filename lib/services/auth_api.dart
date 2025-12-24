@@ -3,7 +3,7 @@ import 'package:appwrite/enums.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:appwrite/appwrite.dart' as sdk;
 import '../config/environment.dart';
-import '../config/ network/appwrite_client.dart';
+import '../config/network/appwrite_client.dart';
 
 class PrefsService {
   static Future<SharedPreferences> get _p async => SharedPreferences.getInstance();

@@ -4,9 +4,9 @@ import 'package:admin/config/environment.dart';
 import 'package:appwrite/appwrite.dart';
 import 'package:appwrite/models.dart' as appwrite_models;
 
-import '../../../config/ network/api_result.dart';
-import '../../../config/ network/appwrite_client.dart';
-import '../../../config/ network/request_executor.dart';
+import '../../../config/network/api_result.dart';
+import '../../../config/network/appwrite_client.dart';
+import '../../../config/network/request_executor.dart';
 
 
 

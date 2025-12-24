@@ -3,7 +3,7 @@
 import 'package:appwrite/appwrite.dart' show Query;
 import 'package:admin/config/environment.dart';
 
-import '../../../config/ network/api_result.dart' as net;
+import '../../../config/network/api_result.dart' as net;
 import 'base_crud_repository.dart';
 // import '../models/category_model.dart';
 
@@ -39,7 +39,7 @@ import 'package:admin/config/environment.dart';
 
 import 'base_crud_repository.dart';
 import '../../../models/category.dart';
-import '../../../config/ network/api_result.dart';
+import '../../../config/network/api_result.dart';
 
 class CategoriesRepository extends BaseCrudRepository<Category> {
   CategoriesRepository()

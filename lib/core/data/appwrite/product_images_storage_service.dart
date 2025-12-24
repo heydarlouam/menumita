@@ -6,7 +6,7 @@ import 'package:image_picker/image_picker.dart';
 
 import 'package:admin/config/environment.dart';
 
-import '../../../config/ network/appwrite_client.dart';
+import '../../../config/network/appwrite_client.dart';
 import 'dart:typed_data';
 
 import 'package:appwrite/appwrite.dart';
@@ -15,7 +15,7 @@ import 'package:flutter/foundation.dart';
 import 'package:image_picker/image_picker.dart';
 
 import 'package:admin/config/environment.dart';
-import 'package:admin/config/ network/appwrite_client.dart';
+import 'package:admin/config/network/appwrite_client.dart';
 
 // class UploadedImageInfo {
 //   final String fileId;
@@ -145,7 +145,7 @@ import 'package:flutter/foundation.dart';
 import 'package:image_picker/image_picker.dart';
 
 import 'package:admin/config/environment.dart';
-import 'package:admin/config/ network/appwrite_client.dart';
+import 'package:admin/config/network/appwrite_client.dart';
 
 class UploadedImageInfo {
   final String fileId;

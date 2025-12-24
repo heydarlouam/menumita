@@ -2,7 +2,7 @@ import 'package:admin/screens/orderpaid/provider/order_provider_paid.dart';
 import 'package:admin/services/auth_api.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'config/ network/appwrite_client.dart';
+import 'config/network/appwrite_client.dart';
 import 'login.dart';
 import 'package:provider/provider.dart';
 import 'dart:async';

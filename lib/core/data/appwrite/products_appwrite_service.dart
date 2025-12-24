@@ -2,9 +2,9 @@
 
 import 'package:appwrite/appwrite.dart';
 import 'package:admin/config/environment.dart';
-import 'package:admin/config/ network/appwrite_client.dart';
-import 'package:admin/config/ network/api_result.dart';
-import 'package:admin/config/ network/request_executor.dart';
+import 'package:admin/config/network/appwrite_client.dart';
+import 'package:admin/config/network/api_result.dart';
+import 'package:admin/config/network/request_executor.dart';
 import 'package:admin/models/product.dart';
 
 class ProductsAppwriteService {

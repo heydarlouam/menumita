@@ -9,9 +9,9 @@ import 'package:admin/config/environment.dart';
 import 'package:admin/models/sub_category.dart';
 import 'package:flutter/foundation.dart';
 
-import '../../../config/ network/api_result.dart';
-import '../../../config/ network/appwrite_client.dart';
-import '../../../config/ network/request_executor.dart';
+import '../../../config/network/api_result.dart';
+import '../../../config/network/appwrite_client.dart';
+import '../../../config/network/request_executor.dart';
 
 // class SubCategoryAppwriteService {
 //   final RequestExecutor _executor = RequestExecutor();
@@ -177,9 +177,9 @@ import 'package:appwrite/appwrite.dart';
 import 'package:admin/config/environment.dart';
 import 'package:admin/models/sub_category.dart';
 
-import '../../../config/ network/api_result.dart';
-import '../../../config/ network/appwrite_client.dart';
-import '../../../config/ network/request_executor.dart';
+import '../../../config/network/api_result.dart';
+import '../../../config/network/appwrite_client.dart';
+import '../../../config/network/request_executor.dart';
 
 class SubCategoryAppwriteService {
   final RequestExecutor _executor = RequestExecutor();

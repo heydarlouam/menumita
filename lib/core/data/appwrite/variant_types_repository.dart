@@ -4,7 +4,7 @@ import 'package:appwrite/appwrite.dart' show Query;
 import 'package:admin/config/environment.dart';
 import 'package:admin/models/variant_type.dart';
 
-import '../../../config/ network/api_result.dart';
+import '../../../config/network/api_result.dart';
 import 'base_crud_repository.dart';
 
 class VariantTypesRepository extends BaseCrudRepository<VariantType> {

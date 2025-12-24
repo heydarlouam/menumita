@@ -9,9 +9,9 @@ import 'package:admin/config/environment.dart';
 
 import 'package:admin/models/category.dart';
 
-import '../../../config/ network/api_result.dart';
-import '../../../config/ network/appwrite_client.dart';
-import '../../../config/ network/request_executor.dart';
+import '../../../config/network/api_result.dart';
+import '../../../config/network/appwrite_client.dart';
+import '../../../config/network/request_executor.dart';
 
 // class CategoryAppwriteService {
 //   CategoryAppwriteService();

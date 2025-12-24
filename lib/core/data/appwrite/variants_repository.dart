@@ -2,7 +2,7 @@
 
 import 'package:appwrite/appwrite.dart' show Query;
 import 'package:admin/config/environment.dart';
-import 'package:admin/config/ network/api_result.dart';
+import 'package:admin/config/network/api_result.dart';
 import 'package:admin/models/variant.dart';
 
 import 'base_crud_repository.dart';
