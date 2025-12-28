@@ -1,40 +1,139 @@
+
+
+
+import 'dart:async';
+
 import 'package:admin/utility/User_helper.dart';
 import 'package:admin/utility/dialog_helper.dart';
 import 'package:admin/utility/functions.dart';
+import 'package:admin/utility/invoice_printer.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../core/data/data_provider.dart';
 import '../../../models/order.dart';
 import '../../../utility/constants.dart';
 import '../provider/order_provider_paid.dart';
-
-class OrdersKanbanBoardPaid extends StatelessWidget {
+class OrdersKanbanBoardPaid extends StatefulWidget {
   const OrdersKanbanBoardPaid({Key? key}) : super(key: key);
 
+  @override
+  State<OrdersKanbanBoardPaid> createState() => _OrdersKanbanBoardPaidState();
+}
+
+class _OrdersKanbanBoardPaidState extends State<OrdersKanbanBoardPaid> {
+  final ScrollController _hCtrl = ScrollController();
+  final GlobalKey _scrollKey = GlobalKey();
+
+  Timer? _autoTimer;
+  bool _dragging = false;
+  double _dragX = 0;
+
+  // چون تو کدت reverse:true هست
+  static const bool _reverse = true;
+
+  // تنظیمات سرعت/حساسیت
+  static const double _edge = 70; // px ناحیه حساس نزدیک لبه‌ها
+  static const double _maxStep = 18; // px حرکت در هر tick
+
   Map<String, List<Order>> _group(List<Order> orders) {
-    final map = { for (final s in kOrderedStatuses) s: <Order>[] };
+    final map = {for (final s in kOrderedStatuses) s: <Order>[]};
     for (final o in orders) {
       final s = o.orderStatus ?? ORDER_STATUS_PENDING;
       (map[s] ??= <Order>[]).add(o);
     }
-    // مرتب‌سازی داخل هر ستون
     for (final s in map.keys) {
-     map[s]!.sort((a, b) => (a.orderDate.toString() ?? '').compareTo(b.orderDate.toString() ?? ''));
+      map[s]!.sort((a, b) =>
+          (a.orderDate.toString()).compareTo(b.orderDate.toString()));
     }
     return map;
   }
 
+  void _startAutoScroll() {
+    _autoTimer ??= Timer.periodic(const Duration(milliseconds: 16), (_) => _tickAutoScroll());
+  }
+
+  void _stopAutoScroll() {
+    _autoTimer?.cancel();
+    _autoTimer = null;
+  }
+
+  void _onDragStarted() {
+    _dragging = true;
+    _startAutoScroll();
+  }
+
+  void _onDragEnded() {
+    _dragging = false;
+    _stopAutoScroll();
+  }
+
+  void _onDragUpdate(DragUpdateDetails details) {
+    final ctx = _scrollKey.currentContext;
+    if (ctx == null) return;
+
+    final box = ctx.findRenderObject() as RenderBox?;
+    if (box == null) return;
+
+    final local = box.globalToLocal(details.globalPosition);
+    _dragX = local.dx;
+  }
+
+  void _tickAutoScroll() {
+    if (!_dragging) return;
+    if (!_hCtrl.hasClients) return;
+
+    final ctx = _scrollKey.currentContext;
+    if (ctx == null) return;
+
+    final box = ctx.findRenderObject() as RenderBox?;
+    if (box == null) return;
+
+    final viewportW = box.size.width;
+    final x = _dragX;
+
+    double speed = 0;
+
+    // نزدیک لبه چپ
+    if (x < _edge) {
+      speed = -((_edge - x) / _edge) * _maxStep;
+    }
+    // نزدیک لبه راست
+    else if (x > viewportW - _edge) {
+      speed = ((x - (viewportW - _edge)) / _edge) * _maxStep;
+    } else {
+      return;
+    }
+
+    // اگر reverse:true باشد جهت حرکت برعکس می‌شود
+    final signed = speed;
+
+    final pos = _hCtrl.position;
+    final next = (_hCtrl.offset + signed).clamp(pos.minScrollExtent, pos.maxScrollExtent);
+
+    if (next != _hCtrl.offset) {
+      _hCtrl.jumpTo(next);
+    }
+  }
+
+  @override
+  void dispose() {
+    _stopAutoScroll();
+    _hCtrl.dispose();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
-    // ⬅️ گوش دادن به تغییرات Provider (رفرش/جستجو/فیلتر)
     final orders = context.select<DataProvider, List<Order>>((p) => p.allsOrders);
     final grouped = _group(orders);
 
     return Directionality(
       textDirection: TextDirection.rtl,
       child: SingleChildScrollView(
+        key: _scrollKey,
+        controller: _hCtrl,
         scrollDirection: Axis.horizontal,
-        reverse: true,
+        reverse: _reverse,
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: kOrderedStatuses.map((status) {
@@ -42,19 +141,17 @@ class OrdersKanbanBoardPaid extends StatelessWidget {
             return _KanbanColumn(
               status: status,
               orders: items,
-
               onAccept: (order) async {
                 if (await UserSaveHelper.isExpired()) {
                   DialogHelper.showExpiredDialog(context);
                   return;
                 }
-                if ((order.orderStatus ?? ORDER_STATUS_PENDING) == status) {
-                  return; // همون ستون بود → هیچ کاری نکن
-                }
-                await context.read<OrderPaidProvider>()
-                    .updateOrderStatus(order.sId ?? '', status);
+                if ((order.orderStatus ?? ORDER_STATUS_PENDING) == status) return;
+                await context.read<OrderPaidProvider>().updateOrderStatus(order.sId ?? '', status);
               },
-
+              onDragStarted: _onDragStarted,
+              onDragUpdate: _onDragUpdate,
+              onDragEnded: _onDragEnded,
             );
           }).toList(),
         ),
@@ -63,34 +160,36 @@ class OrdersKanbanBoardPaid extends StatelessWidget {
   }
 }
 
-
-
 class _KanbanColumn extends StatelessWidget {
   final String status;
   final List<Order> orders;
   final ValueChanged<Order> onAccept;
+
+  final VoidCallback onDragStarted;
+  final ValueChanged<DragUpdateDetails> onDragUpdate;
+  final VoidCallback onDragEnded;
 
   const _KanbanColumn({
     Key? key,
     required this.status,
     required this.orders,
     required this.onAccept,
+    required this.onDragStarted,
+    required this.onDragUpdate,
+    required this.onDragEnded,
   }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
-    final colBg = statusColor(status).withOpacity(.06);   // بک‌گراند لطیف ستون
+    final colBg = statusColor(status).withOpacity(.06);
     final colBorder = statusColor(status).withOpacity(.25);
 
     return SizedBox(
       width: 320,
       child: Padding(
-        padding: const EdgeInsets.all(8.0), // فاصله ستون از ستون کناری
+        padding: const EdgeInsets.all(8.0),
         child: DragTarget<Order>(
-          onWillAccept: (o) {
-            // اگر از همین وضعیت اومده باشد، اصلاً قبول نکن (نه هایلایت، نه onAccept)
-            return (o?.orderStatus ?? ORDER_STATUS_PENDING) != status;
-          },
+          onWillAccept: (o) => (o?.orderStatus ?? ORDER_STATUS_PENDING) != status,
           onAccept: onAccept,
           builder: (context, candidate, rejected) {
             final hovering = candidate.isNotEmpty;
@@ -105,7 +204,6 @@ class _KanbanColumn extends StatelessWidget {
               ),
               child: Column(
                 children: [
-                  // هدر ستون
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                     decoration: BoxDecoration(
@@ -116,7 +214,8 @@ class _KanbanColumn extends StatelessWidget {
                     child: Row(
                       children: [
                         Container(
-                          width: 10, height: 10,
+                          width: 10,
+                          height: 10,
                           decoration: BoxDecoration(color: statusColor(status), shape: BoxShape.circle),
                         ),
                         const SizedBox(width: 8),
@@ -127,17 +226,19 @@ class _KanbanColumn extends StatelessWidget {
                       ],
                     ),
                   ),
-                  // لیست کارت‌ها با پدینگ چهار طرف
                   Expanded(
                     child: ListView.builder(
                       padding: const EdgeInsets.fromLTRB(10, 10, 10, 12),
                       itemCount: orders.length,
-
                       itemBuilder: (_, i) => KeyedSubtree(
                         key: ValueKey(orders[i].sId ?? orders[i].hashCode),
-                        child: _DraggableOrderCard(order: orders[i]),
+                        child: _DraggableOrderCard(
+                          order: orders[i],
+                          onDragStarted: onDragStarted,
+                          onDragUpdate: onDragUpdate,
+                          onDragEnded: onDragEnded,
+                        ),
                       ),
-
                     ),
                   ),
                 ],
@@ -150,18 +251,31 @@ class _KanbanColumn extends StatelessWidget {
   }
 }
 
-
-
 class _DraggableOrderCard extends StatelessWidget {
   final Order order;
-  const _DraggableOrderCard({Key? key, required this.order}) : super(key: key);
+  final VoidCallback onDragStarted;
+  final ValueChanged<DragUpdateDetails> onDragUpdate;
+  final VoidCallback onDragEnded;
+
+  const _DraggableOrderCard({
+    Key? key,
+    required this.order,
+    required this.onDragStarted,
+    required this.onDragUpdate,
+    required this.onDragEnded,
+  }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
     return LongPressDraggable<Order>(
       data: order,
-      feedback: SizedBox(       // ⬅️ عرض مشخص برای جلوگیری از خطای BoxConstraints
-        width: 300,            // متناسب با عرض ستونت تنظیم کن (مثلاً 300–304)
+      onDragStarted: onDragStarted,
+      onDragUpdate: onDragUpdate,
+      onDragEnd: (_) => onDragEnded(),
+      onDragCompleted: onDragEnded,
+      onDraggableCanceled: (_, __) => onDragEnded(),
+      feedback: SizedBox(
+        width: 300,
         child: Material(
           elevation: 8,
           borderRadius: BorderRadius.circular(12),
@@ -189,6 +303,8 @@ class _OrderCard extends StatefulWidget {
 
 class __OrderCardState extends State<_OrderCard> {
   bool _open = false;
+
+
 
   @override
   Widget build(BuildContext context) {
@@ -251,19 +367,71 @@ class __OrderCardState extends State<_OrderCard> {
                   children: [
 
                     if (widget.order.orderDate != null) ...[
-                     Row(children: [ Text(
-                       '${formatToJalali(widget.order.orderDate!.toString())}',
-                     ),
-                      Text(' && '),
-                       Text(
-                       '${getTimeAgo(widget.order.orderDate.toString()! ?? '')}',
-                     ),],),
+                      Row(children: [ Text(
+                        '${formatToJalali(widget.order.orderDate!.toString())}',
+                      ),
+                        Text(' && '),
+                        Text(
+                          '${getTimeAgo(widget.order.orderDate.toString()! ?? '')}',
+                        ),],),
                       const SizedBox(height: 4),
                     ],
+                    // if (widget.order.totalPrice != null) ...[
+                    //   Text('مبلغ: ${money(context, widget.order.totalPrice!)}'),
+                    //   const SizedBox(height: 4),
+                    // ],
                     if (widget.order.totalPrice != null) ...[
                       Text('مبلغ: ${money(context, widget.order.totalPrice!)}'),
+                      const SizedBox(height: 8),
+
+                      Row(
+                        children: [
+                          Expanded(
+                            child: GestureDetector(
+                              // ✅ این باعث میشه اگر کسی روی خود دکمه لانگ‌پرس کرد، Drag کانبان شروع نشه
+                              onLongPress: () {},
+                              child: ElevatedButton.icon(
+                                icon: _paying
+                                    ? const SizedBox(
+                                  width: 16, height: 16,
+                                  child: CircularProgressIndicator(strokeWidth: 2),
+                                )
+                                    : const Icon(Icons.payments, size: 16,color: Colors.white,),
+                                label: const Text('پرداخت', style: TextStyle(fontSize: 11,color: Colors.white  ),),
+                                style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
+                                onPressed: _paying ||
+                                    (widget.order.orderStatus ?? '') == ORDER_STATUS_PAID ||
+                                    (widget.order.orderStatus ?? '') == ORDER_STATUS_CANCELLED
+                                    ? null
+                                    : _confirmPayDialog,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+
+                          Expanded(
+                            child: GestureDetector(
+                              onLongPress: () {},
+                              child: OutlinedButton.icon(
+                                onPressed: widget.order == null
+                                    ? null
+                                    : () async {
+                                  // ✅ انتخاب یکی از این دو:
+                                  await InvoicePrinter.previewReceipt(context, widget.order); // پیش نمایش
+                                  // await InvoicePrinter.printInvoice(context, order); // چاپ مستقیم
+                                },
+                                icon: const Icon(Icons.print, size: 16),
+                                label: const Text('چاپ فاکتور', style: TextStyle(fontSize: 11)),
+                              ),
+                            ),
+                          ),
+
+                        ],
+                      ),
+
                       const SizedBox(height: 4),
                     ],
+
                   ],
                 ),
 
@@ -300,6 +468,70 @@ class __OrderCardState extends State<_OrderCard> {
         ),
       ),
     );
+  }
+  Future<void> _confirmPayDialog() async {
+    if (_paying) return;
+
+    final ok = await showDialog<bool>(
+      context: context,
+      barrierDismissible: true,
+      builder: (ctx) {
+        return AlertDialog(
+          backgroundColor:Colors.grey[800],
+          title: const Text('تایید پرداخت'),
+          content: const Text('آیا این سفارش پرداخت شد؟'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('لغو', style: TextStyle(color: Colors.red)),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
+              onPressed: () => Navigator.pop(ctx, true),
+              child: const Text('تایید', style: TextStyle(color: Colors.white)),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (ok == true) {
+      await _markPaid(); // همون تابعی که قبلاً برای تغییر وضعیت نوشتی
+    }
+  }
+
+
+  bool _paying = false;
+
+  Future<void> _markPaid() async {
+    if (_paying) return;
+
+    final id = (widget.order.sId ?? '').trim();
+    if (id.isEmpty) return;
+
+    // اگر سفارش لغو شده، پرداخت نکن
+    if ((widget.order.orderStatus ?? '').toLowerCase() == ORDER_STATUS_CANCELLED) return;
+
+    if (await UserSaveHelper.isExpired()) {
+      if (!mounted) return;
+      DialogHelper.showExpiredDialog(context);
+      return;
+    }
+
+    setState(() => _paying = true);
+    try {
+      await context.read<OrderPaidProvider>().updateOrderStatus(id, ORDER_STATUS_PAID);
+
+      // برای اینکه حتی بدون realtime هم سریع آپدیت بشه:
+      await context.read<DataProvider>().getAllsOrders(showSnack: false);
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('خطا در پرداخت: $e')),
+      );
+    } finally {
+      if (mounted) setState(() => _paying = false);
+    }
   }
 
   // 🔽 تابع برای نمایش نوع سفارش
@@ -460,3 +692,4 @@ Color statusColor(String? s) {
     default: return Colors.grey;
   }
 }
+

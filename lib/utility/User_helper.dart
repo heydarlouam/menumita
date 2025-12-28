@@ -1,15 +1,224 @@
+//
+//
+//
+// import 'package:admin/config/network/services/auth_api.dart';
+// import 'package:admin/utility/snack_bar_helper.dart';
+// import 'package:persian_datetime_picker/persian_datetime_picker.dart';
+//
+//
+// class UserSaveHelper {
+//   static String? _cache;
+//   static Map<String, dynamic>? _userCache;
+//
+//   /// فقط phone_number را از SharedPreferences می‌خواند (با کش)
+//   static Future<String?> getPhoneNumber({bool showError = true}) async {
+//     if (_cache != null && _cache!.isNotEmpty) return _cache;
+//     final phone = await PrefsService.get<String>('user.phone_number');
+//     if ((phone == null || phone.isEmpty) && showError) {
+//       SnackBarHelper.showErrorSnackBar('شماره تلفن در حافظه یافت نشد!');
+//       return null;
+//     }
+//     _cache = phone;
+//     return phone;
+//   }
+//
+//   /// 🧩 اطلاعات کاربر برای پروفایل
+//   /// keys: name, family, name_bizi, icon_logo_url, expirydate, menu_type
+//   ///  - expirydate: مثل "1404-12-29" (جلالی)
+//   ///  - menu_type: از کلید 'user.menu_type'
+//   static Future<Map<String, dynamic>?> getUserInfo(
+//       {bool showError = true}) async {
+//     if (_userCache != null && _userCache!.isNotEmpty) return _userCache;
+//
+//     final name = await PrefsService.get<String>('user.name');
+//     final family = await PrefsService.get<String>('user.family');
+//     final nameBizi = await PrefsService.get<String>('user.name_bizi');
+//     final iconUrl = await PrefsService.get<String>('user.icon_logo_url');
+//     final expiry =
+//         await PrefsService.get<String>('user.expirydate'); // مثلاً "1404-12-29"
+//     final menuType =
+//         await PrefsService.get<String>('user.menu_type'); // 👈 اضافه شد
+//
+//     final allNullOrEmpty = [name, family, nameBizi, iconUrl, expiry, menuType]
+//         .every((v) => v == null || (v is String && v.isEmpty));
+//
+//     if (allNullOrEmpty && showError) {
+//       SnackBarHelper.showErrorSnackBar('اطلاعات کاربر در حافظه یافت نشد!');
+//       return null;
+//     }
+//
+//     _userCache = {
+//       'name': name ?? '',
+//       'family': family ?? '',
+//       'name_bizi': nameBizi ?? '',
+//       'icon_logo_url': iconUrl ?? '',
+//       'expirydate': expiry ?? '',
+//       'menu_type': menuType ?? '', // 👈 اضافه شد
+//     };
+//     return _userCache;
+//   }
+//
+//   /// 🔹 بررسی اینکه اشتراک منقضی شده یا نه (بر اساس expirydate جلالی)
+//   static Future<bool> isExpired() async {
+//     final info = await getUserInfo(showError: false);
+//     if (info == null) return true;
+//
+//     final expiryJalali = info['expirydate'] ?? '';
+//     if (expiryJalali.isEmpty) return true;
+//
+//     try {
+//       final norm = _normalizeDigits(expiryJalali);
+//       final parts = norm.split('-');
+//       if (parts.length != 3) return true;
+//
+//       final jy = int.parse(parts[0]);
+//       final jm = int.parse(parts[1]);
+//       final jd = int.parse(parts[2]);
+//
+//       final j = Jalali(jy, jm, jd);
+//       final g = j.toDateTime(); // تبدیل به میلادی
+//       final expiryDate = DateTime(g.year, g.month, g.day, 23, 59, 59);
+//       final now = DateTime.now();
+//
+//       return now.isAfter(expiryDate);
+//     } catch (_) {
+//       return true;
+//     }
+//   }
+//
+//   /// 🔹 نرمال‌سازی ارقام فارسی/عربی
+//   static String _normalizeDigits(String s) {
+//     const fa = ['۰', '۱', '۲', '۳', '۴', '۵', '۶', '۷', '۸', '۹'];
+//     const ar = ['٠', '١', '٢', '٣', '٤', '٥', '٦', '٧', '٨', '٩'];
+//     for (int i = 0; i < 10; i++) {
+//       s = s.replaceAll(fa[i], i.toString()).replaceAll(ar[i], i.toString());
+//     }
+//     return s;
+//   }
+//
+//   static Future<void> logout() async {
+//     // فقط اطلاعات user پاک شود
+//     await PrefsService.clearPrefix('user');
+//
+//     // اگر چیزهای دیگه‌ای هم ذخیره می‌کنی (token, settings, ...) اینجا پاک کن
+//     // await PrefsService.clearPrefix('token');
+//   }
+// }
+
+//
+// import 'package:admin/config/network/services/auth_api.dart';
+// import 'package:admin/utility/snack_bar_helper.dart';
+// import 'package:persian_datetime_picker/persian_datetime_picker.dart';
+//
+// class UserSaveHelper {
+//   static String? _cache;
+//   static Map<String, dynamic>? _userCache;
+//
+//   /// فقط phone_number را از SharedPreferences می‌خواند (با کش)
+//   static Future<String?> getPhoneNumber({bool showError = true}) async {
+//     if (_cache != null && _cache!.isNotEmpty) return _cache;
+//     final phone = await PrefsService.get<String>('user.phone_number');
+//     if ((phone == null || phone.isEmpty) && showError) {
+//       SnackBarHelper.showErrorSnackBar('شماره تلفن در حافظه یافت نشد!');
+//       return null;
+//     }
+//     _cache = phone;
+//     return phone;
+//   }
+//
+//   /// 🧩 اطلاعات کاربر برای پروفایل
+//   /// keys: name, family, name_bizi, icon_logo_url, expirydate, menu_type
+//   ///  - expirydate: مثل "1404-12-29" (جلالی)
+//   ///  - menu_type: از کلید 'user.menu_type'
+//   static Future<Map<String, dynamic>?> getUserInfo({bool showError = true}) async {
+//     if (_userCache != null && _userCache!.isNotEmpty) return _userCache;
+//
+//     final name = await PrefsService.get<String>('user.name');
+//     final family = await PrefsService.get<String>('user.family');
+//     final nameBizi = await PrefsService.get<String>('user.name_bizi');
+//     final iconUrl = await PrefsService.get<String>('user.icon_logo_url');
+//     final expiry = await PrefsService.get<String>('user.expirydate'); // مثلاً "1404-12-29"
+//     final menuType = await PrefsService.get<String>('user.menu_type'); // 👈 اضافه شد
+//
+//     final allNullOrEmpty = [name, family, nameBizi, iconUrl, expiry, menuType]
+//         .every((v) => v == null || (v is String && v.isEmpty));
+//
+//     if (allNullOrEmpty && showError) {
+//       SnackBarHelper.showErrorSnackBar('اطلاعات کاربر در حافظه یافت نشد!');
+//       return null;
+//     }
+//
+//     _userCache = {
+//       'name': name ?? '',
+//       'family': family ?? '',
+//       'name_bizi': nameBizi ?? '',
+//       'icon_logo_url': iconUrl ?? '',
+//       'expirydate': expiry ?? '',
+//       'menu_type': menuType ?? '', // 👈 اضافه شد
+//     };
+//     return _userCache;
+//   }
+//
+//   /// 🔹 بررسی اینکه اشتراک منقضی شده یا نه (بر اساس expirydate جلالی)
+//   static Future<bool> isExpired() async {
+//     final info = await getUserInfo(showError: false);
+//     if (info == null) return true;
+//
+//     final expiryJalali = info['expirydate'] ?? '';
+//     if (expiryJalali.isEmpty) return true;
+//
+//     try {
+//       final norm = _normalizeDigits(expiryJalali);
+//       final parts = norm.split('-');
+//       if (parts.length != 3) return true;
+//
+//       final jy = int.parse(parts[0]);
+//       final jm = int.parse(parts[1]);
+//       final jd = int.parse(parts[2]);
+//
+//       final j = Jalali(jy, jm, jd);
+//       final g = j.toDateTime(); // تبدیل به میلادی
+//       final expiryDate = DateTime(g.year, g.month, g.day, 23, 59, 59);
+//       final now = DateTime.now();
+//
+//       return now.isAfter(expiryDate);
+//     } catch (_) {
+//       return true;
+//     }
+//   }
+//
+//   /// 🔹 نرمال‌سازی ارقام فارسی/عربی
+//   static String _normalizeDigits(String s) {
+//     const fa = ['۰', '۱', '۲', '۳', '۴', '۵', '۶', '۷', '۸', '۹'];
+//     const ar = ['٠', '١', '٢', '٣', '٤', '٥', '٦', '٧', '٨', '٩'];
+//     for (int i = 0; i < 10; i++) {
+//       s = s.replaceAll(fa[i], i.toString()).replaceAll(ar[i], i.toString());
+//     }
+//     return s;
+//   }
+//
+//   static Future<void> logout() async {
+//     // فقط اطلاعات user پاک شود
+//     await PrefsService.clearPrefix('user');
+//
+//     // ✅ کش‌ها هم پاک شوند تا بعد از خروج، داده‌ی قبلی برنگردد
+//     _cache = null;
+//     _userCache = null;
+//
+//     // اگر چیزهای دیگه‌ای هم ذخیره می‌کنی (token, settings, ...) اینجا پاک کن
+//     // await PrefsService.clearPrefix('token');
+//   }
+// }
 
 
-import 'package:admin/services/auth_api.dart';
+import 'package:admin/config/network/services/auth_api.dart';
 import 'package:admin/utility/snack_bar_helper.dart';
 import 'package:persian_datetime_picker/persian_datetime_picker.dart';
-
 
 class UserSaveHelper {
   static String? _cache;
   static Map<String, dynamic>? _userCache;
 
-  /// فقط phone_number را از SharedPreferences می‌خواند (با کش)
   static Future<String?> getPhoneNumber({bool showError = true}) async {
     if (_cache != null && _cache!.isNotEmpty) return _cache;
     final phone = await PrefsService.get<String>('user.phone_number');
@@ -21,25 +230,38 @@ class UserSaveHelper {
     return phone;
   }
 
-  /// 🧩 اطلاعات کاربر برای پروفایل
-  /// keys: name, family, name_bizi, icon_logo_url, expirydate, menu_type
-  ///  - expirydate: مثل "1404-12-29" (جلالی)
-  ///  - menu_type: از کلید 'user.menu_type'
-  static Future<Map<String, dynamic>?> getUserInfo(
-      {bool showError = true}) async {
+  /// keys:
+  /// name, family, phone_number, name_bizi,
+  /// icon_logo_url, expirydate, menu_type,
+  /// address, instagramHandle, addr_host
+  static Future<Map<String, dynamic>?> getUserInfo({bool showError = true}) async {
     if (_userCache != null && _userCache!.isNotEmpty) return _userCache;
 
     final name = await PrefsService.get<String>('user.name');
     final family = await PrefsService.get<String>('user.family');
+    final phoneNumber = await PrefsService.get<String>('user.phone_number');
     final nameBizi = await PrefsService.get<String>('user.name_bizi');
     final iconUrl = await PrefsService.get<String>('user.icon_logo_url');
-    final expiry =
-        await PrefsService.get<String>('user.expirydate'); // مثلاً "1404-12-29"
-    final menuType =
-        await PrefsService.get<String>('user.menu_type'); // 👈 اضافه شد
+    final expiry = await PrefsService.get<String>('user.expirydate');
+    final menuType = await PrefsService.get<String>('user.menu_type');
 
-    final allNullOrEmpty = [name, family, nameBizi, iconUrl, expiry, menuType]
-        .every((v) => v == null || (v is String && v.isEmpty));
+    // ✅ فیلدهای جدید
+    final address = await PrefsService.get<String>('user.address');
+    final instagramHandle = await PrefsService.get<String>('user.instagramHandle');
+    final addrHost = await PrefsService.get<String>('user.addr_host');
+
+    final allNullOrEmpty = [
+      name,
+      family,
+      phoneNumber,
+      nameBizi,
+      iconUrl,
+      expiry,
+      menuType,
+      address,
+      instagramHandle,
+      addrHost,
+    ].every((v) => v == null || (v is String && v.isEmpty));
 
     if (allNullOrEmpty && showError) {
       SnackBarHelper.showErrorSnackBar('اطلاعات کاربر در حافظه یافت نشد!');
@@ -49,20 +271,26 @@ class UserSaveHelper {
     _userCache = {
       'name': name ?? '',
       'family': family ?? '',
+      'phone_number': phoneNumber ?? '',
       'name_bizi': nameBizi ?? '',
       'icon_logo_url': iconUrl ?? '',
       'expirydate': expiry ?? '',
-      'menu_type': menuType ?? '', // 👈 اضافه شد
+      'menu_type': menuType ?? '',
+
+      // ✅ جدیدها
+      'address': address ?? '',
+      'instagramHandle': instagramHandle ?? '',
+      'addr_host': addrHost ?? '',
     };
+
     return _userCache;
   }
 
-  /// 🔹 بررسی اینکه اشتراک منقضی شده یا نه (بر اساس expirydate جلالی)
   static Future<bool> isExpired() async {
     final info = await getUserInfo(showError: false);
     if (info == null) return true;
 
-    final expiryJalali = info['expirydate'] ?? '';
+    final expiryJalali = (info['expirydate'] ?? '').toString();
     if (expiryJalali.isEmpty) return true;
 
     try {
@@ -75,17 +303,14 @@ class UserSaveHelper {
       final jd = int.parse(parts[2]);
 
       final j = Jalali(jy, jm, jd);
-      final g = j.toDateTime(); // تبدیل به میلادی
+      final g = j.toDateTime();
       final expiryDate = DateTime(g.year, g.month, g.day, 23, 59, 59);
-      final now = DateTime.now();
-
-      return now.isAfter(expiryDate);
+      return DateTime.now().isAfter(expiryDate);
     } catch (_) {
       return true;
     }
   }
 
-  /// 🔹 نرمال‌سازی ارقام فارسی/عربی
   static String _normalizeDigits(String s) {
     const fa = ['۰', '۱', '۲', '۳', '۴', '۵', '۶', '۷', '۸', '۹'];
     const ar = ['٠', '١', '٢', '٣', '٤', '٥', '٦', '٧', '٨', '٩'];
@@ -93,5 +318,11 @@ class UserSaveHelper {
       s = s.replaceAll(fa[i], i.toString()).replaceAll(ar[i], i.toString());
     }
     return s;
+  }
+
+  static Future<void> logout() async {
+    await PrefsService.clearPrefix('user');
+    _cache = null;
+    _userCache = null;
   }
 }

@@ -19,6 +19,78 @@ class PosterAppwriteService {
   Databases get _db => AppwriteClient.instance.databases;
   Storage get _storage => Storage(AppwriteClient.instance.client);
 
+  // ... create/update/delete همان قبلی ...
+
+  /// ✅ نسخه paging شده (مثل subcategories)
+  Future<ApiResult<List<Poster>>> getPagedByPhoneNumberCode(
+      String phoneNumberCode, {
+        required int limit,
+        String? cursorAfter,
+      }) {
+    return _executor.execute<List<Poster>>(
+          () async {
+        final queries = <String>[
+          Query.equal('phone_number_code', phoneNumberCode),
+          Query.orderDesc(r'$createdAt'), // مثل ساب‌کتگوری
+          Query.limit(limit),
+        ];
+
+        final c = (cursorAfter ?? '').trim();
+        if (c.isNotEmpty) {
+          queries.add(Query.cursorAfter(c));
+        }
+
+        final res = await _db.listDocuments(
+          databaseId: Environment.databaseIdMenuMita,
+          collectionId: Environment.collectionIdPosters,
+          queries: queries,
+        );
+
+        final posters = res.documents.map((doc) {
+          final map = <String, dynamic>{
+            ...doc.data,
+            r'$id': doc.$id,
+            r'$createdAt': doc.$createdAt,
+            r'$updatedAt': doc.$updatedAt,
+          };
+          return Poster.fromJson(map);
+        }).toList();
+
+        return posters;
+      },
+      label: 'GET posters paged',
+    );
+  }
+
+  // ✅ متد قدیمی رو می‌تونی نگه داری (اختیاری)
+  Future<ApiResult<List<Poster>>> getPostersByPhoneNumberCode(String phoneNumberCode) {
+    return _executor.execute<List<Poster>>(
+          () async {
+        final res = await _db.listDocuments(
+          databaseId: Environment.databaseIdMenuMita,
+          collectionId: Environment.collectionIdPosters,
+          queries: [
+            Query.equal('phone_number_code', phoneNumberCode),
+          ],
+        );
+
+        final posters = res.documents.map((doc) {
+          final map = <String, dynamic>{
+            ...doc.data,
+            r'$id': doc.$id,
+            r'$createdAt': doc.$createdAt,
+            r'$updatedAt': doc.$updatedAt,
+          };
+          return Poster.fromJson(map);
+        }).toList();
+
+        return posters;
+      },
+      label: 'GET posters by phone_number_code',
+    );
+  }
+
+
   /// ایجاد پوستر همراه با آپلود تصویر
   Future<ApiResult<Poster>> createPosterWithImage({
     required String name,
@@ -163,35 +235,7 @@ class PosterAppwriteService {
     );
   }
 
-  /// برای خواندن لیست پوسترها به‌تفکیک phone_number_code
-  Future<ApiResult<List<Poster>>> getPostersByPhoneNumberCode(
-      String phoneNumberCode,
-      ) {
-    return _executor.execute<List<Poster>>(
-          () async {
-        final res = await _db.listDocuments(
-          databaseId: Environment.databaseIdMenuMita,
-          collectionId: Environment.collectionIdPosters,
-          queries: [
-            Query.equal('phone_number_code', phoneNumberCode),
-          ],
-        );
 
-        final posters = res.documents.map((doc) {
-          final map = <String, dynamic>{
-            ...doc.data,
-            r'$id': doc.$id,
-            r'$createdAt': doc.$createdAt,
-            r'$updatedAt': doc.$updatedAt,
-          };
-          return Poster.fromJson(map);
-        }).toList();
-
-        return posters;
-      },
-      label: 'GET posters by phone_number_code',
-    );
-  }
 
   /// Helpers
   String? _extractFileIdFromUrl(String? url) {

@@ -39,50 +39,47 @@ class VariantSubmitForm extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             children: [
               const SizedBox(height: defaultPadding),
-              Row(
+              Column(
                 children: [
-                  Expanded(
-                    child: Selector<DataProvider, List<VariantType>>(
-                      selector: (_, dp) => dp.variantTypes,
-                      builder: (context, types, child) {
-                        final vtId = variant?.variantTypeId?.sId;
-                        if (p.selectedVariantType == null && vtId != null && types.isNotEmpty) {
-                          p.hydrateSelectedType(vtId);
-                        }
+                  Selector<DataProvider, List<VariantType>>(
+                    selector: (_, dp) => dp.variantTypes,
+                    builder: (context, types, child) {
+                      final vtId = variant?.variantTypeId?.sId;
+                      if (p.selectedVariantType == null && vtId != null && types.isNotEmpty) {
+                        p.hydrateSelectedType(vtId);
+                      }
 
-                        final List<VariantType> items = List<VariantType>.from(types)
-                          ..sort((a, b) => (a.name ?? '').compareTo(b.name ?? ''));
+                      final List<VariantType> items = List<VariantType>.from(types)
+                        ..sort((a, b) => (a.name ?? '').compareTo(b.name ?? ''));
 
-                        return CustomDropdown<VariantType>(
-                          initialValue: p.selectedVariantType,
-                          items: items,
-                          hintText: 'انتخاب نوع ویژگی',
-                          displayItem: (VariantType it) => it.name ?? '',
-                          onChanged: (newValue) {
-                            p.selectedVariantType = newValue;
-                            p.updateUI();
-                          },
-                          validator: (value) {
-                            final isEditing = p.variantForUpdate != null;
-                            if (!isEditing && value == null) return 'لطفاً یک نوع ویژگی انتخاب کنید';
-                            return null;
-                          },
-                        );
-                      },
-                    ),
+                      return CustomDropdown<VariantType>(
+                        initialValue: p.selectedVariantType,
+                        items: items,
+                        hintText: 'انتخاب نوع ویژگی',
+                        displayItem: (VariantType it) => it.name ?? '',
+                        onChanged: (newValue) {
+                          p.selectedVariantType = newValue;
+                          p.updateUI();
+                        },
+                        validator: (value) {
+                          final isEditing = p.variantForUpdate != null;
+                          if (!isEditing && value == null) return 'لطفاً یک نوع ویژگی انتخاب کنید';
+                          return null;
+                        },
+                      );
+                    },
                   ),
-                  const SizedBox(width: defaultPadding),
-                  Expanded(
-                    child: CustomTextField(
-                      controller: p.variantCtrl,
-                      labelText: 'نام ویژگی',
-                      onSave: (_) {},
-                      validator: (value) =>
-                      (value == null || value.isEmpty) ? 'لطفاً نام ویژگی را وارد کنید' : null,
-                    ),
+                  const SizedBox(height: defaultPadding),
+                  CustomTextField(
+                    controller: p.variantCtrl,
+                    labelText: 'نام ویژگی',
+                    onSave: (_) {},
+                    validator: (value) =>
+                    (value == null || value.isEmpty) ? 'لطفاً نام ویژگی را وارد کنید' : null,
                   ),
                 ],
               ),
+
               const SizedBox(height: defaultPadding * 2),
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,

@@ -32,25 +32,26 @@ class VariantTypeSubmitForm extends StatelessWidget {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Row(children: [
-                Expanded(
-                  child: CustomTextField(
+
+              Column(
+                children: [
+                  CustomTextField(
                     controller: p.nameCtrl,
                     labelText: 'نام',
-                    validator: (v) => (v==null || v.isEmpty) ? 'اجباری' : null,
+                    validator: (v) => (v == null || v.isEmpty) ? 'اجباری' : null,
                     onSave: (_) {},
                   ),
-                ),
-                const SizedBox(width: defaultPadding),
-                Expanded(
-                  child: CustomTextField(
+                  const SizedBox(height: defaultPadding),
+                  CustomTextField(
                     controller: p.typeCtrl,
                     labelText: 'نوع',
+
                     validator: (v) => (v==null || v.isEmpty) ? 'اجباری' : null,
                     onSave: (_) {},
                   ),
-                ),
-              ]),
+                ],
+              ),
+
               const SizedBox(height: defaultPadding * 2),
               Row(mainAxisAlignment: MainAxisAlignment.center, children: [
                 ElevatedButton(

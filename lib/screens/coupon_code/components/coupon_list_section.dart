@@ -10,44 +10,49 @@ import '../../../utility/color_list.dart';
 import '../../../utility/constants.dart';
 import 'add_coupon_form.dart';
 
-
 class CouponListSection extends StatelessWidget {
   const CouponListSection({Key? key}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
+    final coupons = context.select<DataProvider, List<Coupon>>((p) => p.coupons);
+
+    final rows = List<DataRow>.generate(
+      coupons.length,
+          (index) => _couponDataRow(context, coupons[index], index + 1),
+    );
+
     return Container(
       padding: const EdgeInsets.all(defaultPadding),
       decoration: const BoxDecoration(
         color: secondaryColor,
         borderRadius: BorderRadius.all(Radius.circular(10)),
       ),
-      child: SizedBox(
-        width: double.infinity,
-        child: Selector<DataProvider, List<Coupon>>(
-          selector: (_, dp) => dp.coupons,
-          builder: (context, coupons, _) {
-            return DataTable(
-              columnSpacing: defaultPadding,
-              columns: const [
-                DataColumn(label: Text("کد کوپن")),
-                DataColumn(label: Text("وضعیت")),
-                DataColumn(label: Text("نوع تخفیف")),
-                DataColumn(label: Text("مقدار تخفیف")),
-                DataColumn(label: Text("ویرایش")),
-                DataColumn(label: Text("حذف")),
-              ],
-              rows: List.generate(
-                coupons.length,
-                    (index) => _couponDataRow(
-                  context,
-                  coupons[index],
-                  index + 1,
+      child: LayoutBuilder(
+        builder: (_, cons) {
+          final w = cons.maxWidth; // عرض کارت
+          return SingleChildScrollView(
+            scrollDirection: Axis.horizontal, // ✅ افقی
+            child: ConstrainedBox(
+              constraints: BoxConstraints(minWidth: w), // ✅ حداقل = عرض کارت
+              child: SingleChildScrollView(
+                // ✅ عمودی
+                child: DataTable(
+                  columnSpacing: defaultPadding,
+                  columns: const [
+                    DataColumn(label: Text("کد کوپن")),
+                    DataColumn(label: Text("وضعیت")),
+                    DataColumn(label: Text("نوع تخفیف")),
+                    DataColumn(label: Text("مقدار تخفیف")),
+                    DataColumn(label: Text("ویرایش")),
+                    DataColumn(label: Text("حذف")),
+                  ],
+                  rows: rows,
                 ),
               ),
-            );
-          },
-        ),
+            ),
+          );
+        },
       ),
     );
   }
@@ -89,9 +94,7 @@ class CouponListSection extends StatelessWidget {
               }
               showAddCouponForm(context, coupon);
             },
-
             tooltip: 'ویرایش کوپن',
-
             icon: const Icon(Icons.edit, color: Colors.white),
           ),
         ),
@@ -105,7 +108,6 @@ class CouponListSection extends StatelessWidget {
               context.couponCodeProvider.deleteCoupon(coupon);
             },
             tooltip: 'حذف کوپن',
-
             icon: const Icon(Icons.delete, color: Colors.red),
           ),
         ),
@@ -113,4 +115,3 @@ class CouponListSection extends StatelessWidget {
     );
   }
 }
-

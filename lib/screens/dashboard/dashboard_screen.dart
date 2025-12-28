@@ -40,10 +40,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
   @override
   Widget build(BuildContext context) {
     void _onAdd() => showAddProductForm(context, null);
-    void _onRefresh() => context.dataProvider.filterProductsByQuantity(
-      context.dataProvider.productsType,
-      showSnack: true,
-    );
+    // void _onRefresh() => context.dataProvider.filterProductsByQuantity(
+    //   context.dataProvider.productsType,
+    //   showSnack: true,
+    // );
+
+    void _onRefresh() async {
+      final type = context.dataProvider.productsType; // فیلتر فعلی رو نگه دار
+      await context.dataProvider.getAllProducts(showSnack: false); // دیتای جدید از Appwrite
+      context.dataProvider.filterProductsByQuantity(type, showSnack: true); // همون فیلتر قبلی
+    }
 
     return SafeArea(
       child: LayoutBuilder(

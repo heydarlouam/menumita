@@ -13,71 +13,6 @@ import '../../../config/network/api_result.dart';
 import '../../../config/network/appwrite_client.dart';
 import '../../../config/network/request_executor.dart';
 
-// class CategoryAppwriteService {
-//   CategoryAppwriteService();
-//
-//   final RequestExecutor _executor = RequestExecutor();
-//
-//   Databases get _db => AppwriteClient.instance.databases;
-//
-//   /// برای این سرویس نیازی نیست AppwriteClient رو عوض کنیم؛
-//   /// مستقیم از Client یک Storage می‌سازیم.
-//   Storage get _storage => Storage(AppwriteClient.instance.client);
-//
-//   /// ۱) آپلود عکس در باکت IMGCategories
-//   /// ۲) ساختن Category در collection categories
-//   Future<ApiResult<Category>> createCategoryWithImage({
-//     required String name,
-//     required String phoneNumberCode,
-//     required Uint8List imageBytes,
-//     required String filename,
-//   }) {
-//     return _executor.execute<Category>(
-//           () async {
-//         // ۱) آپلود فایل
-//         final appwrite_models.File file = await _storage.createFile(
-//           bucketId: Environment.bucketIdCategoryImages,
-//           fileId: ID.unique(),
-//           file: InputFile.fromBytes(
-//             bytes: imageBytes,
-//             filename: filename,
-//           ),
-//         );
-//
-//         // ۲) ساخت URL تصویر (برای Image.network)
-//         final imageUrl =
-//             '${Environment.appwriteEndpoint}/storage/buckets/${Environment.bucketIdCategoryImages}/files/${file.$id}/view?project=${Environment.appwriteProjectId}';
-//
-//         // ۳) ساخت داکیومنت کتگوری در دیتابیس
-//         final doc = await _db.createDocument(
-//           databaseId: Environment.databaseIdMenuMita,
-//           collectionId: Environment.collectionIdCategories,
-//           documentId: ID.unique(),
-//           data: <String, dynamic>{
-//             'name': name,
-//             'imageUrl': imageUrl,
-//             'phone_number_code': phoneNumberCode,
-//           },
-//         );
-//
-//         // ۴) تبدیل به Map استاندارد برای Category.fromJson
-//         final map = <String, dynamic>{
-//           ...doc.data,
-//           r'$id': doc.$id,
-//           r'$createdAt': doc.$createdAt,
-//           r'$updatedAt': doc.$updatedAt,
-//         };
-//
-//         return Category.fromJson(map);
-//       },
-//       label: 'CREATE category with image',
-//     );
-//   }
-// }
-
-
-// lib/core/data/appwrite/category_appwrite_service.dart
-
 
 class CategoryAppwriteService {
   CategoryAppwriteService();
@@ -140,60 +75,6 @@ class CategoryAppwriteService {
   /// آپدیت کتگوری:
   /// اگر imageBytes != null → تصویر جدید آپلود می‌شود و imageUrl عوض می‌شود
   /// اگر imageBytes == null → فقط name/phone_number_code آپدیت می‌شود
-  // Future<ApiResult<Category>> updateCategory({
-  //   required String documentId,
-  //   required String name,
-  //   required String phoneNumberCode,
-  //   Uint8List? imageBytes,
-  //   String? filename,
-  //   String? existingImageUrl,
-  // }) {
-  //   return _executor.execute<Category>(
-  //         () async {
-  //       String? finalImageUrl = existingImageUrl;
-  //
-  //       if (imageBytes != null && filename != null) {
-  //         final appwrite_models.File file = await _storage.createFile(
-  //           bucketId: Environment.bucketIdCategoryImages,
-  //           fileId: ID.unique(),
-  //           file: InputFile.fromBytes(
-  //             bytes: imageBytes,
-  //             filename: filename,
-  //           ),
-  //         );
-  //
-  //         finalImageUrl =
-  //         '${Environment.appwriteEndpoint}/storage/buckets/${Environment.bucketIdCategoryImages}/files/${file.$id}/view?project=${Environment.appwriteProjectId}';
-  //       }
-  //
-  //       final data = <String, dynamic>{
-  //         'name': name,
-  //         'phone_number_code': phoneNumberCode,
-  //       };
-  //
-  //       if (finalImageUrl != null && finalImageUrl.isNotEmpty) {
-  //         data['imageUrl'] = finalImageUrl;
-  //       }
-  //
-  //       final doc = await _db.updateDocument(
-  //         databaseId: Environment.databaseIdMenuMita,
-  //         collectionId: Environment.collectionIdCategories,
-  //         documentId: documentId,
-  //         data: data,
-  //       );
-  //
-  //       final map = <String, dynamic>{
-  //         ...doc.data,
-  //         r'$id': doc.$id,
-  //         r'$createdAt': doc.$createdAt,
-  //         r'$updatedAt': doc.$updatedAt,
-  //       };
-  //
-  //       return Category.fromJson(map);
-  //     },
-  //     label: 'UPDATE category',
-  //   );
-  // }
 
   /// آپدیت کتگوری:
   /// اگر imageBytes != null → تصویر جدید آپلود می‌شود و imageUrl عوض می‌شود
@@ -301,21 +182,7 @@ class CategoryAppwriteService {
 
 
   /// حذف کتگوری از دیتابیس (فعلاً فایل تصویر رو دست نمی‌زنیم)
-  // Future<ApiResult<void>> deleteCategory({
-  //   required String documentId,
-  // }) {
-  //   return _executor.execute<void>(
-  //         () async {
-  //       await _db.deleteDocument(
-  //         databaseId: Environment.databaseIdMenuMita,
-  //         collectionId: Environment.collectionIdCategories,
-  //         documentId: documentId,
-  //       );
-  //       return null;
-  //     },
-  //     label: 'DELETE category',
-  //   );
-  // }
+
   /// حذف کتگوری از دیتابیس و حذف فایل تصویر مربوطه (اگر وجود داشته باشد)
   Future<ApiResult<void>> deleteCategory({
     required String documentId,

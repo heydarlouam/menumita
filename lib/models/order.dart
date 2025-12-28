@@ -245,7 +245,7 @@ class Order {
     if (sa != null) o.shippingAddress = ShippingAddress.fromJson(sa);
 
     // items
-    o.items = _parseItems(json['items']);
+    o.items = _parseItems(json['item']);
 
     // coupon fields (اسم‌های مختلف)
     o.couponCodeId = _toStr(
@@ -293,7 +293,7 @@ class Order {
       'couponCode_id': couponCodeId,
       'couponCode': couponCode,
       'shippingAddress': shippingAddress?.toJson(),
-      'items': items.map((e) => e.toJson()).toList(),
+      'item': items.map((e) => e.toJson()).toList(),
       'paymentMethod': paymentMethod,
       'trackingUrl': trackingUrl,
     };

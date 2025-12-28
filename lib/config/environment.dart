@@ -3,8 +3,10 @@ class Environment {
   Environment._();
 
   // TODO: این‌ها رو با مقادیر واقعی Appwrite پر کن
-  static const String appwriteEndpoint = 'https://pb.frozencoffee.ir/v1';
-  static const String appwriteProjectId = '692c0b6a00389c2456f6';
+  // static const String appwriteEndpoint = 'https://pb.frozencoffee.ir/v1';
+//  static const String appwriteProjectId = '692c0b6a00389c2456f6';
+  static const String appwriteEndpoint = 'https://cloud.appwrite.io/v1';
+  static const String appwriteProjectId = '693af98e003b6a735031';
 
   // Database
   // static const String databaseIdMenuMita = 'db_menu_mita';
@@ -29,7 +31,8 @@ class Environment {
 
 
   // Functions
-  static const String functionIdLogin = '6942e48c00274480bd93'; // login-function-appwrite
+  // static const String functionIdLogin = '6942e48c00274480bd93'; // login-function-appwrite
+  static const String functionIdLogin = '694c73220020407b1d0c'; // login-function-appwrite
 
 
 

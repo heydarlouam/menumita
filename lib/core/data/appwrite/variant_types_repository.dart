@@ -22,4 +22,26 @@ class VariantTypesRepository extends BaseCrudRepository<VariantType> {
       ],
     );
   }
+
+  /// ✅ Paging برای جدول (Infinite scroll)
+  Future<ApiResult<List<VariantType>>> getPagedByPhoneNumberCode(
+      String phone, {
+        required int limit,
+        String? cursorAfter,
+      }) {
+    final queries = <String>[
+      Query.equal('phone_number_code', phone),
+      // اگر سمت سرور هم ترتیب داد، عالی؛ اگر نه، داخل Provider مرتب می‌کنیم
+      Query.orderDesc(r'$updatedAt'),
+      Query.limit(limit),
+    ];
+
+    final c = (cursorAfter ?? '').trim();
+    if (c.isNotEmpty) {
+      queries.add(Query.cursorAfter(c));
+    }
+
+    return getAll(queries: queries);
+  }
 }
+
