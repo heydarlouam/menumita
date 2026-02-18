@@ -103,4 +103,41 @@ class CouponCodeAppwriteService {
       label: 'DELETE coupon',
     );
   }
+
+  Future<ApiResult<List<Coupon>>> getPagedByPhoneNumberCode(
+      String phoneNumberCode, {
+        required int limit,
+        String? cursorAfter,
+      }) {
+    return _executor.execute<List<Coupon>>(
+          () async {
+        final queries = <String>[
+          Query.equal('phone_number_code', phoneNumberCode),
+          Query.orderDesc(r'$updatedAt'),
+          Query.limit(limit),
+        ];
+
+        final c = (cursorAfter ?? '').trim();
+        if (c.isNotEmpty) queries.add(Query.cursorAfter(c));
+
+        final res = await _db.listDocuments(
+          databaseId: Environment.databaseIdMenuMita,
+          collectionId: Environment.collectionIdCouponCode,
+          queries: queries,
+        );
+
+        return res.documents.map((doc) {
+          final map = <String, dynamic>{
+            ...doc.data,
+            r'$id': doc.$id,
+            r'$createdAt': doc.$createdAt,
+            r'$updatedAt': doc.$updatedAt,
+          };
+          return Coupon.fromJson(map);
+        }).toList();
+      },
+      label: 'GET coupons paged',
+    );
+  }
+
 }

@@ -65,13 +65,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 children: [
                   const DashBoardHeader(),
                   const Gap(defaultPadding),
+                  if (_ordersEnabled) const OrderDetailsSection(),
+                  const Gap(defaultPadding),
                   const ProductSummerySection(),
                   const Gap(defaultPadding),
                   ProductActionsBar(onAdd: _onAdd, onRefresh: _onRefresh),
                   const ProductListSection(),
                   const Gap(defaultPadding),
                   // const OrderDetailsSection(),
-                  if (_ordersEnabled) const OrderDetailsSection(),
+
                 ],
               ),
             );
@@ -85,13 +87,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 children: [
                   const DashBoardHeader(),
                   const Gap(defaultPadding),
+                  if (_ordersEnabled) const OrderDetailsSection(),
+                  const Gap(defaultPadding),
                   const ProductSummerySection(),
                   const Gap(defaultPadding),
                   ProductActionsBar(onAdd: _onAdd, onRefresh: _onRefresh),
                   const ProductListSection(),
                   const Gap(defaultPadding),
                    // const OrderDetailsSection(),
-                  if (_ordersEnabled) const OrderDetailsSection(),
+
                 ],
               ),
             );

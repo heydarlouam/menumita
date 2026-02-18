@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:admin/core/data/appwrite/brands_repository.dart';
 import 'package:admin/core/data/appwrite/coupon_code_appwrite_service.dart';
 import 'package:admin/core/data/appwrite/orders_appwrite_service.dart';
@@ -37,11 +39,380 @@ import 'appwrite/poster_appwrite_service.dart';
 
 class DataProvider extends ChangeNotifier {
 
-  // ================================
-// ✅ BRANDS (Paging + Shimmer + SubCategory name hydrate + Updated first)
-// ================================
+static const int _productsPageSize = 500;
 
-  static const int _brandsPageSize = 17;
+bool _productsLoading = false;
+bool _productsLoadingMore = false;
+bool _productsHasMore = true;
+
+String? _productsCursorAfter;
+String _productKeyword = '';
+
+bool get isProductsLoading => _productsLoading;
+bool get isProductsLoadingMore => _productsLoadingMore;
+bool get hasMoreProducts => _productsHasMore;
+
+// --- sort helper: newest updatedAt/createdAt first ---
+DateTime _productTs(Product p) {
+  final u = (p.updatedAt ?? '').trim();
+  final c = (p.createdAt ?? '').trim();
+  final raw = u.isNotEmpty ? u : c;
+  final dt = DateTime.tryParse(raw);
+  return dt ?? DateTime.fromMillisecondsSinceEpoch(0);
+}
+
+void _sortAllProducts() {
+  _allProducts.sort((a, b) => _productTs(b).compareTo(_productTs(a))); // DESC
+}
+
+/// ✅ create/update => بیاد اول (بدون reload)
+void upsertProductToTop(Product incoming) {
+  final id = (incoming.sId ?? '').trim();
+  if (id.isEmpty) return;
+
+  incoming.updatedAt ??= DateTime.now().toIso8601String();
+
+  final idx = _allProducts.indexWhere((x) => (x.sId ?? '').trim() == id);
+  if (idx != -1) _allProducts.removeAt(idx);
+
+  _allProducts.insert(0, incoming);
+
+  _hydrateProductsNames([incoming]); // مهم: category/subcategory
+  _applyProductFilter();
+  notifyListeners();
+}
+
+/// ✅ حذف محصول از لیست بعد از delete
+void removeProductById(String id) {
+  final sid = id.trim();
+  if (sid.isEmpty) return;
+  _allProducts.removeWhere((p) => (p.sId ?? '').trim() == sid);
+  _applyProductFilter();
+  notifyListeners();
+}
+
+Future<List<Product>> getAllProducts({bool showSnack = false}) async {
+  return loadInitialProducts(showSnack: showSnack);
+}
+
+Future<List<Product>> loadInitialProducts({bool showSnack = false}) async {
+  if (_productsLoading) return _filteredProducts;
+
+  _productsLoading = true;
+  _productsLoadingMore = false;
+  _productsHasMore = true;
+  _productsCursorAfter = null;
+
+  _allProducts.clear();
+  _filteredProducts = const [];
+  notifyListeners();
+
+  try {
+    final phone = await UserSaveHelper.getPhoneNumber(showError: false) ?? '';
+    if (phone.trim().isEmpty) {
+      if (showSnack) SnackBarHelper.showErrorSnackBar('شماره تلفن/کد در حافظه یافت نشد!');
+      return _filteredProducts;
+    }
+
+    // ✅ برای hydrate نام‌ها
+    await _ensureCategoriesLoadedForProducts();
+    await _ensureSubCategoriesLoadedForProducts();
+
+    final res = await _productsService.getPagedByPhoneNumberCode(
+      phone.trim(),
+      limit: _productsPageSize,
+      cursorAfter: null,
+    );
+
+    if (res.isSuccess) {
+      final items = res.requireData();
+
+      _hydrateProductsNames(items);
+      _allProducts.addAll(items);
+
+      _productsHasMore = items.length >= _productsPageSize;
+      _productsCursorAfter = _productsHasMore && items.isNotEmpty ? items.last.sId : null;
+
+      _applyProductFilter();
+      if (showSnack) SnackBarHelper.showSuccessSnackBar('Products loaded');
+      return _filteredProducts;
+    } else {
+      if (showSnack) SnackBarHelper.showErrorSnackBar(res.requireError().userMessage);
+      return _filteredProducts;
+    }
+  } finally {
+    _productsLoading = false;
+    notifyListeners();
+  }
+}
+
+Future<List<Product>> loadMoreProducts({bool showSnack = false}) async {
+  if (_productsLoading || _productsLoadingMore || !_productsHasMore) return _filteredProducts;
+
+  _productsLoadingMore = true;
+  notifyListeners();
+
+  try {
+    final phone = await UserSaveHelper.getPhoneNumber(showError: false) ?? '';
+    if (phone.trim().isEmpty) return _filteredProducts;
+
+    await _ensureCategoriesLoadedForProducts();
+    await _ensureSubCategoriesLoadedForProducts();
+
+    final res = await _productsService.getPagedByPhoneNumberCode(
+      phone.trim(),
+      limit: _productsPageSize,
+      cursorAfter: _productsCursorAfter,
+    );
+
+    if (res.isSuccess) {
+      final items = res.requireData();
+
+      if (items.isEmpty) {
+        _productsHasMore = false;
+        return _filteredProducts;
+      }
+
+      _hydrateProductsNames(items);
+
+      // ✅ upsert جلوگیری از تکرار
+      for (final p in items) {
+        final id = (p.sId ?? '').trim();
+        if (id.isEmpty) continue;
+
+        final idx = _allProducts.indexWhere((x) => (x.sId ?? '').trim() == id);
+        if (idx == -1) {
+          _allProducts.add(p);
+        } else {
+          _allProducts[idx] = p;
+        }
+      }
+
+      _productsHasMore = items.length >= _productsPageSize;
+      _productsCursorAfter = _productsHasMore ? items.last.sId : null;
+
+      _applyProductFilter();
+      return _filteredProducts;
+    } else {
+      if (showSnack) SnackBarHelper.showErrorSnackBar(res.requireError().userMessage);
+      return _filteredProducts;
+    }
+  } finally {
+    _productsLoadingMore = false;
+    notifyListeners();
+  }
+}
+
+void filterProducts(String keyword) {
+  _productKeyword = keyword.trim();
+  _applyProductFilter();
+  notifyListeners();
+}
+
+void _applyProductFilter() {
+  _sortAllProducts();
+
+  final kw = _productKeyword.trim().toLowerCase();
+  if (kw.isEmpty) {
+    _filteredProducts = List<Product>.from(_allProducts);
+    return;
+  }
+
+  _filteredProducts = _allProducts.where((p) {
+    final name = (p.name ?? '').toLowerCase();
+    final cat = (p.resolvedCategoryName ?? '').toLowerCase();
+    final sub = (p.resolvedSubCategoryName ?? '').toLowerCase();
+    return name.contains(kw) || cat.contains(kw) || sub.contains(kw);
+  }).toList()
+    ..sort((a, b) => _productTs(b).compareTo(_productTs(a)));
+}
+
+// -------- Hydration (Category/SubCategory names) --------
+
+Future<void> _ensureCategoriesLoadedForProducts() async {
+  if (_allCategories.isEmpty) {
+    await getAllCategories(showSnack: false);
+  }
+}
+
+Future<void> _ensureSubCategoriesLoadedForProducts() async {
+  if (_allSubCategories.isEmpty) {
+    await getAllSubCategories(showSnack: false);
+  }
+}
+
+void _hydrateProductsNames(List<Product> products) {
+  if (products.isEmpty) return;
+
+  final catMap = <String, String>{};
+  for (final c in _allCategories) {
+    final id = (c.sId ?? '').trim();
+    if (id.isNotEmpty) catMap[id] = (c.name ?? '').trim();
+  }
+
+  final subMap = <String, String>{};
+  for (final s in _allSubCategories) {
+    final id = (s.sId ?? '').trim();
+    if (id.isNotEmpty) subMap[id] = (s.name ?? '').trim();
+  }
+
+  for (final p in products) {
+    final cid = (p.categoryId ?? '').trim();
+    final sid = (p.subCategoryId ?? '').trim();
+    p.resolvedCategoryName = catMap[cid] ?? '';
+    p.resolvedSubCategoryName = subMap[sid] ?? '';
+  }
+}
+
+// ================================
+// ✅ COUPONS (Paging + Shimmer + Updated first)
+// ================================
+static const int _couponsPageSize = 500;
+
+bool _couponsLoading = false;
+bool _couponsLoadingMore = false;
+bool _couponsHasMore = true;
+
+String? _couponsCursorAfter;
+String _couponKeyword = '';
+
+bool get isCouponsLoading => _couponsLoading;
+bool get isCouponsLoadingMore => _couponsLoadingMore;
+bool get hasMoreCoupons => _couponsHasMore;
+
+DateTime _couponTs(Coupon c) {
+  final u = (c.updatedAt ?? '').trim();
+  final cr = (c.createdAt ?? '').trim();
+  final raw = u.isNotEmpty ? u : cr;
+  final dt = DateTime.tryParse(raw);
+  return dt ?? DateTime.fromMillisecondsSinceEpoch(0);
+}
+
+void _sortAllCoupons() {
+  _allCoupons.sort((a, b) => _couponTs(b).compareTo(_couponTs(a)));
+}
+
+void _applyCouponFilter() {
+  _sortAllCoupons();
+
+  final kw = _couponKeyword.trim().toLowerCase();
+  if (kw.isEmpty) {
+    _filteredCoupons = List<Coupon>.from(_allCoupons);
+    return;
+  }
+
+  _filteredCoupons = _allCoupons
+      .where((c) => (c.couponCode ?? '').toLowerCase().contains(kw))
+      .toList()
+    ..sort((a, b) => _couponTs(b).compareTo(_couponTs(a)));
+}
+
+Future<List<Coupon>> getAllCoupons({bool showSnack = false}) async {
+  return loadInitialCoupons(showSnack: showSnack);
+}
+
+Future<List<Coupon>> loadInitialCoupons({bool showSnack = false}) async {
+  if (_couponsLoading) return _filteredCoupons;
+
+  _couponsLoading = true;
+  _couponsLoadingMore = false;
+  _couponsHasMore = true;
+  _couponsCursorAfter = null;
+
+  _allCoupons.clear();
+  _filteredCoupons = const [];
+  notifyListeners();
+
+  try {
+    final phone = await UserSaveHelper.getPhoneNumber(showError: false) ?? '';
+    if (phone.trim().isEmpty) return _filteredCoupons;
+
+    final res = await _couponService.getPagedByPhoneNumberCode(
+      phone.trim(),
+      limit: _couponsPageSize,
+      cursorAfter: null,
+    );
+
+    if (res.isSuccess) {
+      final items = res.requireData();
+      _allCoupons.addAll(items);
+
+      _couponsHasMore = items.length >= _couponsPageSize;
+      _couponsCursorAfter = _couponsHasMore && items.isNotEmpty ? items.last.sId : null;
+
+      _applyCouponFilter();
+      return _filteredCoupons;
+    } else {
+      if (showSnack) SnackBarHelper.showErrorSnackBar(res.requireError().userMessage);
+      return _filteredCoupons;
+    }
+  } finally {
+    _couponsLoading = false;
+    notifyListeners();
+  }
+}
+
+Future<List<Coupon>> loadMoreCoupons({bool showSnack = false}) async {
+  if (_couponsLoading || _couponsLoadingMore || !_couponsHasMore) {
+    return _filteredCoupons;
+  }
+
+  _couponsLoadingMore = true;
+  notifyListeners();
+
+  try {
+    final phone = await UserSaveHelper.getPhoneNumber(showError: false) ?? '';
+    if (phone.trim().isEmpty) return _filteredCoupons;
+
+    final res = await _couponService.getPagedByPhoneNumberCode(
+      phone.trim(),
+      limit: _couponsPageSize,
+      cursorAfter: _couponsCursorAfter,
+    );
+
+    if (res.isSuccess) {
+      final items = res.requireData();
+      if (items.isEmpty) {
+        _couponsHasMore = false;
+        return _filteredCoupons;
+      }
+
+      // upsert جلوگیری از تکرار
+      for (final c in items) {
+        final id = (c.sId ?? '').trim();
+        if (id.isEmpty) continue;
+
+        final idx = _allCoupons.indexWhere((x) => (x.sId ?? '').trim() == id);
+        if (idx == -1) {
+          _allCoupons.add(c);
+        } else {
+          _allCoupons[idx] = c;
+        }
+      }
+
+      _couponsHasMore = items.length >= _couponsPageSize;
+      _couponsCursorAfter = _couponsHasMore ? items.last.sId : null;
+
+      _applyCouponFilter();
+      return _filteredCoupons;
+    } else {
+      if (showSnack) SnackBarHelper.showErrorSnackBar(res.requireError().userMessage);
+      return _filteredCoupons;
+    }
+  } finally {
+    _couponsLoadingMore = false;
+    notifyListeners();
+  }
+}
+
+void filterCoupons(String keyword) {
+  _couponKeyword = keyword.trim();
+  _applyCouponFilter();
+  notifyListeners();
+}
+
+
+  static const int _brandsPageSize = 500;
 
   bool _brandsLoading = false;
   bool _brandsLoadingMore = false;
@@ -329,7 +700,7 @@ class DataProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  static const int _postersPageSize = 17;
+  static const int _postersPageSize = 500;
 
   bool _postersLoading = false;
   bool _postersLoadingMore = false;
@@ -473,7 +844,7 @@ class DataProvider extends ChangeNotifier {
   // ================================
 // ✅ VARIANTS (Paging + Shimmer + Hydration by VariantTypes)
 // ================================
-  static const int _variantsPageSize = 17;
+  static const int _variantsPageSize = 500;
 
   bool _variantsLoading = false;
   bool _variantsLoadingMore = false;
@@ -662,7 +1033,7 @@ class DataProvider extends ChangeNotifier {
 // ================================
 // ✅ VARIANT TYPES (Paging + Shimmer + Updated items first)
 // ================================
-  static const int _variantTypesPageSize = 17;
+  static const int _variantTypesPageSize = 500;
 
   bool _variantTypesLoading = false;
   bool _variantTypesLoadingMore = false;
@@ -850,7 +1221,7 @@ class DataProvider extends ChangeNotifier {
 // ================================
 // ✅ SUBCATEGORIES (Paging + Updated items first)
 // ================================
-  static const int _subCategoriesPageSize = 17;
+  static const int _subCategoriesPageSize = 500;
 
   bool _subCategoriesLoading = false;
   bool _subCategoriesLoadingMore = false;
@@ -1242,7 +1613,7 @@ class DataProvider extends ChangeNotifier {
   // ================================
 // ✅ CATEGORIES PAGING (Appwrite)
 // ================================
-  static const int _categoriesPageSize = 17;
+  static const int _categoriesPageSize = 500;
 
   bool _categoriesLoading = false;
   bool _categoriesLoadingMore = false;
@@ -1285,7 +1656,7 @@ class DataProvider extends ChangeNotifier {
   List<Order> get allsOrders => _filteredOrdersall;
 
 // --- Paid (Orders page, pagination) ---
-  final int _ordersPageSize = 50;
+  final int _ordersPageSize = 500;
   int _ordersPage = 1;
   bool _ordersHasMore = true;
   bool _ordersLoading = false;
@@ -1307,23 +1678,70 @@ class DataProvider extends ChangeNotifier {
       return true;
     }
   }
-
+  // Future<void> initOrdersRealtime() async {
+  //   await disposeOrdersRealtime();
+  //   try {
+  //     final phone = await UserSaveHelper.getPhoneNumber(showError: false) ?? '';
+  //     if (phone.trim().isEmpty) return;
+  //
+  //     print('Trying to connect to Appwrite Realtime...');
+  //     _ordersSub = ordersAppwriteService.subscribeOrders((msg) {
+  //       print('✅ Realtime message received: ${msg.events}');
+  //       _applyOrdersRealtime(msg, phoneNumberCode: phone.trim());
+  //     });
+  //     print('Realtime subscription created');
+  //   } catch (e) {
+  //     print('❌ Failed to init realtime: $e');
+  //   }
+  // }
   Future<void> _bootOrders() async {
     if (!await _isOrdersEnabled()) {
+      await disposeOrdersPolling();
       await disposeOrdersRealtime();
       return;
     }
 
-    // داشبورد: همه سفارشات در جریان (به جز Paid)
+    // همیشه اول سفارشات در جریان رو لود کن
     await getAllsOrders(showSnack: false);
+    await getAllCoupons();
 
-    // صفحه Paid ها با پیجین (اگه لازم داری همون اول لود شه)
-    // await loadInitialOrders(showSnack: false);
-await getAllCoupons ();
-    // realtime
-    await initOrdersRealtime();
+    // اول هر دو رو ببند (برای اطمینان کامل)
+    await disposeOrdersRealtime();
+    await disposeOrdersPolling();
+
+    if (kIsWeb) {
+      print('Flutter Web detected → using Polling only');
+      await initOrdersPolling();
+    } else {
+      print('Native platform detected → using Realtime');
+      // await initOrdersRealtime();
+    }
+  }
+  Timer? _pollingTimer;
+
+// جایگزین initOrdersRealtime با این متد
+  Future<void> initOrdersPolling() async {
+    await disposeOrdersPolling(); // اگر قبلاً فعال بود
+
+    // هر ۱۰ ثانیه سفارشات در جریان رو رفرش کن
+    _pollingTimer = Timer.periodic(const Duration(seconds: 10), (_) async {
+      try {
+        await getAllsOrders(showSnack: false);
+        // اگر صفحه Paid بازه، اونم رفرش کن (اختیاری)
+        // if (currentRoute == '/orders_paid') await loadMoreOrders();
+      } catch (e) {
+        print('Polling error: $e');
+      }
+    });
+
+    // اولین بار هم لود کن
+    await getAllsOrders(showSnack: false);
   }
 
+  Future<void> disposeOrdersPolling() async {
+    _pollingTimer?.cancel();
+    _pollingTimer = null;
+  }
 // -------------------------------
 // ✅ Dashboard: دریافت همه سفارشات در جریان (بدون پیجین)
 // -------------------------------
@@ -1414,19 +1832,100 @@ await getAllCoupons ();
 // -------------------------------
 // ✅ Realtime (Appwrite)
 // -------------------------------
-  Future<void> initOrdersRealtime() async {
-    await disposeOrdersRealtime();
 
+
+  void _applyOrdersRealtime(RealtimeMessage msg, {required String phoneNumberCode}) {
     try {
-      final phone = await UserSaveHelper.getPhoneNumber(showError: false) ?? '';
-      if (phone.trim().isEmpty) return;
+      // ✅ مهم: payload ممکن است String باشد (JSON encoded)
+      dynamic payload = msg.payload;
 
-      _ordersSub = ordersAppwriteService.subscribeOrders((msg) {
-        _applyOrdersRealtime(msg, phoneNumberCode: phone.trim());
-      });
-    } catch (_) {}
+      if (payload is String) {
+        try {
+          payload = jsonDecode(payload);
+        } catch (_) {
+          return; // اگر JSON معتبر نبود، نادیده بگیر
+        }
+      }
+
+      if (payload is! Map<String, dynamic>) {
+        return;
+      }
+
+      final doc = Map<String, dynamic>.from(payload);
+
+      // نرمال‌سازی متا
+      final normalized = <String, dynamic>{
+        ...doc,
+        'id': doc['id'] ?? doc[r'$id'],
+        'created': doc['created'] ?? doc[r'$createdAt'],
+      };
+
+      final order = Order.fromJson(normalized);
+
+      // فیلتر tenant
+      final p = (order.phoneNumberCode ?? '').trim();
+      if (p.isNotEmpty && p != phoneNumberCode) return;
+
+      final id = (order.sId ?? '').trim();
+      if (id.isEmpty) return;
+
+      final action = _actionFromEvents(msg.events);
+
+      if (action == 'delete') {
+        _removeOrderFromList(_allsOrders, id);
+        _removeOrderFromList(_allOrders, id);
+      } else if (action == 'create' || action == 'update') {
+        if (_isPaidStatus(order.orderStatus)) {
+          _removeOrderFromList(_allsOrders, id);
+          final idx = _allOrders.indexWhere((o) => (o.sId ?? '') == id);
+          if (idx >= 0) {
+            _allOrders[idx] = order;
+          } else if (_ordersPage <= 1) {
+            _allOrders.insert(0, order);
+          }
+        } else {
+          _upsertOrderInList(_allsOrders, order);
+          _removeOrderFromList(_allOrders, id);
+        }
+      }
+
+      _filteredOrdersall = List.unmodifiable(_allsOrders);
+      _filteredOrders = List.unmodifiable(_allOrders);
+      _safeNotify();
+    } catch (e, st) {
+      // لاگ خطا (اختیاری)
+      print('Error in realtime handler: $e\n$st');
+    }
   }
 
+  // Future<void> initOrdersRealtime() async {
+  //   await disposeOrdersRealtime();
+  //
+  //   try {
+  //     final phone = await UserSaveHelper.getPhoneNumber(showError: false) ?? '';
+  //     if (phone.trim().isEmpty) return;
+  //
+  //     _ordersSub = ordersAppwriteService.subscribeOrders((msg) {
+  //       _applyOrdersRealtime(msg, phoneNumberCode: phone.trim());
+  //     });
+  //   } catch (_) {}
+  // }
+  // Future<void> initOrdersRealtime() async {
+  //   await disposeOrdersRealtime();
+  //   try {
+  //     final phone = await UserSaveHelper.getPhoneNumber(showError: false) ?? '';
+  //     if (phone.trim().isEmpty) return;
+  //
+  //     print('Trying to connect to Appwrite Realtime...');
+  //     _ordersSub = ordersAppwriteService.subscribeOrders((msg) {
+  //       print('✅ Realtime message received: ${msg.events}');
+  //       _applyOrdersRealtime(msg, phoneNumberCode: phone.trim());
+  //     });
+  //     print('Realtime subscription created');
+  //   } catch (e) {
+  //     print('❌ Failed to init realtime: $e');
+  //   }
+  // }
   Future<void> disposeOrdersRealtime() async {
     try {
       await _ordersSub?.close();
@@ -1441,59 +1940,6 @@ await getAllCoupons ();
     return 'unknown';
   }
 
-  void _applyOrdersRealtime(RealtimeMessage msg, {required String phoneNumberCode}) {
-    try {
-      final action = _actionFromEvents(msg.events);
-      final payload = msg.payload;
-      if (payload is! Map) return;
-
-      final doc = Map<String, dynamic>.from(payload as Map);
-      final normalized = <String, dynamic>{
-        ...doc,
-        'id': doc['id'] ?? doc[r'$id'],
-        'created': doc['created'] ?? doc[r'$createdAt'],
-      };
-
-      final order = Order.fromJson(normalized);
-
-      // tenant filter
-      final p = (order.phoneNumberCode ?? '').trim();
-      if (p.isNotEmpty && p != phoneNumberCode) return;
-
-      final id = (order.sId ?? '').trim();
-      if (id.isEmpty) return;
-
-      if (action == 'delete') {
-        _removeOrderFromList(_allsOrders, id); // in-progress
-        _removeOrderFromList(_allOrders, id);  // paid
-      } else if (action == 'create' || action == 'update') {
-        if (_isPaidStatus(order.orderStatus)) {
-          // Paid => از داشبورد حذف
-          _removeOrderFromList(_allsOrders, id);
-
-          // Paid list => اگر لیست Paid لود شده، آپدیت/اضافه کن
-          final idx = _allOrders.indexWhere((o) => (o.sId ?? '') == id);
-          if (idx >= 0) {
-            _allOrders[idx] = order;
-          } else {
-            // فقط اگر صفحه اول یا قبلاً لیست رو داری
-            if (_ordersPage <= 1) _allOrders.insert(0, order);
-          }
-        } else {
-          // Non-Paid => در جریان
-          _upsertOrderInList(_allsOrders, order);
-
-          // اگر قبلاً Paid بوده، از لیست Paid حذف
-          _removeOrderFromList(_allOrders, id);
-        }
-      }
-
-      _filteredOrdersall = List.unmodifiable(_allsOrders);
-      _filteredOrders = List.unmodifiable(_allOrders);
-
-      _safeNotify();
-    } catch (_) {}
-  }
 
   void _upsertOrderInList(List<Order> list, Order incoming) {
     final incomingId = (incoming.sId ?? '').toString();
@@ -1555,13 +2001,19 @@ await getAllCoupons ();
   }
 
 // در dispose اصلی DataProvider این‌ها را نگه دار:
+//   @override
+//   void dispose() {
+//     _notifyDebounce?.cancel();
+//     disposeOrdersRealtime();
+//     super.dispose();
+//   }
   @override
   void dispose() {
     _notifyDebounce?.cancel();
     disposeOrdersRealtime();
+    disposeOrdersPolling(); // ← این خط رو اضافه کن
     super.dispose();
   }
-
 
   // final CategoryRepository categoryRepo = CategoryRepository();
   final CategoriesRepository categoriesRepoAppwrite = CategoriesRepository();
@@ -1656,16 +2108,17 @@ await getAllCoupons ();
   Future<void> initAll() async {
     if (_initialized) return;
     _initialized = true;
-    await Future.wait([
-      getAllProducts(),
-      getAllCategories(),
-      getAllSubCategories(),
-      getAllBrands(),
-      getAllVariantTypes(),
-      getAllVariants(),
-      getAllPosters(),
-    ]);
+
     await _bootOrders();
+    await  getAllCategories();
+      await getAllSubCategories();
+      await  getAllBrands();
+      await  getAllVariantTypes();
+      await   getAllVariants();
+      await   getAllPosters();
+      await  getAllProducts();
+
+
   }
 
   Future<void> initAfterLogin() async {
@@ -1679,95 +2132,6 @@ await getAllCoupons ();
 
 
 
-  Future<List<Product>> getAllProducts({bool showSnack = false}) async {
-    try {
-      final phone = await UserSaveHelper.getPhoneNumber(showError: false) ?? '12345';
-      if (phone.trim().isEmpty) {
-        SnackBarHelper.showErrorSnackBar('شماره تلفن/کد در حافظه یافت نشد!');
-        return _filteredProducts;
-      }
-
-      // برای اینکه dropdownها/نام‌ها آماده باشند (اگر لازم شد در UI)
-      if (_allCategories.isEmpty) await getAllCategories(showSnack: false);
-      if (_allSubCategories.isEmpty) await getAllSubCategories(showSnack: false);
-      if (_allVariantTypes.isEmpty) await getAllVariantTypes(showSnack: false);
-      if (_allVariants.isEmpty) await getAllVariants(showSnack: false);
-      if (_allBrands.isEmpty) await getAllBrands(showSnack: false);
-
-      final result = await _productsService.getByPhoneNumberCode(phone.trim());
-
-      if (result.isSuccess) {
-        _allProducts = result.requireData();
-        _filteredProducts = List.from(_allProducts);
-        final catMap = <String, String>{};
-        for (final c in _allCategories) {
-          final id = c.sId ?? '';
-          if (id.isNotEmpty) catMap[id] = c.name ?? '';
-        }
-
-        final subMap = <String, String>{};
-        for (final s in _allSubCategories) {
-          final id = s.sId ?? '';
-          if (id.isNotEmpty) subMap[id] = s.name ?? '';
-        }
-
-        for (final p in _allProducts) {
-          final cid = p.categoryId ?? '';
-          final sid = p.subCategoryId ?? '';
-          p.resolvedCategoryName = catMap[cid] ?? '';
-          p.resolvedSubCategoryName = subMap[sid] ?? '';
-        }
-
-        notifyListeners();
-
-        if (showSnack) {
-          SnackBarHelper.showSuccessSnackBar('Products loaded successfully');
-        }
-        return _filteredProducts;
-      } else {
-        final err = result.requireError();
-        if (showSnack) {
-          SnackBarHelper.showErrorSnackBar(
-            err.userMessage.isNotEmpty ? err.userMessage : (err.devMessage ?? 'Failed to load products'),
-          );
-        }
-        return _filteredProducts;
-      }
-    } catch (e) {
-      if (showSnack) {
-        SnackBarHelper.showErrorSnackBar('Failed to load products: $e');
-      }
-      rethrow;
-    }
-  }
-
-
-  void filterProducts(String keyword) {
-    keyword = keyword.trim();
-
-    if (keyword.isEmpty) {
-      _filteredProducts = List.from(_allProducts);
-    } else {
-      final lowerKeyword = keyword.toLowerCase();
-
-      _filteredProducts = _allProducts.where((product) {
-        final productNameContainsKeyword =
-        (product.name ?? '').toLowerCase().contains(lowerKeyword);
-
-        final categoryNameContainsKeyword =
-        (product.resolvedCategoryName ?? '').toLowerCase().contains(lowerKeyword);
-
-        final subCategoryNameContainsKeyword =
-        (product.resolvedSubCategoryName ?? '').toLowerCase().contains(lowerKeyword);
-
-        return productNameContainsKeyword ||
-            categoryNameContainsKeyword ||
-            subCategoryNameContainsKeyword;
-      }).toList();
-    }
-
-    notifyListeners();
-  }
 
   int calculateOrdersWithStatus({String? status}) {
     int totalOrders = 0;
@@ -1836,57 +2200,8 @@ await getAllCoupons ();
   int? _qtyOf(Product p) => _tryInt(p.quantity);
 
 
-  Future<List<Coupon>> getAllCoupons({bool showSnack = false}) async {
-    try {
-      final phone = await UserSaveHelper.getPhoneNumber(showError: false) ?? '12345';
-      if (phone == null || phone.trim().isEmpty) {
-        SnackBarHelper.showErrorSnackBar('شماره تلفن در حافظه یافت نشد!');
-        return _filteredCoupons;
-      }
-
-      final result = await _couponService.getByPhoneNumberCode(phone);
-
-      if (result.isSuccess) {
-        _allCoupons = result.requireData();
-        _filteredCoupons = List.from(_allCoupons);
-        notifyListeners();
-
-        if (showSnack) {
-          SnackBarHelper.showSuccessSnackBar('Coupons loaded successfully');
-        }
-        return _filteredCoupons;
-      } else {
-        final err = result.requireError();
-        if (showSnack) {
-          SnackBarHelper.showErrorSnackBar(
-            err.userMessage.isNotEmpty ? err.userMessage : (err.devMessage ?? 'Failed to load coupons'),
-          );
-        }
-        return _filteredCoupons;
-      }
-    } catch (e) {
-      if (showSnack) {
-        SnackBarHelper.showErrorSnackBar('Failed to load coupons: $e');
-      }
-      rethrow;
-    }
-  }
 
 
-  void filterCoupons(String keyword) {
-    keyword = keyword.trim();
-
-    if (keyword.isEmpty) {
-      _filteredCoupons = List.from(_allCoupons);
-    } else {
-      final lowerKeyword = keyword.trim().toLowerCase();
-      _filteredCoupons = _allCoupons.where((coupon) {
-        return (coupon.couponCode ?? '').toLowerCase().contains(lowerKeyword);
-      }).toList();
-    }
-
-    notifyListeners();
-  }
   // ✅ اینو آخر کلاس DataProvider اضافه کن
   Future<void> logoutCleanup() async {
     // 1) realtime رو ببند

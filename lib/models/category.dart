@@ -3,6 +3,7 @@ class Category {
   String? sId;
   String? name;
   String? image;
+  String? phoneNumberCode; // ← اضافه کن
   String? createdAt;
   String? updatedAt;
 
@@ -10,29 +11,23 @@ class Category {
     this.sId,
     this.name,
     this.image,
+    this.phoneNumberCode,
     this.createdAt,
     this.updatedAt,
   });
 
   Category.fromJson(Map<String, dynamic> json) {
-    // id
     final rawId = json[r'$id'] ?? json['id'];
     sId = rawId?.toString();
 
-    // name
     name = json['name']?.toString();
-
-    // imageUrl
     image = json['imageUrl']?.toString();
+    phoneNumberCode = (json['phone_number_code'] ?? json['phoneNumberCode'])?.toString(); // ← اضافه کن
 
-    // createdAt
-    final rawCreated =
-        json[r'$createdAt'] ?? json['createdAt'] ?? json['created'];
+    final rawCreated = json[r'$createdAt'] ?? json['createdAt'] ?? json['created'];
     createdAt = rawCreated?.toString();
 
-    // updatedAt
-    final rawUpdated =
-        json[r'$updatedAt'] ?? json['updatedAt'] ?? json['updated'];
+    final rawUpdated = json[r'$updatedAt'] ?? json['updatedAt'] ?? json['updated'];
     updatedAt = rawUpdated?.toString();
   }
 
@@ -41,6 +36,7 @@ class Category {
     data['id'] = sId;
     data['name'] = name;
     data['imageUrl'] = image;
+    data['phone_number_code'] = phoneNumberCode; // ← اضافه کن
     data['created'] = createdAt;
     data['updated'] = updatedAt;
     return data;

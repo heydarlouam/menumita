@@ -8,6 +8,7 @@ import 'package:admin/config/network/request_executor.dart';
 import 'package:admin/models/product.dart';
 
 class ProductsAppwriteService {
+
   final RequestExecutor _executor = RequestExecutor();
   Databases get _db => AppwriteClient.instance.databases;
 
@@ -35,6 +36,46 @@ class ProductsAppwriteService {
       label: 'GET products',
     );
   }
+
+  /// ✅ Paging (Infinite scroll)
+  Future<ApiResult<List<Product>>> getPagedByPhoneNumberCode(
+      String phoneNumberCode, {
+        required int limit,
+        String? cursorAfter,
+      }) {
+    return _executor.execute<List<Product>>(
+          () async {
+        final queries = <String>[
+          Query.equal('phone_number_code', phoneNumberCode),
+          Query.orderDesc(r'$updatedAt'),
+          Query.limit(limit),
+        ];
+
+        final c = (cursorAfter ?? '').trim();
+        if (c.isNotEmpty) {
+          queries.add(Query.cursorAfter(c));
+        }
+
+        final res = await _db.listDocuments(
+          databaseId: Environment.databaseIdMenuMita,
+          collectionId: Environment.collectionIdProducts,
+          queries: queries,
+        );
+
+        return res.documents.map((doc) {
+          final map = <String, dynamic>{
+            ...doc.data,
+            r'$id': doc.$id,
+            r'$createdAt': doc.$createdAt,
+            r'$updatedAt': doc.$updatedAt,
+          };
+          return Product.fromJson(map);
+        }).toList();
+      },
+      label: 'GET products paged',
+    );
+  }
+
 
   Future<ApiResult<Product>> createProduct({
     required Map<String, dynamic> data,

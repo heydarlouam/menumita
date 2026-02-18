@@ -1,7 +1,9 @@
 import 'package:admin/config/environment.dart';
+import 'package:admin/config/network/appwrite_client.dart';
 import 'package:appwrite/appwrite.dart';
 import 'package:admin/models/order.dart';
 import 'package:appwrite/models.dart';
+import 'package:flutter/foundation.dart';
 
 class OrdersPageResult {
   final List<Order> orders;
@@ -23,35 +25,56 @@ class OrdersAppwriteService {
   final String databaseId;
   final String ordersCollectionId;
 
+  // OrdersAppwriteService({
+  //   Client? client,
+  //   String endpoint = Environment.appwriteEndpoint,
+  //   String projectId = Environment.appwriteProjectId,
+  //   this.databaseId = Environment.databaseIdMenuMita,
+  //   this.ordersCollectionId = Environment.collectionIdOrders,
+  // })  : _client = client ??
+  //     (Client()
+  //       ..setEndpoint(endpoint)
+  //       ..setProject(projectId)),
+  //       db = Databases(client ??
+  //           (Client()
+  //             ..setEndpoint(endpoint)
+  //             ..setProject(projectId))),
+  //       realtime = Realtime(client ??
+  //           (Client()
+  //             ..setEndpoint(endpoint)
+  //             ..setProject(projectId))) {
+  //   // ✅ اگر می‌خوای فقط یک Client استفاده بشه (پیشنهادی)،
+  //   // سازنده‌ی بالا رو اینطوری کن:
+  //   //
+  //   // }) : _client = client ?? (Client()..setEndpoint(endpoint)..setProject(projectId)),
+  //   //      db = Databases(_client),
+  //   //      realtime = Realtime(_client);
+  //   //
+  //   // چون الان اگر client پاس ندی، 3 تا Client جدا ساخته میشه.
+  // }
+
+
   OrdersAppwriteService({
     Client? client,
-    String endpoint = Environment.appwriteEndpoint,
-    String projectId = Environment.appwriteProjectId,
     this.databaseId = Environment.databaseIdMenuMita,
     this.ordersCollectionId = Environment.collectionIdOrders,
-  })  : _client = client ??
-      (Client()
-        ..setEndpoint(endpoint)
-        ..setProject(projectId)),
-        db = Databases(client ??
-            (Client()
-              ..setEndpoint(endpoint)
-              ..setProject(projectId))),
-        realtime = Realtime(client ??
-            (Client()
-              ..setEndpoint(endpoint)
-              ..setProject(projectId))) {
-    // ✅ اگر می‌خوای فقط یک Client استفاده بشه (پیشنهادی)،
-    // سازنده‌ی بالا رو اینطوری کن:
-    //
-    // }) : _client = client ?? (Client()..setEndpoint(endpoint)..setProject(projectId)),
-    //      db = Databases(_client),
-    //      realtime = Realtime(_client);
-    //
-    // چون الان اگر client پاس ندی، 3 تا Client جدا ساخته میشه.
+  })  : _client = client ?? AppwriteClient.instance.client,
+        db = Databases(client ?? AppwriteClient.instance.client),
+        realtime = Realtime(client ?? AppwriteClient.instance.client);
+
+  RealtimeSubscription? subscribeOrders(void Function(RealtimeMessage msg) onMessage) {
+    if (kIsWeb) {
+      print('🌐 Web platform → Realtime subscription DISABLED (using Polling instead)');
+      return null; // هیچ subscription ایجاد نکن
+    }
+
+    print('📱 Native platform → Creating Realtime subscription for orders');
+    final sub = realtime.subscribe([
+      'databases.$databaseId.collections.$ordersCollectionId.documents',
+    ]);
+    sub.stream.listen(onMessage);
+    return sub;
   }
-
-
   // ----------- helpers -----------
   Map<String, dynamic> _normalizeDoc(Map<String, dynamic> doc) {
     final m = Map<String, dynamic>.from(doc);
@@ -66,13 +89,13 @@ class OrdersAppwriteService {
   }
 
   // ----------- Realtime -----------
-  RealtimeSubscription subscribeOrders(void Function(RealtimeMessage msg) onMessage) {
-    final sub = realtime.subscribe([
-      'databases.$databaseId.collections.$ordersCollectionId.documents',
-    ]);
-    sub.stream.listen(onMessage);
-    return sub;
-  }
+  // RealtimeSubscription subscribeOrders(void Function(RealtimeMessage msg) onMessage) {
+  //   final sub = realtime.subscribe([
+  //     'databases.$databaseId.collections.$ordersCollectionId.documents',
+  //   ]);
+  //   sub.stream.listen(onMessage);
+  //   return sub;
+  // }
 
   // ----------- Fetch (ALL InProgress) -----------
   Future<List<Order>> fetchAllInProgress({
